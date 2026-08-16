@@ -23,9 +23,9 @@
         <span class="brand-aside" id="brand-aside">negocio</span>
       </a>
       <nav class="topbar-nav">
-        <a href="./index.html">Mapa</a>
-        <a href="./mi-turno.html">Mis turnos</a>
-        <a href="./bo.html" id="bo-link">Backoffice</a>
+        <a class="hide-sm" href="./index.html">Mapa</a>
+        <a class="hide-sm" href="./mi-turno.html">Mis turnos</a>
+        <a class="hide-sm" href="./bo.html" id="bo-link">Backoffice</a>
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
@@ -146,16 +146,27 @@
         ${(() => {
           const live = publicPlaceCoupons(place.id);
           if (!live.length) return "";
-          return `<section class="band">
+          return `<section class="band" id="cupones">
             <h2>Cupones disponibles</h2>
-            ${live
-              .map(
-                (coupon) =>
-                  `<p class="meta"><strong>${coupon.code}</strong> · ${
-                    coupon.type === "fijo" ? money(coupon.value) : `${coupon.value}%`
-                  } off${coupon.serviceId ? " en un servicio" : ""}</p>`,
-              )
-              .join("")}
+            <p class="band-lead">Copiá el código y cargalo cuando reserves. Se descuenta en el pago.</p>
+            <div class="coupon-list">
+              ${live
+                .map((coupon) => {
+                  const off =
+                    coupon.type === "fijo" ? `${money(coupon.value)} off` : `${coupon.value}% off`;
+                  const service = coupon.serviceId
+                    ? services.find((row) => row.id === coupon.serviceId)
+                    : null;
+                  const scope = service ? service.name : "Todos los servicios";
+                  return `<article class="coupon-card">
+                    <p class="coupon-off">${off}</p>
+                    <strong class="coupon-code">${coupon.code}</strong>
+                    <p class="meta">${scope}</p>
+                    <button class="btn btn-enamel" type="button" data-copy-coupon="${coupon.code}">Copiar código</button>
+                  </article>`;
+                })
+                .join("")}
+            </div>
           </section>`;
         })()}
         ${(() => {
@@ -186,20 +197,6 @@
             }
           </section>`;
         })()}
-        <section class="band">
-          <h2>Cómo cancelás</h2>
-          <p class="band-lead">Si te arrepentís dentro de ${placePolicy(place.id).arrepentimientoDias} días y el servicio no se prestó, se libera el horario y se reintegra la seña (Ley 24.240). Después rige la política del local: ${placePolicy(place.id).horasAntesCancelacion} h de anticipación.</p>
-        </section>
-        ${
-          planAllows(place.id, "waitlist")
-            ? `<section class="band">
-                <h2>Lista de espera</h2>
-                <p class="band-lead">Si no hay horario, te avisamos cuando se libere. El primero de la cola tiene 10 minutos.</p>
-                <button class="btn btn-enamel" type="button" id="wait">Avisame si se libera</button>
-                <p class="meta" id="wait-msg"></p>
-              </section>`
-            : ""
-        }
         <section class="band" id="resenas">
           <h2>Reseñas</h2>
           ${
@@ -233,24 +230,17 @@
             }
           });
         }
-        const wait = document.getElementById("wait");
-        if (wait) {
-          wait.addEventListener("click", () => {
-            ensureDemoUser();
-            const user = currentUser();
-            const joined = joinWaitlist(place.id, {
-              email: user.email,
-              nombre: user.nombre,
-              serviceId: services[0]?.id,
-              serviceName: services[0]?.name,
-              placeName: place.name,
-            });
-            document.getElementById("wait-msg").textContent = joined.already
-              ? "Ya estás en la lista. Si se libera un hueco, te avisamos acá."
-              : "Listo. Si se libera un horario, te llega a Notificaciones.";
-            if (typeof paintClientAccount === "function") paintClientAccount();
+        document.querySelectorAll("[data-copy-coupon]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            const code = button.dataset.copyCoupon;
+            try {
+              await navigator.clipboard.writeText(code);
+              button.textContent = "Código copiado";
+            } catch {
+              button.textContent = code;
+            }
           });
-        }
+        });
         const supportForm = document.getElementById("support-form");
         if (supportForm) {
           supportForm.addEventListener("submit", (event) => {

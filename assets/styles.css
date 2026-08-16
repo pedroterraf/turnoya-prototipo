@@ -33,10 +33,15 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
+  overflow-x: clip;
   background: var(--field);
   color: var(--ink);
   font-family: var(--body);
@@ -79,11 +84,15 @@ img {
 }
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 14px 22px;
+  padding-top: max(14px, env(safe-area-inset-top));
   background: var(--enamel);
   color: var(--chalk);
 }
@@ -329,6 +338,83 @@ img {
 .ticket p {
   margin: 0 0 12px;
   font-size: 0.92rem;
+}
+
+.coupon-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+@media (min-width: 640px) {
+  .coupon-list {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+.coupon-card {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px 14px;
+  overflow: hidden;
+  background: var(--ticket);
+  color: var(--ticket-ink);
+  box-shadow: var(--shadow);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent,
+    transparent 12px,
+    rgba(42, 34, 8, 0.08) 12px,
+    rgba(42, 34, 8, 0.08) 13px
+  );
+  background-size: 100% 10px;
+  background-repeat: no-repeat;
+  background-position: top;
+}
+
+.coupon-card::before,
+.coupon-card::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background: var(--chalk);
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.coupon-card::before {
+  left: -8px;
+}
+
+.coupon-card::after {
+  right: -8px;
+}
+
+.coupon-off {
+  margin: 8px 0 0;
+  font-family: var(--display);
+  font-size: 1.7rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+
+.coupon-code {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.coupon-card .meta {
+  color: var(--ticket-ink);
+  opacity: 0.7;
+}
+
+.coupon-card .btn {
+  margin-top: 10px;
+  justify-self: start;
 }
 
 .search-row {
@@ -2682,6 +2768,10 @@ img {
   color: var(--ticket-ink);
 }
 
+.app-dock {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .bo-tiles,
   .bo-form {
@@ -2691,32 +2781,73 @@ img {
   .market,
   .sell-hero,
   .ads-split,
-  .agenda-row {
+  .agenda-row,
+  .card-box-row,
+  .bo-head,
+  .bo-actions {
     grid-template-columns: 1fr;
   }
 
+  .market {
+    min-height: 0;
+  }
+
+  .rail {
+    border-right: 0;
+  }
+
+  .map-wrap {
+    min-height: 0;
+  }
+
   .map {
-    min-height: 46vh;
+    min-height: 42vh;
+    height: 42vh;
   }
 
   .topbar {
-    flex-wrap: wrap;
-    padding: 12px 14px;
+    flex-wrap: nowrap;
     gap: 10px;
+    padding: 10px 14px;
+    padding-top: max(10px, env(safe-area-inset-top));
   }
 
   .topbar-nav {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 10px 14px;
+    width: auto;
+    min-width: 0;
+    flex: 1;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .topbar-nav .hide-sm {
     display: none;
   }
 
+  .has-app-dock .topbar-nav > a[href="./index.html"],
+  .has-app-dock .topbar-nav > a[href="./mi-turno.html"],
+  .has-app-dock .topbar-nav > a[href="./perfil.html"],
+  .has-app-dock .topbar-nav > a[href="./negocios.html"],
+  .has-app-dock .topbar-nav > a[href="./notificaciones.html"],
+  .has-app-dock .topbar-nav > a[href="./recorrido.html"],
+  .has-app-dock .topbar-nav > a[href="./ops-login.html"],
+  .has-app-dock .topbar-nav > a[href="./bo.html"],
+  .has-app-dock .topbar-nav > #bo-link,
+  .has-app-dock .account-slot,
+  .has-app-dock .topbar-nav > .btn-ticket {
+    display: none;
+  }
+
   .topbar-nav a,
   .topbar-nav .btn {
+    flex: 0 0 auto;
+    min-height: 44px;
+  }
+
+  .btn {
     min-height: 44px;
   }
 
@@ -2724,12 +2855,17 @@ img {
     min-height: 0;
   }
 
+  .brand-aside {
+    display: none;
+  }
+
   .city-select {
     min-width: 0;
+    max-width: 42vw;
   }
 
   .band {
-    padding: 28px 16px;
+    padding: 22px 16px 28px;
   }
 
   .narrow {
@@ -2745,6 +2881,28 @@ img {
     min-height: 220px;
   }
 
+  .search-row {
+    grid-template-columns: 1fr;
+  }
+
+  .search-row .btn {
+    width: 100%;
+  }
+
+  .ticket {
+    margin: 12px 12px 6px;
+  }
+
+  .ticket h1 {
+    font-size: 1.45rem;
+  }
+
+  .cal-wrap {
+    margin-inline: -16px;
+    border-left: 0;
+    border-right: 0;
+  }
+
   .cal-head-row,
   .cal-row,
   .tg-heads,
@@ -2757,6 +2915,20 @@ img {
     font-size: 0.72rem;
   }
 
+  .service-picks {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-inline: -16px;
+    padding: 0 16px 8px;
+  }
+
+  .week-nav-btn {
+    min-height: 44px;
+    padding: 0 10px;
+    font-size: 0.86rem;
+  }
+
   .otp {
     gap: 6px;
   }
@@ -2766,7 +2938,13 @@ img {
     font-size: 1.2rem;
   }
 
-  .auth-card {
+  .auth-shell {
+    padding: 16px 14px 32px;
+  }
+
+  .auth-card,
+  .auth-card.wide {
+    width: 100%;
     padding: 22px 16px;
   }
 
@@ -2774,8 +2952,10 @@ img {
     grid-template-columns: 1fr;
   }
 
-  .place-switch {
+  .place-switch,
+  .bo-page .place-switch {
     max-width: none;
+    width: 100%;
   }
 
   .tariff-scroller {
@@ -2827,5 +3007,187 @@ img {
     margin: 0;
     font-weight: 650;
     text-align: right;
+  }
+
+  .quote {
+    display: grid;
+    gap: 10px;
+  }
+
+  .quote .btn,
+  .quote .btn-line {
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+  }
+
+  .quote .review-form {
+    max-width: none;
+  }
+
+  .compare-wrap,
+  table.compare {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .drawer {
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 70vh;
+    overflow: auto;
+  }
+
+  .has-app-dock .drawer {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .go-mini {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .go-mini .btn-line {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .place-map {
+    min-height: 220px;
+  }
+
+  .watermark {
+    font-size: 2rem;
+    right: 10px;
+    bottom: 12px;
+  }
+
+  .demo-foot {
+    padding: 14px 16px calc(18px + env(safe-area-inset-bottom));
+    font-size: 0.78rem;
+  }
+
+  .has-app-dock .demo-foot {
+    padding-bottom: 18px;
+  }
+
+  .notify-toast {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  #pick-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 12;
+    margin: 12px -16px 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: var(--field);
+    box-shadow: 0 -8px 20px rgba(18, 23, 20, 0.08);
+  }
+
+  .has-app-dock #pick-bar {
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: 12px;
+  }
+
+  #pick-bar .btn {
+    width: 100%;
+  }
+
+  .app-dock {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+    background: var(--enamel);
+    color: var(--chalk);
+    box-shadow: 0 -8px 22px rgba(7, 40, 30, 0.22);
+  }
+
+  .has-app-dock {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .dock-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-height: 48px;
+    padding: 4px 2px;
+    color: #c9d4cc;
+    text-decoration: none;
+    font-size: 0.68rem;
+    font-weight: 650;
+  }
+
+  .dock-item.is-on {
+    color: var(--ticket);
+  }
+
+  .dock-item:active {
+    transform: scale(0.96);
+  }
+
+  .dock-ico {
+    width: 22px;
+    height: 22px;
+  }
+
+  .dock-unread {
+    position: absolute;
+    top: 2px;
+    right: calc(50% - 18px);
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: var(--ticket);
+    color: var(--ticket-ink);
+    font-size: 0.62rem;
+    line-height: 16px;
+    text-align: center;
+  }
+
+  .search-select-list {
+    max-height: 200px;
+  }
+
+  .coupon-card .btn {
+    width: 100%;
+    justify-self: stretch;
+  }
+
+  .bo-subnav {
+    flex-wrap: nowrap;
+    gap: 4px;
+    padding: 8px 14px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bo-subnav a {
+    flex: 0 0 auto;
+    min-height: 36px;
+  }
+
+  .nav-bell-panel {
+    right: 0;
+    left: auto;
+    width: min(320px, calc(100vw - 24px));
   }
 }

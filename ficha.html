@@ -10,6 +10,10 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body class="sell">
@@ -29,10 +33,13 @@
       <section class="band"><p class="meta">Cargando el negocio…</p></section>
     </main>
     <footer class="demo-foot" data-demo-foot></footer>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
@@ -75,7 +82,15 @@
             ${
               published
                 ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
-                   <button class="btn btn-line" type="button" id="share">Compartir</button>`
+                   <button class="btn btn-line" type="button" id="share">Compartir</button>
+                   ${
+                     todayHuecos(place.id).length
+                       ? `<p class="meta">Hoy hay hueco: ${todayHuecos(place.id)
+                           .slice(0, 3)
+                           .map((slot) => slot.slice(11))
+                           .join(" · ")}</p>`
+                       : ""
+                   }`
                 : `<p class="meta">Este local no está publicado en el mapa.${view.suspended ? " Está suspendido." : " El alta sigue en revisión."}</p>`
             }
           </div>
@@ -123,10 +138,11 @@
               .join("")}
           </div>
         </section>
-        <section class="band">
-          <h2>Dónde estamos</h2>
-          <iframe class="map-embed" title="Mapa del local" src="${mapsEmbed(place)}" loading="lazy"></iframe>
-          <p class="meta">${placeAddress(place)}</p>
+        <section class="band" id="place-go">
+          <h2>Cómo llegar</h2>
+          <p class="band-lead">Te marcamos en vivo. Google abre la ruta con tráfico real.</p>
+          <div id="place-map" class="place-map" role="img" aria-label="Mapa del local y tu ubicación"></div>
+          ${directionsPanelHtml(place)}
         </section>
         ${(() => {
           const live = placeCoupons(place.id).filter((row) => row.active);
@@ -172,6 +188,20 @@
           </section>`;
         })()}
         <section class="band">
+          <h2>Cómo cancelás</h2>
+          <p class="band-lead">Si te arrepentís dentro de ${placePolicy(place.id).arrepentimientoDias} días y el servicio no se prestó, se libera el horario y se reintegra la seña (Ley 24.240). Después rige la política del local: ${placePolicy(place.id).horasAntesCancelacion} h de anticipación.</p>
+        </section>
+        ${
+          planAllows(place.id, "waitlist")
+            ? `<section class="band">
+                <h2>Lista de espera</h2>
+                <p class="band-lead">Si no hay horario, te avisamos cuando se libere. El primero de la cola tiene 10 minutos.</p>
+                <button class="btn btn-enamel" type="button" id="wait">Avisame si se libera</button>
+                <p class="meta" id="wait-msg"></p>
+              </section>`
+            : ""
+        }
+        <section class="band">
           <h2>Recomendaciones</h2>
           ${
             quotes.length
@@ -186,6 +216,7 @@
         </section>
       `;
         bindTurnoActions(document.getElementById("ficha"), paint);
+        startPlaceGuide(place);
         const share = document.getElementById("share");
         if (share) {
           share.addEventListener("click", async () => {
@@ -200,6 +231,21 @@
             } catch {
               /* ignore */
             }
+          });
+        }
+        const wait = document.getElementById("wait");
+        if (wait) {
+          wait.addEventListener("click", () => {
+            ensureDemoUser();
+            const user = currentUser();
+            joinWaitlist(place.id, {
+              email: user.email,
+              nombre: user.nombre,
+              serviceId: services[0]?.id,
+              serviceName: services[0]?.name,
+              placeName: place.name,
+            });
+            document.getElementById("wait-msg").textContent = "Listo. Te llega el aviso en Avisos.";
           });
         }
         const supportForm = document.getElementById("support-form");

@@ -14,7 +14,7 @@ function seedPendingAlta() {
     nextSlot: "Mañana 11:00",
     whatsapp: "3514440000",
     status: "pending",
-    plan: "base",
+    plan: "calle",
   });
 }
 

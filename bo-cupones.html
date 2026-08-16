@@ -17,9 +17,11 @@
     </header>
     <main class="band" id="root"></main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
@@ -81,6 +83,11 @@
           </form>`;
         const form = document.getElementById("form");
         document.getElementById("add").addEventListener("click", () => {
+          const cap = planLimit(id, "coupons");
+          if (rows.length >= cap) {
+            location.href = planUpgradeHref(id, "cupones");
+            return;
+          }
           rows = readForm(form);
           rows.push({ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" });
           paint();

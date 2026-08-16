@@ -17,6 +17,7 @@
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">BO</span></a>
       <nav class="topbar-nav">
         <a id="ver" href="./ficha.html">Ver landing</a>
+        <a href="./avisos.html?rol=dueno">Avisos</a>
         <button class="btn btn-ghost" id="out" type="button">Salir</button>
       </nav>
     </header>
@@ -25,24 +26,30 @@
         <select id="biz"></select>
       </label>
       <h2 id="title">Backoffice</h2>
-      <p class="band-lead">Primero la agenda: ahí se concreta el turno. El resto es config del local.</p>
+      <p class="band-lead">El local se opera de acá: agenda en vivo, caja, facturas ARCA y la ficha. No hace falta pasar por el turnero público.</p>
+      <div id="dash"></div>
       <div id="ops-box"></div>
       <div id="notes-box"></div>
       <div id="local-box"></div>
       <div class="card-grid bo-nav">
-        <a class="service-card" id="l-agenda" href="./bo-agenda.html"><div><strong>Agenda</strong><span class="meta">Concretó, no vino, cancelar, reprogramar</span></div></a>
+        <a class="service-card" id="l-agenda" href="./bo-agenda.html"><div><strong>Agenda</strong><span class="meta">Turno de mostrador, cobro y factura</span></div></a>
+        <a class="service-card" id="l-caja" href="./bo-caja.html"><div><strong>Caja y ARCA</strong><span class="meta">Métricas, CSV/Excel, facturas A/B/C</span></div></a>
         <a class="service-card" id="l-serv" href="./bo-servicios.html"><div><strong>Servicios</strong><span class="meta">Horario, precio, capacidad, incluye</span></div></a>
         <a class="service-card" id="l-cup" href="./bo-cupones.html"><div><strong>Cupones</strong><span class="meta">Descuento por código</span></div></a>
         <a class="service-card" id="l-sup" href="./bo-soporte.html"><div><strong>Soporte</strong><span class="meta">WhatsApp, mail y bandeja</span></div></a>
         <a class="service-card" id="l-land" href="./bo-landing.html"><div><strong>Landing</strong><span class="meta">Color y banner canvas 1440×480 / 1080×720</span></div></a>
         <a class="service-card" id="l-pay" href="./bo-pagos.html"><div><strong>Pagos y días</strong><span class="meta">Seña, Mercado Pago, horario por día</span></div></a>
         <a class="service-card" id="l-rev" href="./negocio-resenas.html"><div><strong>Recomendaciones</strong><span class="meta">Textos; las estrellas no se tocan</span></div></a>
+        <a class="service-card" id="l-plan" href="./bo-plan.html"><div><strong>Plan</strong><span class="meta">Calle, Barrio, Ciudad, Red · 0% comisión</span></div></a>
       </div>
     </main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/accounts.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
@@ -64,7 +71,28 @@
         const view = placeView(place);
         document.getElementById("title").textContent = `Backoffice · ${place.name}`;
         document.getElementById("ver").href = `./ficha.html?id=${id}`;
-        ["l-agenda", "l-serv", "l-cup", "l-sup", "l-land", "l-pay", "l-rev"].forEach((key) => {
+        const ownerMail = placeOwnerEmail(id);
+        const ownerUnread = unreadCount(ownerMail);
+        const avisosLink = document.querySelector('a[href^="./avisos.html"]');
+        if (avisosLink) {
+          avisosLink.innerHTML = ownerUnread
+            ? `Avisos <span class="nav-unread">${ownerUnread}</span>`
+            : "Avisos";
+        }
+        seedPlaceAgenda(id);
+        const metrics = placeMetrics(id);
+        document.getElementById("dash").innerHTML = `
+          <div class="ops-stats">
+            <div class="ops-stat"><b>${money(metrics.cobrado)}</b><span class="meta">Recaudado del mes</span></div>
+            <div class="ops-stat"><b>${money(metrics.saldo)}</b><span class="meta">Saldo (pagaron el mínimo)</span></div>
+            <div class="ops-stat"><b>${money(metrics.reembolso)}</b><span class="meta">Cancelado</span></div>
+            <div class="ops-stat"><b>${metrics.concretados}/${metrics.turnos}</b><span class="meta">Concretados / turnos</span></div>
+            <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Olvidaron cobrar</span></div>
+            <div class="ops-stat"><b>${metrics.facturas}</b><span class="meta">Facturas ARCA</span></div>
+          </div>
+          <p><a class="btn btn-ticket" href="./bo-agenda.html?id=${id}">Crear turno ahora</a>
+          <a class="btn btn-enamel" href="./bo-caja.html?id=${id}">Abrir caja</a></p>`;
+        ["l-agenda", "l-caja", "l-serv", "l-cup", "l-sup", "l-land", "l-pay", "l-rev", "l-plan"].forEach((key) => {
           document.getElementById(key).href = document
             .getElementById(key)
             .getAttribute("href")

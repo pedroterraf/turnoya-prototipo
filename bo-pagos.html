@@ -37,15 +37,17 @@
         <label class="pay-pct">Techo $ (0 = sin techo) <input name="techo" type="number" min="0" value="0" /></label>
         <label>Días de arrepentimiento (Ley 24.240) <input name="arrep" type="number" min="1" value="10" /></label>
         <label>Horas antes para cancelar (política del local) <input name="horas" type="number" min="0" value="48" /></label>
-        <p class="meta">Días y horario de apertura (se cruza con el horario de cada servicio)</p>
+        <p class="meta">Días y horario de apertura. Se ven en la agenda. Los feriados se importan allá, no acá.</p>
         <div class="day-grid" id="days"></div>
         <button class="btn btn-ticket" type="submit">Guardar</button>
       </form>
     </main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";

@@ -23,9 +23,12 @@
     <main class="band" id="root"></main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/calendar.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
@@ -49,11 +52,9 @@
       const from = new Date();
       from.setDate(from.getDate() + week * 7);
       const days = weekDays(from);
-      const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-      const today = dayKey(new Date());
-      const now = new Date();
       const expired = params.get("expired") === "1";
       const openCount = freeSlots(place.id, service, reprogramId, from).length;
+      let selection = null;
       const weekQuery = (nextWeek) => {
         const q = new URLSearchParams({
           id: place.id,
@@ -65,81 +66,20 @@
       };
       const chips = services
         .map((item) => {
+          const row = normalizeService(item);
           const href = `./reservar.html?id=${place.id}&service=${item.id}${
             reprogramId ? `&reprogram=${reprogramId}` : ""
           }${week ? `&week=${week}` : ""}`;
-          return `<a class="${item.id === service.id ? "is-on" : ""}" href="${href}">${item.name}</a>`;
+          return `<a class="${item.id === service.id ? "is-on" : ""}" href="${href}">${row.name} · ${row.minutes} min</a>`;
         })
         .join("");
-      const head = days
-        .map(
-          (day) =>
-            `<div class="cal-head${dayKey(day) === today ? " is-today" : ""}">${labels[day.getDay()]}<b>${day.getDate()}</b></div>`,
-        )
-        .join("");
-      const rows = serviceHours(picked)
-        .flatMap((hour) =>
-          [0, 30].map((minute) => {
-            const cells = days
-              .map((day) => {
-                const key = slotKey(day, hour, minute);
-                const closed = !dayAllowsHour(place.id, day, hour);
-                const sameDay = dayKey(day) === today;
-                const pastHour =
-                  sameDay &&
-                  (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
-                const past = dayKey(day) < today || pastHour;
-                const free = !closed && !past && canBook(place.id, service, key, reprogramId);
-                return `<button class="cal-slot${free ? "" : " is-taken"}" type="button" data-slot="${key}" ${
-                  free ? "" : "disabled"
-                }>${free ? `${pad(hour)}:${pad(minute)}` : closed ? "Cerrado" : "Ocupado"}</button>`;
-              })
-              .join("");
-            return `<div class="cal-row">${cells}</div>`;
-          }),
-        )
-        .join("");
-      root.innerHTML = `
-        <p class="meta">${
-          reprogramId
-            ? "Elegí el nuevo horario. No se cobra de nuevo."
-            : "Elegí un horario · el servicio ocupa su duración en la grilla"
-        }</p>
-        <h2>${place.name}</h2>
-        <div class="service-picks">${chips}</div>
-        <p class="band-lead">${picked.name} · ${picked.minutes} min · ${money(picked.price)} · ${hoursLabel(picked)} · ${capacityLabel(picked)}</p>
-        ${picked.description ? `<p class="meta">${picked.description}</p>` : ""}
-        ${
-          picked.includes.length
-            ? `<ul class="include-list">${picked.includes.map((item) => `<li>${item}</li>`).join("")}</ul>`
-            : ""
-        }
-        <p class="meta" ${expired ? "" : "hidden"}>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
-        <p class="week-nav">
-          ${week > 0 ? `<a class="btn-line" href="${weekQuery(week - 1)}">Semana anterior</a>` : "<span></span>"}
-          ${week < 8 ? `<a class="btn-line" href="${weekQuery(week + 1)}">Semana siguiente</a>` : "<span></span>"}
-        </p>
-        <div class="cal-wrap">
-          <div class="watermark cal-mark">TurnoYa</div>
-          <div id="calendar" class="cal">
-            <div class="cal-head-row">${head}</div>${rows}
-          </div>
-        </div>
-        ${
-          openCount
-            ? ""
-            : "<p class=\"meta\">No hay horarios libres en estos 7 días para este servicio. Probá otro o pedile al local que abra más días.</p>"
-        }`;
-      document.getElementById("calendar").addEventListener("click", (event) => {
-        const button = event.target.closest("[data-slot]");
-        if (!button || button.disabled) return;
+
+      function goWithSlot(key) {
         if (reprogramId) {
-          if (reprogramTurno(reprogramId, button.dataset.slot)) {
-            location.href = "./mi-turno.html?moved=1";
-          }
+          if (reprogramTurno(reprogramId, key)) location.href = "./mi-turno.html?moved=1";
           return;
         }
-        const draft = {
+        writeDraft({
           placeId: place.id,
           placeName: place.name,
           slug: place.slug,
@@ -147,16 +87,89 @@
           serviceName: service.name,
           minutes: picked.minutes,
           price: picked.price,
-          slot: button.dataset.slot,
+          slot: key,
           senia: seniaOf(place.id, service.price),
-        };
-        writeDraft(draft);
-        holdSlot(draft);
-        const nextDatos = `./datos.html?id=${place.id}`;
-        const user = currentUser();
+        });
+        holdSlot(readDraft());
         ensureDemoUser();
-        location.href = nextDatos;
-      });
+        location.href = `./datos.html?id=${place.id}`;
+      }
+
+      function paintGrid() {
+        root.innerHTML = `
+          <p class="meta">${
+            reprogramId
+              ? "Elegí el nuevo horario. El bloque mide la duración del servicio."
+              : "Clickeá un hueco. El bloque amarillo mide exactamente los minutos de este servicio."
+          }</p>
+          <h2>${place.name}</h2>
+          <div class="service-picks">${chips}</div>
+          <p class="band-lead">${picked.name} · ${picked.minutes} min · ${money(picked.price)} · ${hoursLabel(picked)} · ${capacityLabel(picked)}</p>
+          ${picked.description ? `<p class="meta">${picked.description}</p>` : ""}
+          <p class="meta" ${expired ? "" : "hidden"}>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
+          <p class="week-nav">
+            ${week > 0 ? `<a class="btn-line" href="${weekQuery(week - 1)}">Semana anterior</a>` : "<span></span>"}
+            ${week < 8 ? `<a class="btn-line" href="${weekQuery(week + 1)}">Semana siguiente</a>` : "<span></span>"}
+          </p>
+          <div class="cal-wrap">
+            <div class="watermark cal-mark">TurnoYa</div>
+            ${renderTimeGrid({ place, service: picked, days, exceptId: reprogramId, selection })}
+          </div>
+          <div class="tg-legend">
+            <span><i class="is-busy"></i> Ocupado · no se pisa</span>
+            <span><i class="is-parallel"></i> Ocupado · se pisa</span>
+            <span><i class="is-hold"></i> Alguien está pagando</span>
+            <span><i class="is-pick"></i> Tu turno (${picked.minutes} min)</span>
+          </div>
+          <p class="meta" id="cal-msg"></p>
+          <div id="pick-bar" ${selection ? "" : "hidden"}>
+            <button class="btn btn-ticket" id="confirm-slot" type="button">Reservar ${
+              selection ? selection.replace("T", " ") : ""
+            } · ${picked.minutes} min</button>
+          </div>
+          ${
+            openCount
+              ? ""
+              : "<p class=\"meta\">No hay hueco donde entre este servicio en estos 7 días. Probá otro o pedile al local que abra más horas.</p>"
+          }
+          ${
+            planAllows(place.id, "waitlist")
+              ? `<p><button class="btn btn-enamel" type="button" id="wait">Avisame si se libera un horario</button></p><p class="meta" id="wait-msg"></p>`
+              : ""
+          }`;
+        bindTimeGrid(root, {
+          place,
+          service: picked,
+          days,
+          exceptId: reprogramId,
+          onPick: (key) => {
+            selection = key;
+            paintGrid();
+          },
+          onBlocked: (text) => {
+            const msg = document.getElementById("cal-msg");
+            if (msg) msg.textContent = text;
+          },
+        });
+        const confirm = document.getElementById("confirm-slot");
+        if (confirm && selection) confirm.addEventListener("click", () => goWithSlot(selection));
+        const waitBtn = document.getElementById("wait");
+        if (waitBtn) {
+          waitBtn.addEventListener("click", () => {
+            ensureDemoUser();
+            const user = currentUser();
+            joinWaitlist(place.id, {
+              email: user.email,
+              nombre: user.nombre,
+              serviceId: service.id,
+              serviceName: service.name,
+              placeName: place.name,
+            });
+            document.getElementById("wait-msg").textContent = "Listo. Si alguien cancela, te avisamos en Avisos.";
+          });
+        }
+      }
+      paintGrid();
       }
     </script>
   </body>

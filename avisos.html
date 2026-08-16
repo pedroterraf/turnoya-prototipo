@@ -24,27 +24,76 @@
     <main class="band narrow" id="root"></main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const user = requireUser("./avisos.html");
-      if (!user) throw new Error("redirect");
-      const notes = userNotes(user.email);
-      const root = document.getElementById("root");
-      if (!notes.length) {
-        root.innerHTML =
-          "<h2>Sin avisos</h2><p class=\"band-lead\">Cuando reserves, canceles o el local confirme, aparece acá el mail y el WhatsApp mock.</p>";
-      } else {
-        root.innerHTML = `<h2>Avisos</h2><p class="band-lead">Mail y WhatsApp del prototipo. En producción salen por esos canales.</p>${notes
-          .map(
-            (note) =>
-              `<article class="quote"><p>${note.text}</p><p class="meta">${new Date(note.at).toLocaleString("es-AR")}</p></article>`,
-          )
-          .join("")}`;
+      const role = new URLSearchParams(location.search).get("rol");
+      const owner = role === "dueno" ? requireOwner((currentOwner() || {}).placeId || "oasis") : currentOwner();
+      const user = role === "dueno" ? owner : requireUser("./avisos.html");
+      const userKey = user?.email;
+      if (!userKey) throw new Error("redirect");
+
+      function paint() {
+        const rows = findMyNotifications(userKey);
+        const unread = rows.filter((row) => !row.isRead).length;
+        const root = document.getElementById("root");
+        if (!rows.length) {
+          root.innerHTML =
+            "<h2>Sin avisos</h2><p class=\"band-lead\">Cuando reserves, canceles o el local confirme, aparece acá. El push llega el día que haya app.</p>";
+          return;
+        }
+        root.innerHTML = `
+          <h2>Avisos</h2>
+          <p class="band-lead">Bandeja de ${userKey}. ${unread ? `${unread} sin leer.` : "Todo leído."} Sin push: se quedan acá.</p>
+          ${
+            unread
+              ? `<button class="btn btn-enamel" type="button" id="read-all">Marcar todas como leídas</button>`
+              : ""
+          }
+          ${rows
+            .map((row) => {
+              const href = notificationHref(row);
+              return `<article class="notice${row.isRead ? "" : " is-unread"}" data-id="${row.id}">
+                <p class="notice-kicker">${row.isRead ? "Leída" : "Nueva"} · ${new Date(row.createdAt).toLocaleString("es-AR")}</p>
+                <h3>${row.title}</h3>
+                <p>${row.body}</p>
+                <div class="notice-actions">
+                  ${href ? `<a class="btn btn-ticket" href="${href}" data-open="${row.id}">Abrir</a>` : ""}
+                  <button class="btn btn-line" type="button" data-toggle="${row.id}" data-read="${row.isRead ? "0" : "1"}">${
+                    row.isRead ? "Marcar no leída" : "Marcar leída"
+                  }</button>
+                </div>
+              </article>`;
+            })
+            .join("")}
+        `;
+        const readAll = document.getElementById("read-all");
+        if (readAll) {
+          readAll.addEventListener("click", () => {
+            markAllRead(userKey);
+            paint();
+            paintClientAccount();
+          });
+        }
+        root.querySelectorAll("[data-toggle]").forEach((button) => {
+          button.addEventListener("click", () => {
+            setReadState(button.dataset.toggle, userKey, button.dataset.read === "1");
+            paint();
+            paintClientAccount();
+          });
+        });
+        root.querySelectorAll("[data-open]").forEach((link) => {
+          link.addEventListener("click", () => {
+            setReadState(link.dataset.open, userKey, true);
+          });
+        });
       }
+
+      paint();
     </script>
   </body>
 </html>

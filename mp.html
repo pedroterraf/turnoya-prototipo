@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pago · TurnoYa</title>
+    <title>Mercado Pago</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,33 +12,25 @@
     />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
-  <body class="sell auth-page">
-    <header class="topbar">
-      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
-      <nav class="topbar-nav">
-        <span class="account-slot" data-client-account></span>
-      </nav>
-    </header>
+  <body class="mp-page">
     <main class="auth-shell">
-      <div class="auth-card">
-        <p class="meta">Mercado Pago · prototipo</p>
+      <div class="auth-card mp-card">
+        <p class="mp-brand">Mercado Pago</p>
         <p class="hold-clock" id="clock">15:00</p>
-        <h1 id="title">Pago</h1>
+        <h1 id="title">Checkout</h1>
         <p class="band-lead" id="detail"></p>
-        <p class="meta" id="mp-note"></p>
-        <p class="meta">TurnoYa no se queda un porcentaje de esta seña: va a Mercado Pago del local. Si te arrepentís dentro de los 10 días y el servicio no se prestó, se libera el horario y se reintegra. Después rige la política del local.</p>
-        <p class="pay-fail" id="fail-msg" hidden>Mercado Pago no acreditó el pago. El horario sigue retenido: volvé a Mercado Pago.</p>
-        <button class="btn btn-ticket" id="pay" type="button">Ir a Mercado Pago</button>
+        <p class="meta">Vas a pagar en Mercado Pago del local. TurnoYa no ve tu tarjeta.</p>
+        <button class="btn mp-pay" id="ok" type="button">Pagar</button>
+        <button class="btn btn-line" id="fail" type="button">Simular pago rechazado</button>
+        <a class="btn-line" href="./pago.html">Volver a TurnoYa</a>
       </div>
     </main>
-    <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
-    <script src="./assets/site.js"></script>
     <script>
       const draft = ensureDemoDraft();
       if (!draft.placeId || !draft.slot) {
@@ -46,35 +38,25 @@
         throw new Error("redirect");
       }
       const senia = draft.senia ?? 0;
-      const rule = paymentRule(draft.placeId);
-      const pay = document.getElementById("pay");
-      document.getElementById("title").textContent = senia > 0 ? `Pagar ${money(senia)}` : "Sin seña";
+      if (senia <= 0) {
+        location.replace("./pago.html");
+        throw new Error("redirect");
+      }
+      document.getElementById("title").textContent = `Pagar ${money(senia)}`;
       document.getElementById("detail").textContent =
         `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}`;
-      pay.textContent = senia > 0 ? "Ir a Mercado Pago" : "Confirmar turno";
-      const blocked = senia > 0 && !rule.mpConnected;
-      if (blocked) {
-        document.getElementById("mp-note").textContent =
-          "El local todavía no conectó Mercado Pago. No se puede cobrar la seña.";
-        pay.hidden = true;
-      }
-      if (new URLSearchParams(location.search).get("fail") === "1") {
-        document.getElementById("fail-msg").hidden = false;
-      }
-      function finish() {
+      document.getElementById("ok").addEventListener("click", () => {
         if (!draftHold()) {
           location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);
           return;
         }
-        if (senia > 0) {
-          location.href = "./mp.html";
-          return;
-        }
-        writeDraft({ pagado: false });
+        writeDraft({ pagado: true });
         const turno = confirmDraft();
         location.href = `./listo.html?id=${turno.id}`;
-      }
-      pay.addEventListener("click", finish);
+      });
+      document.getElementById("fail").addEventListener("click", () => {
+        location.replace("./pago.html?fail=1");
+      });
       watchHold(
         (left) => {
           document.getElementById("clock").textContent = formatHold(left);

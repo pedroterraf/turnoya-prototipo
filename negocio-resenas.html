@@ -25,9 +25,11 @@
     </header>
     <main class="band" id="panel"></main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
@@ -37,6 +39,10 @@
       const root = document.getElementById("panel");
 
       function paint() {
+        if (!planAllows(place.id, "texts")) {
+          root.innerHTML = `<h2>Textos a mostrar</h2><p class="band-lead">Elegir qué recomendaciones se leen pide Barrio o más.</p><a class="btn btn-ticket" href="${planUpgradeHref(place.id, "textos")}">Ver planes</a>`;
+          return;
+        }
         const list = reviewsFor(place.id);
         const live = ratingOf(place.id);
         root.innerHTML = `

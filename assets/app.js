@@ -168,11 +168,18 @@ const state = {
   selectedId: null,
   userLat: null,
   userLng: null,
+  followUser: false,
 };
 
 let map;
 let markers = [];
 let youMarker = null;
+let watchId = null;
+let lastListRender = 0;
+let placeMap = null;
+let placeWatchId = null;
+let placeYouMarker = null;
+let placeGuideId = null;
 
 function distanceKm(lat1, lng1, lat2, lng2) {
   const toRad = (value) => (value * Math.PI) / 180;
@@ -288,7 +295,7 @@ function placeView(place) {
     featured: override.featured ?? base.featured,
     suspended: override.suspended === true,
     status: override.status ?? base.status ?? "live",
-    plan: override.plan ?? base.plan ?? "base",
+    plan: override.plan ?? base.plan ?? (base.featured ? "ciudad" : "calle"),
     nota: override.nota ?? base.nota ?? "",
   };
 }
@@ -339,6 +346,8 @@ function nextSlotOf(place) {
   const service = placeServices(place)[0];
   const first = freeSlots(place.id, service)[0];
   if (!first) return "Sin horarios";
+  const huecos = typeof todayHuecos === "function" ? todayHuecos(place.id) : [];
+  if (huecos.length) return `Hoy hay hueco · ${huecos[0].slice(11)}`;
   const [date, time] = first.split("T");
   const today = typeof dayKey === "function" ? dayKey(new Date()) : "";
   const label = date === today ? "Hoy" : date.slice(5).replace("-", "/");
@@ -397,20 +406,68 @@ function renderResults(places) {
         <span class="thumb" aria-hidden="true">${place.name.slice(0, 1)}</span>
         <span>
           ${sponsoredSlot ? '<span class="badge">Patrocinado</span>' : place.featured ? '<span class="badge">Destacado</span>' : `<span class="badge badge-soft">${place.category}</span>`}
+          ${typeof todayHuecos === "function" && todayHuecos(place.id).length ? '<span class="badge badge-hueco">Hoy hay hueco</span>' : ""}
           <strong>${place.name}</strong>
           ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count)}
-          <span class="meta">${place.service} · a ${place.km} km · ${nextSlotOf(place)}</span>
+          <span class="meta">${place.service} · a ${place.km} km${
+            state.userLat != null && typeof etaMinutes === "function"
+              ? ` · ${etaMinutes(place.km, travelMode())} min`
+              : ""
+          } · ${nextSlotOf(place)}</span>
         </span>
       </button>`;
     })
     .join("");
 }
 
+function currentOrigin() {
+  if (state.userLat == null || state.userLng == null) return null;
+  return { lat: state.userLat, lng: state.userLng };
+}
+
+function updateYouOnMap() {
+  if (!map || state.userLat == null) return;
+  if (!youMarker) {
+    youMarker = L.marker([state.userLat, state.userLng], {
+      icon: youIcon(),
+      zIndexOffset: 800,
+    }).addTo(map);
+  } else {
+    youMarker.setLatLng([state.userLat, state.userLng]);
+  }
+  if (state.followUser) {
+    map.panTo([state.userLat, state.userLng]);
+  }
+}
+
+function refreshGoCards() {
+  document.querySelectorAll("[data-go]").forEach((card) => {
+    const place = lookupPlace(card.dataset.go);
+    if (!place || typeof liveEtaText !== "function") return;
+    const mode = travelMode();
+    const origin = currentOrigin();
+    const eta = card.querySelector("[data-go-eta]");
+    if (eta) eta.textContent = liveEtaText(place, origin, mode);
+    card.querySelectorAll("[data-mode]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.mode === mode));
+    });
+    const maps = card.querySelector("[data-maps]");
+    if (maps) maps.href = googleDirectionsUrl(place, origin, mode);
+  });
+}
+
+function bindGoCard(root, place) {
+  if (!root || !place) return;
+  root.querySelectorAll("[data-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      memorySet("turnoya-travel", button.dataset.mode);
+      refreshGoCards();
+    });
+  });
+  refreshGoCards();
+}
+
 function renderMap(places) {
-  const city = CITIES[state.city];
-  const centerLat = state.userLat ?? city.lat;
-  const centerLng = state.userLng ?? city.lng;
-  map.setView([centerLat, centerLng], 14);
   markers.forEach((marker) => marker.remove());
   markers = places.map((place) => {
     const marker = L.marker([place.lat, place.lng], {
@@ -419,13 +476,7 @@ function renderMap(places) {
     marker.on("click", () => selectPlace(place.id));
     return marker;
   });
-  if (youMarker) {
-    youMarker.remove();
-    youMarker = null;
-  }
-  if (state.userLat != null) {
-    youMarker = L.marker([state.userLat, state.userLng], { icon: youIcon() }).addTo(map);
-  }
+  updateYouOnMap();
   map.invalidateSize();
 }
 
@@ -433,21 +484,25 @@ function selectPlace(id) {
   const place = filteredPlaces().find((item) => item.id === id);
   if (!place) return;
   state.selectedId = id;
+  state.followUser = false;
+  syncFollowButton();
   const drawer = document.getElementById("drawer");
   drawer.hidden = false;
   const rating = ratingOf(place.id);
   const href = `./ficha.html?id=${place.id}`;
   drawer.innerHTML = `
     <button class="drawer-close" type="button" id="close-drawer" aria-label="Cerrar">×</button>
-    <a class="drawer-link" href="${href}">
+    <div class="drawer-body">
       ${place.featured ? '<span class="badge">Destacado</span>' : ""}
       <h3>${place.name}</h3>
       ${starsMarkup(rating.average, rating.count)}
       <p class="meta">${place.service} · ${place.km} km · próximo ${nextSlotOf(place)}</p>
       <p class="meta">turnoya.com/${place.slug}</p>
-      <span class="btn btn-enamel">Ir al negocio</span>
-    </a>
+      ${typeof directionsPanelHtml === "function" ? directionsPanelHtml(place) : ""}
+      <a class="btn btn-enamel" href="${href}">Ir al negocio</a>
+    </div>
   `;
+  bindGoCard(drawer, place);
   map.panTo([place.lat, place.lng]);
 }
 
@@ -459,10 +514,48 @@ function render() {
   renderMap(places);
 }
 
-function applyCity(cityId) {
+function applyCity(cityId, recenter) {
   state.city = cityId;
-  document.getElementById("city").value = cityId;
+  const select = document.getElementById("city");
+  if (select) select.value = cityId;
+  if (recenter && map) {
+    const city = CITIES[cityId];
+    map.setView([city.lat, city.lng], 13);
+  }
   render();
+}
+
+function syncFollowButton() {
+  const button = document.getElementById("follow-me");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(state.followUser));
+  button.textContent = state.followUser ? "Siguiéndote" : "Seguirme";
+}
+
+function applyPosition(position, isFirst) {
+  const lat = position.coords.latitude;
+  const lng = position.coords.longitude;
+  const prevLat = state.userLat;
+  const prevLng = state.userLng;
+  state.userLat = lat;
+  state.userLng = lng;
+  const cityId = nearestCity(lat, lng);
+  const accuracy = Math.round(position.coords.accuracy || 0);
+  setLocationStatus(`En vivo · ${CITIES[cityId].label} · ±${accuracy} m`);
+  updateYouOnMap();
+  refreshGoCards();
+  const movedFar = prevLat == null || distanceKm(prevLat, prevLng, lat, lng) > 0.08;
+  const now = Date.now();
+  if (isFirst) {
+    lastListRender = now;
+    if (map) map.setView([lat, lng], 15);
+    applyCity(cityId, false);
+    return;
+  }
+  if (movedFar && now - lastListRender > 8000) {
+    lastListRender = now;
+    applyCity(cityId, false);
+  }
 }
 
 function requestLocation() {
@@ -471,14 +564,16 @@ function requestLocation() {
     return;
   }
 
-  setLocationStatus("Pedimos tu ubicación para mostrarte lo más cercano.");
+  setLocationStatus("Pedimos tu ubicación para marcarte en vivo.");
   navigator.geolocation.getCurrentPosition(
     (position) => {
-      state.userLat = position.coords.latitude;
-      state.userLng = position.coords.longitude;
-      const cityId = nearestCity(state.userLat, state.userLng);
-      setLocationStatus(`Usando tu ubicación · ${CITIES[cityId].label}`);
-      applyCity(cityId);
+      applyPosition(position, true);
+      if (watchId != null) navigator.geolocation.clearWatch(watchId);
+      watchId = navigator.geolocation.watchPosition(
+        (next) => applyPosition(next, false),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 },
+      );
     },
     () => {
       setLocationStatus("No pudimos usar tu ubicación. Elegí la ciudad a mano.");
@@ -501,9 +596,24 @@ function boot() {
 
   document.getElementById("city").value = state.city;
   document.getElementById("city").addEventListener("change", (event) => {
-    state.city = event.target.value;
-    render();
+    state.followUser = false;
+    syncFollowButton();
+    applyCity(event.target.value, true);
   });
+  const follow = document.getElementById("follow-me");
+  if (follow) {
+    follow.addEventListener("click", () => {
+      if (state.userLat == null) {
+        requestLocation();
+        state.followUser = true;
+        syncFollowButton();
+        return;
+      }
+      state.followUser = !state.followUser;
+      syncFollowButton();
+      if (state.followUser) map.setView([state.userLat, state.userLng], 16);
+    });
+  }
   document.getElementById("query").addEventListener("input", (event) => {
     state.query = event.target.value;
     render();
@@ -537,4 +647,67 @@ function boot() {
 
 function startMarket() {
   if (document.getElementById("map")) boot();
+}
+
+function startPlaceGuide(place) {
+  const el = document.getElementById("place-map");
+  if (!el || typeof L === "undefined" || !place) return;
+  if (placeMap) {
+    placeMap.remove();
+    placeMap = null;
+    placeYouMarker = null;
+  }
+  if (placeWatchId != null) {
+    navigator.geolocation.clearWatch(placeWatchId);
+    placeWatchId = null;
+  }
+  placeGuideId = place.id;
+  placeMap = L.map(el, { zoomControl: false, attributionControl: false }).setView(
+    [place.lat, place.lng],
+    16,
+  );
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+    maxZoom: 19,
+  }).addTo(placeMap);
+  L.control.zoom({ position: "topright" }).addTo(placeMap);
+  L.marker([place.lat, place.lng], { icon: pinIcon(place) }).addTo(placeMap);
+  bindGoCard(document.getElementById("place-go") || document, place);
+  requestAnimationFrame(() => placeMap.invalidateSize());
+
+  function markYou(lat, lng) {
+    state.userLat = lat;
+    state.userLng = lng;
+    if (!placeYouMarker) {
+      placeYouMarker = L.marker([lat, lng], { icon: youIcon(), zIndexOffset: 800 }).addTo(
+        placeMap,
+      );
+      placeMap.fitBounds(
+        [
+          [place.lat, place.lng],
+          [lat, lng],
+        ],
+        { padding: [36, 36], maxZoom: 16 },
+      );
+    } else {
+      placeYouMarker.setLatLng([lat, lng]);
+    }
+    refreshGoCards();
+  }
+
+  if (!navigator.geolocation) {
+    refreshGoCards();
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      markYou(position.coords.latitude, position.coords.longitude);
+      placeWatchId = navigator.geolocation.watchPosition(
+        (next) => markYou(next.coords.latitude, next.coords.longitude),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 },
+      );
+    },
+    () => refreshGoCards(),
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+  );
 }

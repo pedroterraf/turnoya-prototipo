@@ -24,7 +24,8 @@
         <p class="meta">Listo</p>
         <h1>Turno confirmado</h1>
         <p class="band-lead" id="detail"></p>
-        <p>Te dejamos el aviso en Avisos (mail y WhatsApp, en el prototipo). Si te arrepentís (10 días y el servicio no se prestó), desde Mis turnos pedís la devolución.</p>
+        <p>Te dejamos el aviso en tu bandeja. Si te arrepentís (10 días y el servicio no se prestó), desde Mis turnos pedís la devolución.</p>
+        <div id="go-links"></div>
         <a class="btn btn-enamel" href="./mi-turno.html">Ver mi turno</a>
         <a class="btn-line" href="./avisos.html">Ver avisos</a>
         <a class="btn-line" href="./index.html">Volver al mapa</a>
@@ -32,6 +33,7 @@
     </main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -44,6 +46,8 @@
       document.getElementById("detail").textContent = turno
         ? `${turno.placeName} · ${turno.serviceName} · ${String(turno.slot || "").replace("T", " ")} · seña ${money(turno.senia || 0)}`
         : "No hay un turno recién confirmado. Reservá desde el mapa.";
+      const go = document.getElementById("go-links");
+      if (go && turno) go.innerHTML = turnoGoLinks(turno);
     </script>
   </body>
 </html>

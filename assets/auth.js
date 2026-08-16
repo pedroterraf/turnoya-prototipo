@@ -257,7 +257,8 @@ paintFlujoNav();
 
 function paintBoNav() {
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
-  const isBo = (page.startsWith("bo") && page !== "bo-login.html") || page === "negocio-resenas.html";
+  const isBo =
+    (page.startsWith("bo") && page !== "bo-login.html") || page === "negocio-resenas.html";
   if (!isBo) return;
   if (document.querySelector("[data-bo-nav]")) return;
   const id = new URLSearchParams(location.search).get("id") || "oasis";
@@ -267,11 +268,13 @@ function paintBoNav() {
   bar.innerHTML = [
     ["./bo.html", "Panel"],
     ["./bo-agenda.html", "Agenda"],
+    ["./bo-caja.html", "Caja"],
     ["./bo-servicios.html", "Servicios"],
     ["./bo-cupones.html", "Cupones"],
     ["./bo-soporte.html", "Soporte"],
     ["./bo-landing.html", "Landing"],
     ["./bo-pagos.html", "Pagos"],
+    ["./bo-plan.html", "Plan"],
     ["./negocio-resenas.html", "Textos"],
     ["./ficha.html", "Ver ficha"],
   ]

@@ -67,101 +67,112 @@
       </p>
     </section>
 
+    <section class="band" id="solo">
+      <h2>Lo que las otras no tienen</h2>
+      <p class="band-lead">No copiamos AgendaPro ni Booksy. El mapa, la ley y la red son el producto.</p>
+      <div class="only-grid">
+        <article class="only-card">
+          <h3>Mapa de ciudad, no una app</h3>
+          <p class="meta">El cliente busca “masaje cerca” y ve pines. No instala Booksy ni Fresha. Tu ficha vive en turnoya.com/tu-local.</p>
+        </article>
+        <article class="only-card">
+          <h3>0% sobre tu cartera</h3>
+          <p class="meta">Turnito se queda 5% de la seña en el plan gratis. Fresha cobra 20% al cliente nuevo del marketplace. Acá la seña va a tu Mercado Pago.</p>
+        </article>
+        <article class="only-card">
+          <h3>Estrellas que no se compran</h3>
+          <p class="meta">Solo califica quien concretó el turno. Vos elegís textos, no el promedio. El cliente no ve un ranking maquillado.</p>
+        </article>
+        <article class="only-card">
+          <h3>Ley 24.240 adentro</h3>
+          <p class="meta">10 días de arrepentimiento si el servicio no se prestó. Después rige tu política de 48 h. Las otras apps no lo resuelven.</p>
+        </article>
+        <article class="only-card">
+          <h3>Huecos del día en el mapa</h3>
+          <p class="meta">Si se cancela a la tarde, el pin dice “Hoy hay hueco”. No es un descuento escondido en una app de belleza.</p>
+        </article>
+        <article class="only-card">
+          <h3>Asistencia de red</h3>
+          <p class="meta">El dueño ve si Pedro falta en Oasis y también en el kinesiólogo. Un pasaporte, no 12 fichas sueltas.</p>
+        </article>
+        <article class="only-card">
+          <h3>Cómo llegar en vivo</h3>
+          <p class="meta">El pin tuyo se mueve con el GPS. Un toque abre Google Maps o Waze con la ruta y el tráfico real.</p>
+        </article>
+      </div>
+    </section>
+
     <section class="band" id="planes">
-      <h2>Planes por sucursales</h2>
+      <h2>Planes en pesos, sin letra chica de comisión</h2>
       <p class="band-lead">
-        Base tomada de lo que ya cobra el mercado local (TurnosYa.com). Los montos del prototipo son de
-        referencia, no una lista de precios publicada.
+        Anclados a lo que publican Turnito ($0 / $24.500 / $42.000 y 5%–0% de comisión), turnoapp ($14.999),
+        Fresha (USD 19,95 + 20% marketplace) y Booksy (USD 29,99 + Boost 30%). Precio de prototipo, agosto 2026.
       </p>
-      <div class="tariff-toolbar">
-        <a class="btn btn-enamel" href="./negocios.html">Volver</a>
-        <div class="plan-nav" hidden>
-          <button class="btn btn-ghost" type="button" id="plan-prev">Atrás</button>
-          <span id="plan-label">1 / 4</span>
-          <button class="btn btn-ticket" type="button" id="plan-next">Siguiente</button>
-        </div>
+      <p class="meta">Anual = 10 meses. Destacado suelto: $9.900/mes por ciudad + rubro. Patrocinado: $18.900/mes.</p>
+      <div id="plan-grid" class="plan-grid"></div>
+      <div class="compare-wrap">
+        <table class="compare">
+          <thead>
+            <tr>
+              <th></th>
+              <th>TurnoYa</th>
+              <th>Turnito</th>
+              <th>Fresha / Booksy</th>
+              <th>AgendaPro</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Moneda</td>
+              <td>Pesos</td>
+              <td>Pesos o USD</td>
+              <td>Dólares / euros</td>
+              <td>Dólares</td>
+            </tr>
+            <tr>
+              <td>Comisión de la plataforma</td>
+              <td>0% en todos los planes</td>
+              <td>5% gratis · 1% Advance · 0% Experto</td>
+              <td>20% cliente nuevo / Boost 30%</td>
+              <td>1–2% extra + POS aparte</td>
+            </tr>
+            <tr>
+              <td>El cliente instala app</td>
+              <td>No</td>
+              <td>No</td>
+              <td>Sí, para el marketplace</td>
+              <td>App del negocio</td>
+            </tr>
+            <tr>
+              <td>Descubrimiento</td>
+              <td>Mapa de ciudad + ficha</td>
+              <td>Link de Instagram</td>
+              <td>Marketplace cerrado</td>
+              <td>Sin mapa público</td>
+            </tr>
+            <tr>
+              <td>Arrepentimiento Ley 24.240</td>
+              <td>Nativo</td>
+              <td>No</td>
+              <td>No</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Cómo llegar en vivo</td>
+              <td>GPS + Google / Waze</td>
+              <td>No</td>
+              <td>Reserva en Maps, no te guía</td>
+              <td>Mapa del local, estático</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="tariff-scroller">
-      <div class="tariff" role="table" aria-label="Planes">
-        <div class="tariff-head">Incluye</div>
-        <div class="tariff-head">Starter</div>
-        <div class="tariff-head popular">Advanced</div>
-        <div class="tariff-head">Plus</div>
-        <div class="tariff-head">Business</div>
-
-        <div class="tariff-cell tariff-row-label">Precio de referencia</div>
-        <div class="tariff-cell">desde $20.000</div>
-        <div class="tariff-cell">a medida</div>
-        <div class="tariff-cell">a medida</div>
-        <div class="tariff-cell">a medida</div>
-
-        <div class="tariff-cell tariff-row-label">Sucursales</div>
-        <div class="tariff-cell">1</div>
-        <div class="tariff-cell">4</div>
-        <div class="tariff-cell">10</div>
-        <div class="tariff-cell">+10</div>
-
-        <div class="tariff-cell tariff-row-label">Página propia</div>
-        <div class="tariff-cell">turnoya.com/tu-local</div>
-        <div class="tariff-cell">sí</div>
-        <div class="tariff-cell">sí</div>
-        <div class="tariff-cell">sí + dominio</div>
-
-        <div class="tariff-cell tariff-row-label">Pin en el mapa</div>
-        <div class="tariff-cell">orgánico</div>
-        <div class="tariff-cell">orgánico</div>
-        <div class="tariff-cell">orgánico</div>
-        <div class="tariff-cell">orgánico</div>
-
-        <div class="tariff-cell tariff-row-label">Calendario y seña</div>
-        <div class="tariff-cell">sí</div>
-        <div class="tariff-cell">sí</div>
-        <div class="tariff-cell">sí</div>
-        <div class="tariff-cell">sí</div>
-      </div>
-      </div>
-      <div class="plan-cards" id="plan-cards">
-        <article class="plan-card" data-plan="0">
-          <h3>Starter</h3>
-          <dl>
-            <div><dt>Precio de referencia</dt><dd>desde $20.000</dd></div>
-            <div><dt>Sucursales</dt><dd>1</dd></div>
-            <div><dt>Página propia</dt><dd>turnoya.com/tu-local</dd></div>
-            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
-            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
-          </dl>
-        </article>
-        <article class="plan-card" data-plan="1" hidden>
-          <h3>Advanced</h3>
-          <dl>
-            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
-            <div><dt>Sucursales</dt><dd>4</dd></div>
-            <div><dt>Página propia</dt><dd>sí</dd></div>
-            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
-            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
-          </dl>
-        </article>
-        <article class="plan-card" data-plan="2" hidden>
-          <h3>Plus</h3>
-          <dl>
-            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
-            <div><dt>Sucursales</dt><dd>10</dd></div>
-            <div><dt>Página propia</dt><dd>sí</dd></div>
-            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
-            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
-          </dl>
-        </article>
-        <article class="plan-card" data-plan="3" hidden>
-          <h3>Business</h3>
-          <dl>
-            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
-            <div><dt>Sucursales</dt><dd>+10</dd></div>
-            <div><dt>Página propia</dt><dd>sí + dominio</dd></div>
-            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
-            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
-          </dl>
-        </article>
-      </div>
+      <p class="meta">
+        Fuentes: <a href="https://turnito.app/ar/">turnito.app/ar</a>,
+        <a href="https://www.fresha.com/es/pricing">fresha.com/es/pricing</a>,
+        <a href="https://biz.booksy.com/es-es/precios">biz.booksy.com</a>,
+        comparativas públicas de AgendaPro y turnoapp (2026).
+      </p>
     </section>
 
     <section class="band" id="destacados">
@@ -169,15 +180,16 @@
         <div>
           <h2>Publicidad que se entiende</h2>
           <p class="band-lead">
-            El cliente busca un servicio. Nosotros no escondemos quién pagó por estar arriba: se etiqueta
-            Destacado o Patrocinado. El resto se ordena por cercanía.
+            El cliente busca un servicio. No escondemos quién pagó por estar arriba: se etiqueta
+            Destacado o Patrocinado. El resto se ordena por cercanía. Ciudad incluye 1 Destacado.
           </p>
         </div>
         <div class="ads-panel">
-          <h3>Plus Destacado</h3>
-          <p>Carrusel de recomendados, pin dorado y un slot en la lista de esa ciudad y rubro.</p>
-          <p>Se vende por ciudad + categoría, no para todo el país de un saque.</p>
-          <a class="btn btn-enamel" href="#alta">Pedir Destacado</a>
+          <h3>Destacado $9.900</h3>
+          <p>Pin dorado y abre la lista de esa ciudad y rubro.</p>
+          <h3>Patrocinado $18.900</h3>
+          <p>Un slot fijo arriba. Siempre dice Patrocinado.</p>
+          <a class="btn btn-enamel" href="./alta.html">Empezar en Calle</a>
         </div>
       </div>
     </section>
@@ -185,40 +197,33 @@
     <footer class="footer">
       Prototipo UI · no es la web en producción · TurnoYa no es TurnosYa.com
     </footer>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script>
-      const cards = Array.from(document.querySelectorAll(".plan-card"));
-      const nav = document.querySelector(".plan-nav");
-      const label = document.getElementById("plan-label");
-      const prev = document.getElementById("plan-prev");
-      const next = document.getElementById("plan-next");
-      let index = 0;
-
-      function showMobileNav() {
-        return window.matchMedia("(max-width: 900px)").matches;
-      }
-
-      function renderPlan() {
-        cards.forEach((card, i) => {
-          card.hidden = i !== index;
-        });
-        label.textContent = `${index + 1} / ${cards.length}`;
-        prev.disabled = index === 0;
-        next.disabled = index === cards.length - 1;
-        nav.hidden = !showMobileNav();
-      }
-
-      prev.addEventListener("click", () => {
-        if (index === 0) return;
-        index -= 1;
-        renderPlan();
-      });
-      next.addEventListener("click", () => {
-        if (index === cards.length - 1) return;
-        index += 1;
-        renderPlan();
-      });
-      window.addEventListener("resize", renderPlan);
-      renderPlan();
+      document.getElementById("plan-grid").innerHTML = PLAN_ORDER.map((id) => {
+        const plan = PLANS[id];
+        const yearly = plan.yearly ? ` · anual ${money(plan.yearly)}` : "";
+        return `<article class="plan-tile${id === "barrio" ? " is-hot" : ""}">
+          <p class="meta">${plan.tag}</p>
+          <h3>${plan.name}</h3>
+          <p class="plan-price">${planPriceLabel(plan)}</p>
+          <p class="meta">${plan.pitch}${yearly}</p>
+          <ul>
+            <li>${plan.branches === 99 ? "Sucursales ilimitadas" : `${plan.branches} sucursal${plan.branches > 1 ? "es" : ""}`}</li>
+            <li>${plan.bookings ? `${plan.bookings} turnos/mes` : "Turnos ilimitados"}</li>
+            <li>${plan.services} servicios · ${plan.coupons} cupón${plan.coupons > 1 ? "es" : ""}</li>
+            <li>Comisión TurnoYa ${plan.commission}%</li>
+            <li>${plan.waitlist ? "Lista de espera" : "Sin lista de espera"}</li>
+            <li>${plan.huecos ? "Huecos del día en el mapa" : "Sin huecos en el mapa"}</li>
+            <li>${plan.featured ? "Destacado incluido" : "Pin orgánico"}</li>
+          </ul>
+          <a class="btn ${id === "barrio" ? "btn-ticket" : "btn-enamel"}" href="./alta.html?plan=${id}">Elegir ${plan.name}</a>
+        </article>`;
+      }).join("");
     </script>
   </body>
 </html>

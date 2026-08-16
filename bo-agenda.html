@@ -20,9 +20,13 @@
     </header>
     <main class="band" id="root"></main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/accounts.js"></script>
+    <script src="./assets/calendar.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
@@ -36,6 +40,13 @@
       seedPlaceAgenda(id);
       const place = findPlace(id);
       const root = document.getElementById("root");
+      const year = new Date().getFullYear();
+      let week = 0;
+      let openId = null;
+      let invoiceId = null;
+      let walkMsg = "";
+      let importMsg = "";
+      const services = placeServices(place);
 
       function serviceOf(turno) {
         return (
@@ -46,34 +57,131 @@
         );
       }
 
-      function paint(openId) {
+      function weekFrom() {
+        const from = new Date();
+        from.setDate(from.getDate() + week * 7);
+        return from;
+      }
+
+      function hoursLine() {
+        return [1, 2, 3, 4, 5, 6, 0]
+          .map((d) => {
+            const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+            const config = dayConfig(id, d);
+            return config.open
+              ? `${labels[d]} ${pad(config.start)}–${pad(config.end)}`
+              : `${labels[d]} cerrado`;
+          })
+          .join(" · ");
+      }
+
+      async function importHolidays() {
+        importMsg = "Importando…";
+        paint();
+        const rows = await fetchArgentinaHolidays(year);
+        if (!rows.length) {
+          importMsg = "No se pudieron traer feriados de ese año.";
+          paint();
+          return;
+        }
+        mergeImportedHolidays(id, rows);
+        importMsg = `Listos ${rows.length} feriados de ${year} (ArgentinaDatos). Dejá los que cierran el local; sacá los que abrís igual.`;
+        paint();
+      }
+
+      function paint() {
+        const days = weekDays(weekFrom());
         const list = placeTurnos(id);
+        const holidays = placeHolidays(id);
+        const range = placeHourRange(id);
         root.innerHTML = `
           <p class="meta">${owner.email} · ${place.name}</p>
           <h2>Agenda</h2>
-          <p class="band-lead">Confirmado → concretó o no vino. Recién ahí el cliente puede calificar. Cancelar libera el horario y devuelve la seña.</p>
+          <p class="band-lead">La grilla usa el horario hábil de Pagos. Los feriados que dejes tapan el día; los que saques vuelven a abrir.</p>
+          <p class="meta">${hoursLine()} · <a href="./bo-pagos.html?id=${id}">Editar horarios</a> · <a href="./bo-caja.html?id=${id}">Caja y ARCA</a></p>
+          <form id="walk" class="review-form wide-form">
+            <p class="ficha-sub">Turno de mostrador</p>
+            <label>Servicio
+              <select name="serviceId">
+                ${services.map((row) => `<option value="${row.id}">${row.name} · ${row.minutes} min</option>`).join("")}
+              </select>
+            </label>
+            <label>Horario <input name="when" type="datetime-local" /></label>
+            <label>Nombre <input name="nombre" placeholder="Ana" /></label>
+            <label>Apellido <input name="apellido" placeholder="López" /></label>
+            <label>Celular <input name="celular" placeholder="351..." /></label>
+            <label>Cobro
+              <select name="pago">
+                <option value="senia">Seña / mínimo</option>
+                <option value="completo">Pagó todo</option>
+                <option value="sin_pago">Todavía no cobré</option>
+              </select>
+            </label>
+            <button class="btn btn-ticket" type="submit">Crear turno ahora</button>
+            <p class="meta">${walkMsg}</p>
+          </form>
+          <p class="week-nav">
+            ${week > 0 ? `<button class="btn-line" type="button" data-week="${week - 1}">Semana anterior</button>` : "<span></span>"}
+            ${week < 8 ? `<button class="btn-line" type="button" data-week="${week + 1}">Semana siguiente</button>` : "<span></span>"}
+          </p>
+          <div class="cal-wrap">
+            ${renderTimeGrid({ place, days, hourRange: range, view: "owner" })}
+          </div>
+          <div class="tg-legend">
+            <span><i class="is-owner"></i> Turno</span>
+            <span><i class="is-hold"></i> Hold 15 min</span>
+            <span><i class="is-holiday"></i> Feriado (cerrado)</span>
+            <span><i class="is-off"></i> Fuera de horario</span>
+          </div>
+          <section class="holiday-box">
+            <h3 class="ficha-sub">Feriados</h3>
+            <p class="meta">Fuente: <a href="https://argentinadatos.com/docs/operations/get-feriados">ArgentinaDatos · feriados ${year}</a>. Si la API no responde, usamos el listado 2026 cacheado.</p>
+            <button class="btn btn-ticket" type="button" id="import-h">Importar feriados argentinos ${year}</button>
+            <p class="meta" id="import-msg">${importMsg}</p>
+            ${
+              holidays.length
+                ? holidays
+                    .map(
+                      (row) => `<article class="agenda-row">
+                        <div>
+                          <strong>${row.date}</strong>
+                          <p class="meta">${row.name} · ${row.tipo || "feriado"}</p>
+                        </div>
+                        <div class="agenda-actions">
+                          <button class="btn ${row.active !== false ? "btn-enamel" : "btn-ticket"}" type="button" data-keep="${row.id}">${
+                            row.active !== false ? "Abrir ese día" : "Dejar (cierra)"
+                          }</button>
+                          <button class="btn btn-ghost" type="button" data-drop="${row.id}">Sacar</button>
+                        </div>
+                      </article>`,
+                    )
+                    .join("")
+                : "<p class=\"meta\">Todavía no importaste feriados. El local sigue el horario de lunes a viernes.</p>"
+            }
+          </section>
+          <h3 class="ficha-sub">Turnos</h3>
           ${
-            activeHolds()
-              .filter((hold) => hold.placeId === id)
-              .map(
-                (hold) =>
-                  `<p class="meta">Hold 15 min · ${hold.nombre || "alguien"} · ${hold.serviceName} · ${hold.slot.replace("T", " ")} · queda ${formatHold(holdMsLeft(hold))}</p>`,
-              )
-              .join("")
+            waitlistRows(id).length
+              ? `<p class="meta">Lista de espera: ${waitlistRows(id)
+                  .map((row) => row.nombre || row.email)
+                  .join(" · ")}</p>`
+              : ""
           }
           ${
             list.length
               ? list
                   .map((turno) => {
-                    const slots =
-                      openId === turno.id
-                        ? freeSlots(id, serviceOf(turno), turno.id)
-                        : [];
-                    return `<article class="agenda-row">
+                    const slots = openId === turno.id ? freeSlots(id, serviceOf(turno), turno.id) : [];
+                    return `<article class="agenda-row${openId === turno.id ? " is-open" : ""}" id="turno-${turno.id}">
                       <div>
                         <strong>${turno.slot.replace("T", " ")}</strong>
-                        <p class="meta">${turno.nombre} ${turno.apellido} · ${turno.serviceName} · seña ${money(turno.senia || 0)}</p>
-                        <p class="meta">${estadoLabel(turno.estado)}</p>
+                        <p class="meta">${turno.nombre} ${turno.apellido} · ${turno.serviceName} · ${pagoLabel(turno)}</p>
+                        <p class="meta">${clientTrust(turno.email).label} · ${estadoLabel(turno.estado)}${turno.origen === "mostrador" ? " · mostrador" : ""}</p>
+                        ${
+                          invoiceOfTurno(id, turno.id)
+                            ? `<p class="meta">Factura ${invoiceOfTurno(id, turno.id).letter} · CAE ${invoiceOfTurno(id, turno.id).cae}</p>`
+                            : ""
+                        }
                       </div>
                       <div class="agenda-actions">
                         ${
@@ -82,6 +190,34 @@
                                <button class="btn btn-enamel" type="button" data-estado="no_show" data-id="${turno.id}">No vino</button>
                                <button class="btn btn-ghost" type="button" data-estado="cancelado" data-id="${turno.id}">Cancelar</button>
                                <button class="btn btn-ghost" type="button" data-reprog="${turno.id}">Reprogramar</button>`
+                            : ""
+                        }
+                        ${
+                          turno.estado !== "cancelado" && turnoSaldo(turno) > 0
+                            ? `<button class="btn btn-ticket" type="button" data-charge="completo" data-id="${turno.id}">Cobraron el resto</button>
+                               <button class="btn btn-ghost" type="button" data-charge="olvidado" data-id="${turno.id}">Se olvidaron de cobrar</button>`
+                            : ""
+                        }
+                        ${
+                          turno.estado !== "cancelado"
+                            ? `<button class="btn btn-enamel" type="button" data-invoice="${turno.id}">Facturar ARCA</button>`
+                            : ""
+                        }
+                        ${
+                          invoiceId === turno.id
+                            ? `<form class="review-form" data-factura="${turno.id}">
+                                <label>Para
+                                  <select name="destinatario">
+                                    <option value="cf">Consumidor final</option>
+                                    <option value="cuit">CUIT / persona</option>
+                                  </select>
+                                </label>
+                                <label>Nombre o razón social <input name="nombre" value="${turno.nombre || ""} ${turno.apellido || ""}" /></label>
+                                <label>DNI (CF) <input name="doc" value="${turno.dni || ""}" /></label>
+                                <label>CUIT <input name="cuit" placeholder="20-12345678-3" /></label>
+                                <label>Importe <input name="amount" type="number" value="${turnoCobrado(turno) || turno.price || 0}" /></label>
+                                <button class="btn btn-ticket" type="submit">Emitir</button>
+                              </form>`
                             : ""
                         }
                         ${
@@ -103,6 +239,57 @@
               : "<p class=\"meta\">No hay turnos. Cuando un cliente reserve, aparecen acá.</p>"
           }
         `;
+        bindTimeGrid(root, {
+          place,
+          hourRange: range,
+          days,
+          onEvent: (eventId) => {
+            const node = document.getElementById(`turno-${eventId}`);
+            if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
+          },
+        });
+        const walk = document.getElementById("walk");
+        const now = new Date();
+        const snap = now.getMinutes() < 30 ? 0 : 30;
+        walk.when.value = `${dayKey(now)}T${pad(now.getHours())}:${pad(snap)}`;
+        walk.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(walk));
+          const raw = String(data.when || "");
+          const [date, time] = raw.split("T");
+          if (!date || !time) {
+            walkMsg = "Elegí fecha y hora.";
+            paint();
+            return;
+          }
+          const [hour, minute] = time.split(":").map(Number);
+          const slot = slotKey(new Date(`${date}T00:00:00`), hour, minute < 30 ? 0 : 30);
+          const created = createWalkIn(place, { ...data, slot });
+          walkMsg = created
+            ? `Turno creado · ${created.slot.replace("T", " ")}. Ya está en la grilla.`
+            : "Ese horario no entra: feriado, cerrado o ocupado.";
+          paint();
+        });
+        document.getElementById("import-h").addEventListener("click", importHolidays);
+        root.querySelectorAll("[data-week]").forEach((button) => {
+          button.addEventListener("click", () => {
+            week = Number(button.dataset.week);
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-keep]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const row = holidays.find((item) => item.id === button.dataset.keep);
+            setHolidayActive(id, button.dataset.keep, row?.active === false);
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-drop]").forEach((button) => {
+          button.addEventListener("click", () => {
+            removeHoliday(id, button.dataset.drop);
+            paint();
+          });
+        });
         root.querySelectorAll("[data-estado]").forEach((button) => {
           button.addEventListener("click", () => {
             const estado = button.dataset.estado;
@@ -114,12 +301,44 @@
             paint();
           });
         });
+        root.querySelectorAll("[data-charge]").forEach((button) => {
+          button.addEventListener("click", () => {
+            markTurnoCharge(button.dataset.id, button.dataset.charge);
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-invoice]").forEach((button) => {
+          button.addEventListener("click", () => {
+            invoiceId = button.dataset.invoice;
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-factura]").forEach((form) => {
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            if (!placeArca(id).connected) {
+              walkMsg = "Conectá ARCA en Caja antes de facturar.";
+              invoiceId = null;
+              paint();
+              return;
+            }
+            const data = Object.fromEntries(new FormData(form));
+            const turno = bookedSlots().find((row) => row.id === form.dataset.factura);
+            emitInvoice(id, turno, data);
+            invoiceId = null;
+            paint();
+          });
+        });
         root.querySelectorAll("[data-reprog]").forEach((button) => {
-          button.addEventListener("click", () => paint(button.dataset.reprog));
+          button.addEventListener("click", () => {
+            openId = button.dataset.reprog;
+            paint();
+          });
         });
         root.querySelectorAll("[data-move]").forEach((button) => {
           button.addEventListener("click", () => {
             reprogramTurno(button.dataset.move, button.dataset.slot);
+            openId = null;
             paint();
           });
         });

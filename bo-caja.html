@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Caja · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/accounts.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      requireOwner(id, `./bo-caja.html?id=${id}`);
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const place = findPlace(id);
+      seedPlaceAgenda(id);
+
+      function paint() {
+        const arca = placeArca(id);
+        const metrics = placeMetrics(id);
+        const rows = accountRows(id);
+        const invoices = placeInvoices(id);
+        document.getElementById("root").innerHTML = `
+          <h2>Caja de ${place.name}</h2>
+          <p class="band-lead">Cuentas del mes, exportes y facturas ARCA (prototipo: CAE mock, no es el web service real).</p>
+          <div class="ops-stats">
+            <div class="ops-stat"><b>${money(metrics.cobrado)}</b><span class="meta">Recaudado</span></div>
+            <div class="ops-stat"><b>${money(metrics.saldo)}</b><span class="meta">Saldo por cobrar</span></div>
+            <div class="ops-stat"><b>${money(metrics.reembolso)}</b><span class="meta">Cancelado a devolver</span></div>
+            <div class="ops-stat"><b>${metrics.concretados}</b><span class="meta">Concretados</span></div>
+            <div class="ops-stat"><b>${metrics.cancelados}</b><span class="meta">Cancelados</span></div>
+            <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Se olvidaron de cobrar</span></div>
+            <div class="ops-stat"><b>${metrics.facturas}</b><span class="meta">Facturas del mes</span></div>
+          </div>
+          <p>
+            <button class="btn btn-ticket" type="button" id="csv">Exportar CSV</button>
+            <button class="btn btn-enamel" type="button" id="xls">Exportar Excel</button>
+          </p>
+          <h3 class="ficha-sub">ARCA</h3>
+          <p class="meta">Responsable inscripto emite A (a CUIT RI) o B (consumidor final). Monotributo emite C. Fuente: régimen de comprobantes ARCA/AFIP.</p>
+          <form id="arca" class="review-form wide-form">
+            <label><input type="checkbox" name="on" ${arca.connected ? "checked" : ""} /> Conectado a ARCA</label>
+            <label>CUIT del local <input name="cuit" value="${arca.cuit || ""}" placeholder="30-12345678-9" /></label>
+            <label>Razón social <input name="razon" value="${arca.razonSocial || ""}" /></label>
+            <label>Punto de venta <input name="pv" value="${arca.puntoVenta || "1"}" /></label>
+            <label>Condición
+              <select name="condicion">
+                <option value="monotributo" ${arca.condicion === "monotributo" ? "selected" : ""}>Monotributo · Factura C</option>
+                <option value="ri" ${arca.condicion === "ri" ? "selected" : ""}>Responsable inscripto · A / B</option>
+              </select>
+            </label>
+            <button class="btn btn-ticket" type="submit">Guardar ARCA</button>
+            <p class="meta" id="arca-msg"></p>
+          </form>
+          <h3 class="ficha-sub">Movimientos del mes</h3>
+          ${
+            rows.length
+              ? `<div class="compare-wrap"><table class="compare">
+                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Estado</th><th>Cobrado</th><th>Saldo</th><th>Pago</th></tr></thead>
+                  <tbody>${rows
+                    .map(
+                      (row) =>
+                        `<tr><td>${row.fecha}</td><td>${row.cliente}</td><td>${row.servicio}</td><td>${row.estado}</td><td>${money(row.cobrado)}</td><td>${money(row.saldo)}</td><td>${row.pago}</td></tr>`,
+                    )
+                    .join("")}</tbody>
+                </table></div>`
+              : "<p class=\"meta\">No hay movimientos este mes.</p>"
+          }
+          <h3 class="ficha-sub">Facturas emitidas</h3>
+          ${
+            invoices.length
+              ? invoices
+                  .map(
+                    (row) =>
+                      `<p class="meta">Factura ${row.letter} · CAE ${row.cae} · ${row.nombre} · ${money(row.amount)} · ${new Date(row.at).toLocaleString("es-AR")}</p>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">Todavía no emitiste. Conectá ARCA y facturá desde un turno en la agenda.</p>"
+          }
+        `;
+        document.getElementById("csv").addEventListener("click", () => {
+          downloadSheet(rows, `caja-${place.slug}-${metrics.bounds.key}.csv`, "csv");
+        });
+        document.getElementById("xls").addEventListener("click", () => {
+          downloadSheet(rows, `caja-${place.slug}-${metrics.bounds.key}.xls`, "excel");
+        });
+        document.getElementById("arca").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const form = event.target;
+          savePlaceArca(id, {
+            connected: form.on.checked,
+            cuit: form.cuit.value,
+            razonSocial: form.razon.value,
+            puntoVenta: form.pv.value,
+            condicion: form.condicion.value,
+          });
+          document.getElementById("arca-msg").textContent = form.on.checked
+            ? "ARCA conectado. Ya podés facturar desde cada turno."
+            : "Desconectado.";
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

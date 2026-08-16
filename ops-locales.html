@@ -17,9 +17,11 @@
     </header>
     <main class="band" id="root"></main>
     <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
@@ -29,18 +31,20 @@
         const list = allPlaces().map(placeView);
         root.innerHTML = `
           <h2>Locales</h2>
-          <p class="band-lead">Destacado abre la lista del mapa. Suspender lo saca. El plan Destacado prende el pin dorado.</p>
+          <p class="band-lead">Calle / Barrio / Ciudad / Red. Ciudad y Red prenden el pin dorado. Suspender saca el local del mapa.</p>
           ${list
             .map((place) => {
               const live = place.status === "live" && !place.suspended;
               return `<article class="agenda-row">
                 <div>
                   <strong>${place.name}</strong>
-                  <p class="meta">${statusLabel(place.status)}${place.suspended ? " · Suspendido" : ""} · ${place.featured ? "Destacado" : "Orgánico"} · plan ${place.plan}</p>
+                  <p class="meta">${statusLabel(place.status)}${place.suspended ? " · Suspendido" : ""} · ${place.featured ? "Destacado" : "Orgánico"} · ${catalogPlan(place.plan).name}</p>
                 </div>
                 <div class="agenda-actions">
                   <button class="btn ${place.featured ? "btn-ticket" : "btn-ghost"}" type="button" data-feat="${place.id}">${place.featured ? "Quitar destacado" : "Destacar"}</button>
-                  <button class="btn btn-ghost" type="button" data-plan="${place.id}" data-value="${place.plan === "destacado" ? "base" : "destacado"}">${place.plan === "destacado" ? "Bajar a base" : "Plan destacado"}</button>
+                  <select data-setplan="${place.id}">
+                    ${PLAN_ORDER.map((key) => `<option value="${key}" ${normalizePlanId(place.plan) === key ? "selected" : ""}>${PLANS[key].name}</option>`).join("")}
+                  </select>
                   <button class="btn btn-enamel" type="button" data-suspend="${place.id}">${place.suspended ? "Reactivar" : "Suspender"}</button>
                   ${live ? `<a class="btn-line" href="./ficha.html?id=${place.id}">Ver ficha</a>` : ""}
                 </div>
@@ -55,10 +59,9 @@
             paint();
           });
         });
-        root.querySelectorAll("[data-plan]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const plan = button.dataset.value;
-            patchPlaceView(button.dataset.plan, { plan, featured: plan === "destacado" });
+        root.querySelectorAll("[data-setplan]").forEach((select) => {
+          select.addEventListener("change", () => {
+            savePlacePlan(select.dataset.setplan, select.value);
             paint();
           });
         });

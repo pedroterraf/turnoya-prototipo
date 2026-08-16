@@ -32,12 +32,12 @@ function defaultServices(place) {
       {
         id: `${place.id}-main`,
         name: place.service,
-        minutes: 60,
+        minutes: 75,
         price: 15000,
         capacity: CAPACITY_OPEN,
         hourStart: 9,
         hourEnd: 18,
-        description: "Consulta con documentación. No ocupa un consultorio físico.",
+        description: "Consulta de 75 min. No ocupa un consultorio: se puede pisar.",
         includes: ["Revisión de papeles", "Plan de acción", "Resumen por mail"],
         image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80",
       },
@@ -57,6 +57,18 @@ function defaultServices(place) {
       image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80",
     },
     {
+      id: `${place.id}-mid`,
+      name: "Sesión 45 min",
+      minutes: 45,
+      price: 6500,
+      capacity: 2,
+      hourStart: 9,
+      hourEnd: 20,
+      description: "45 minutos. Se pisa hasta 2 personas en el mismo horario.",
+      includes: ["Servicio de 45 min"],
+      image: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80",
+    },
+    {
       id: `${place.id}-short`,
       name: "Turno corto",
       minutes: 30,
@@ -64,7 +76,7 @@ function defaultServices(place) {
       capacity: 3,
       hourStart: 9,
       hourEnd: 20,
-      description: "Turno breve. Se puede pisar hasta 3 personas en el mismo horario.",
+      description: "30 minutos. Se pisa hasta 3 personas en el mismo horario.",
       includes: ["Servicio de 30 min"],
       image: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80",
     },
@@ -144,6 +156,117 @@ function mapsEmbed(place) {
   return `https://maps.google.com/maps?q=${q}&z=15&output=embed`;
 }
 
+const WALK_KMH = 4.8;
+const DRIVE_KMH = 22;
+const TRANSIT_KMH = 16;
+
+function travelMode() {
+  const mode = typeof memoryGet === "function" ? memoryGet("turnoya-travel") : "";
+  if (mode === "driving" || mode === "transit" || mode === "walking") return mode;
+  return "walking";
+}
+
+function etaMinutes(km, mode) {
+  const speed = mode === "driving" ? DRIVE_KMH : mode === "transit" ? TRANSIT_KMH : WALK_KMH;
+  return Math.max(1, Math.round((Number(km) / speed) * 60));
+}
+
+function liveEtaText(place, origin, mode) {
+  const used = mode || travelMode();
+  if (!origin || origin.lat == null || !place) {
+    return "Activá la ubicación para ver el tiempo en vivo.";
+  }
+  const km =
+    typeof distanceKm === "function"
+      ? distanceKm(origin.lat, origin.lng, place.lat, place.lng)
+      : Number(place.km || 0);
+  const mins = etaMinutes(km, used);
+  const how = used === "driving" ? "en auto" : used === "transit" ? "en colectivo" : "a pie";
+  return `En vivo · ${km.toFixed(1)} km · ${mins} min ${how}`;
+}
+
+function googleDirectionsUrl(place, origin, mode) {
+  const used = mode || travelMode();
+  const params = new URLSearchParams({
+    api: "1",
+    destination: `${place.lat},${place.lng}`,
+    travelmode: used,
+  });
+  if (origin?.lat != null && origin?.lng != null) {
+    params.set("origin", `${origin.lat},${origin.lng}`);
+  }
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+function wazeUrl(place) {
+  return `https://waze.com/ul?ll=${place.lat},${place.lng}&navigate=yes`;
+}
+
+function parseSlotDate(slot) {
+  const raw = String(slot || "");
+  if (raw.length === 16) return new Date(`${raw}:00`);
+  return new Date(raw);
+}
+
+function googleCalendarStamp(date) {
+  return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}${pad(date.getMinutes())}00`;
+}
+
+function googleCalendarUrl(turno) {
+  const place = lookupPlace(turno.placeId);
+  const start = parseSlotDate(turno.slot);
+  const end = new Date(start.getTime() + (turno.minutes || 60) * 60000);
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${turno.serviceName} · ${turno.placeName}`,
+    dates: `${googleCalendarStamp(start)}/${googleCalendarStamp(end)}`,
+    details: `TurnoYa · ${place ? `turnoya.com/${place.slug}` : ""}`,
+    location: place ? placeAddress(place) : turno.placeName,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+function directionsPanelHtml(place) {
+  const mode = travelMode();
+  const origin =
+    typeof state === "object" && state.userLat != null
+      ? { lat: state.userLat, lng: state.userLng }
+      : null;
+  return `<div class="go-card" data-go="${place.id}">
+    <p class="go-live" data-go-eta>${liveEtaText(place, origin, mode)}</p>
+    <p class="meta">${placeAddress(place)}</p>
+    <div class="go-modes" role="group" aria-label="Cómo vas">
+      <button class="chip" type="button" data-mode="walking" aria-pressed="${mode === "walking"}">A pie</button>
+      <button class="chip" type="button" data-mode="driving" aria-pressed="${mode === "driving"}">Auto</button>
+      <button class="chip" type="button" data-mode="transit" aria-pressed="${mode === "transit"}">Colectivo</button>
+    </div>
+    <div class="go-actions">
+      <a class="btn btn-enamel" data-maps target="_blank" rel="noreferrer" href="${googleDirectionsUrl(
+        place,
+        origin,
+        mode,
+      )}">Cómo llegar</a>
+      <a class="btn btn-ghost" target="_blank" rel="noreferrer" href="${wazeUrl(place)}">Waze</a>
+    </div>
+  </div>`;
+}
+
+function turnoGoLinks(turno) {
+  if (!turno || turno.estado !== "confirmado") return "";
+  const place = lookupPlace(turno.placeId);
+  if (!place) return "";
+  return `<div class="go-mini">
+    <a class="btn-line" target="_blank" rel="noreferrer" href="${googleDirectionsUrl(
+      place,
+      null,
+      travelMode(),
+    )}">Cómo llegar</a>
+    <a class="btn-line" target="_blank" rel="noreferrer" href="${googleCalendarUrl(turno)}">Agregar a Google</a>
+  </div>`;
+}
+
 function money(value) {
   return new Intl.NumberFormat("es-AR", {
     style: "currency",
@@ -204,8 +327,110 @@ function dayConfig(placeId, weekday) {
 }
 
 function dayAllowsHour(placeId, date, hour) {
+  if (activeHoliday(placeId, dayKey(date))) return false;
   const config = dayConfig(placeId, date.getDay());
-  return config.open && hour >= config.start && hour <= config.end;
+  return config.open && hour >= config.start && hour < config.end;
+}
+
+function placeHourRange(placeId) {
+  let start = 23;
+  let end = 0;
+  [0, 1, 2, 3, 4, 5, 6].forEach((weekday) => {
+    const config = dayConfig(placeId, weekday);
+    if (!config.open) return;
+    start = Math.min(start, config.start);
+    end = Math.max(end, config.end);
+  });
+  if (start > end) return { start: 9, end: 19 };
+  return { start, end };
+}
+
+const AR_HOLIDAYS_2026 = [
+  { fecha: "2026-01-01", tipo: "inamovible", nombre: "Año nuevo" },
+  { fecha: "2026-02-16", tipo: "inamovible", nombre: "Carnaval" },
+  { fecha: "2026-02-17", tipo: "inamovible", nombre: "Carnaval" },
+  { fecha: "2026-03-23", tipo: "puente", nombre: "Puente turístico no laborable" },
+  { fecha: "2026-03-24", tipo: "inamovible", nombre: "Día Nacional de la Memoria por la Verdad y la Justicia" },
+  { fecha: "2026-04-02", tipo: "inamovible", nombre: "Día del Veterano y de los Caídos en la Guerra de Malvinas" },
+  { fecha: "2026-04-03", tipo: "inamovible", nombre: "Viernes Santo" },
+  { fecha: "2026-05-01", tipo: "inamovible", nombre: "Día del Trabajador" },
+  { fecha: "2026-05-25", tipo: "inamovible", nombre: "Día de la Revolución de Mayo" },
+  { fecha: "2026-06-15", tipo: "trasladable", nombre: "Paso a la Inmortalidad del General Martín Güemes (17/6)" },
+  { fecha: "2026-06-20", tipo: "inamovible", nombre: "Paso a la Inmortalidad del General Manuel Belgrano" },
+  { fecha: "2026-07-09", tipo: "inamovible", nombre: "Día de la Independencia" },
+  { fecha: "2026-07-10", tipo: "puente", nombre: "Puente turístico no laborable" },
+  { fecha: "2026-08-17", tipo: "trasladable", nombre: "Paso a la Inmortalidad del Gral. José de San Martín" },
+  { fecha: "2026-10-12", tipo: "trasladable", nombre: "Día del Respeto a la Diversidad Cultural" },
+  { fecha: "2026-11-23", tipo: "trasladable", nombre: "Día de la Soberanía Nacional (20/11)" },
+  { fecha: "2026-12-07", tipo: "puente", nombre: "Puente turístico no laborable" },
+  { fecha: "2026-12-08", tipo: "inamovible", nombre: "Día de la Inmaculada Concepción de María" },
+  { fecha: "2026-12-25", tipo: "inamovible", nombre: "Navidad" },
+];
+
+function placeHolidays(placeId) {
+  try {
+    return JSON.parse(memoryGet(`turnoya-holidays-${placeId}`) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function savePlaceHolidays(placeId, rows) {
+  memorySet(
+    `turnoya-holidays-${placeId}`,
+    JSON.stringify(
+      rows.sort((a, b) => String(a.date).localeCompare(String(b.date))),
+    ),
+  );
+}
+
+function activeHoliday(placeId, date) {
+  return placeHolidays(placeId).find((row) => row.date === date && row.active !== false) ?? null;
+}
+
+function setHolidayActive(placeId, holidayId, active) {
+  savePlaceHolidays(
+    placeId,
+    placeHolidays(placeId).map((row) => (row.id === holidayId ? { ...row, active } : row)),
+  );
+}
+
+function removeHoliday(placeId, holidayId) {
+  savePlaceHolidays(
+    placeId,
+    placeHolidays(placeId).filter((row) => row.id !== holidayId),
+  );
+}
+
+function mergeImportedHolidays(placeId, incoming) {
+  const current = placeHolidays(placeId);
+  const byDate = new Map(current.map((row) => [row.date, row]));
+  incoming.forEach((row) => {
+    const date = String(row.fecha || row.date || "").slice(0, 10);
+    if (!date || byDate.has(date)) return;
+    byDate.set(date, {
+      id: `h-${date}`,
+      date,
+      name: row.nombre || row.name || "Feriado",
+      tipo: row.tipo || "inamovible",
+      active: true,
+      source: "ar",
+    });
+  });
+  savePlaceHolidays(placeId, [...byDate.values()]);
+  return placeHolidays(placeId);
+}
+
+async function fetchArgentinaHolidays(year) {
+  try {
+    const res = await fetch(`https://api.argentinadatos.com/v1/feriados/${year}`);
+    if (!res.ok) throw new Error("api");
+    const rows = await res.json();
+    if (!Array.isArray(rows) || !rows.length) throw new Error("empty");
+    return rows;
+  } catch {
+    return year === 2026 ? AR_HOLIDAYS_2026 : [];
+  }
 }
 
 function saveWorkingDays(placeId, days) {
@@ -353,6 +578,12 @@ function saveInquiry(placeId, inquiry) {
   rows.unshift({ id: `in-${Date.now()}`, createdAt: Date.now(), ...inquiry });
   memorySet(`turnoya-inbox-${placeId}`, JSON.stringify(rows));
   pushPlaceNote(placeId, `Consulta de ${inquiry.nombre || "alguien"}: ${inquiry.mensaje || ""}`);
+  notifyPlaceOwner(
+    placeId,
+    "Nueva consulta",
+    `${inquiry.nombre || "Alguien"} escribió: ${inquiry.mensaje || ""}`,
+    { type: NotificationMetadataType.INQUIRY, placeId },
+  );
 }
 
 function seedPlaceInbox(placeId) {
@@ -427,9 +658,20 @@ function occupancy(placeId, key, exceptId) {
 }
 
 function canBook(placeId, service, startKey, exceptId) {
-  if (isOpenCapacity(service)) return true;
-  const keys = slotSpan(startKey, service.minutes);
-  const limit = serviceCapacity(service);
+  const start = slotStart(startKey);
+  if (Number.isNaN(start.getTime())) return false;
+  const row = normalizeService(service);
+  const end = new Date(start.getTime() + row.minutes * 60000);
+  const config = dayConfig(placeId, start.getDay());
+  if (!config.open) return false;
+  if (activeHoliday(placeId, dayKey(start))) return false;
+  if (start.getHours() + start.getMinutes() / 60 < Math.max(config.start, row.hourStart)) return false;
+  const close = new Date(start);
+  close.setHours(Math.min(config.end, row.hourEnd), 0, 0, 0);
+  if (end > close) return false;
+  if (isOpenCapacity(row)) return true;
+  const keys = slotSpan(startKey, row.minutes);
+  const limit = serviceCapacity(row);
   return keys.every((key) => occupancy(placeId, key, exceptId) < limit);
 }
 
@@ -530,9 +772,16 @@ function confirmDraft() {
   const draft = readDraft();
   if (!draft.placeId || !draft.slot) return null;
   const rows = bookedSlots();
+  const price = Number(draft.price || 0);
+  const senia = Number(draft.senia || 0);
+  const cobrado = draft.pagado ? senia : 0;
   const turno = {
     id: `ty-${Date.now()}`,
     ...draft,
+    price,
+    senia,
+    cobrado,
+    pagoEstado: senia <= 0 ? (cobrado ? "completo" : "sin_pago") : senia >= price ? "completo" : "senia",
     createdAt: Date.now(),
     estado: "confirmado",
   };
@@ -540,9 +789,17 @@ function confirmDraft() {
   memorySet("turnoya-booked", JSON.stringify(rows));
   memorySet("turnoya-last", JSON.stringify(turno));
   saveHolds(activeHolds().filter((hold) => hold.slot !== draft.slot || hold.placeId !== draft.placeId));
-  pushNote(
+  notifyUser(
     turno.email,
+    "Turno confirmado",
     `Turno confirmado en ${turno.placeName}: ${turno.serviceName} · ${turno.slot.replace("T", " ")}. Seña ${money(turno.senia || 0)}.`,
+    { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId },
+  );
+  notifyPlaceOwner(
+    turno.placeId,
+    "Nuevo turno",
+    `${turno.nombre || ""} ${turno.apellido || ""} · ${turno.serviceName} · ${turno.slot.replace("T", " ")}.`,
+    { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId },
   );
   pushPlaceNote(
     turno.placeId,
@@ -607,6 +864,8 @@ function seedPlaceAgenda(placeId) {
       minutes: 60,
       price: 9000,
       senia: 3000,
+      cobrado: 3000,
+      pagoEstado: "senia",
       slot: slotKey(day, 10, 0),
       email: "pedroterraf@gmail.com",
       nombre: "Pedro",
@@ -625,6 +884,8 @@ function seedPlaceAgenda(placeId) {
       minutes: 30,
       price: 4500,
       senia: 3000,
+      cobrado: 3000,
+      pagoEstado: "senia",
       slot: slotKey(day, 16, 0),
       email: "lucia@correo.com",
       nombre: "Lucía",
@@ -635,9 +896,11 @@ function seedPlaceAgenda(placeId) {
     },
   );
   saveBooked(rows);
-  pushNote(
+  notifyUser(
     "pedroterraf@gmail.com",
+    "Turno confirmado",
     `Turno confirmado en ${place.name}: ${place.service} · ${slotKey(day, 10, 0).replace("T", " ")}. Seña ${money(3000)}.`,
+    { type: NotificationMetadataType.TURNO, turnoId: `ty-seed-${placeId}-1`, placeId },
   );
 }
 
@@ -678,9 +941,17 @@ function reprogramTurno(id, newSlot) {
     slot: newSlot,
     reprogramaciones: (turno.reprogramaciones || 0) + 1,
   });
-  pushNote(
+  notifyUser(
     turno.email,
+    "Turno reprogramado",
     `Turno reprogramado en ${turno.placeName}: ${newSlot.replace("T", " ")}.`,
+    { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId },
+  );
+  notifyPlaceOwner(
+    turno.placeId,
+    "Turno reprogramado",
+    `${turno.nombre || "Cliente"} pasó a ${newSlot.replace("T", " ")}.`,
+    { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId },
   );
   return true;
 }
@@ -688,14 +959,26 @@ function reprogramTurno(id, newSlot) {
 function notifyTurnoChange(id, estado) {
   const turno = bookedSlots().find((row) => row.id === id);
   if (!turno?.email) return;
+  const meta = { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId };
   if (estado === "concretado") {
-    pushNote(turno.email, `El local confirmó tu visita en ${turno.placeName}. Ya podés calificar.`);
+    notifyUser(
+      turno.email,
+      "Ya podés calificar",
+      `El local confirmó tu visita en ${turno.placeName}. Ya podés calificar.`,
+      meta,
+    );
   }
   if (estado === "no_show") {
-    pushNote(turno.email, `Marcaron que no fuiste a ${turno.placeName}.`);
+    notifyUser(turno.email, "No te presentaste", `Marcaron que no fuiste a ${turno.placeName}.`, meta);
   }
   if (estado === "cancelado") {
-    pushNote(turno.email, `El local canceló tu turno en ${turno.placeName}. Horario liberado.`);
+    notifyUser(
+      turno.email,
+      "El local canceló tu turno",
+      `El local canceló tu turno en ${turno.placeName}. Horario liberado.`,
+      meta,
+    );
+    notifyWaitlist(turno.placeId, turno.serviceId, turno.slot);
   }
 }
 
@@ -735,11 +1018,22 @@ function cancelTurno(id, motivo) {
   }
   const turno = rows.find((row) => row.id === id);
   if (turno?.email) {
-    pushNote(
+    const meta = { type: NotificationMetadataType.TURNO, turnoId: turno.id, placeId: turno.placeId };
+    notifyUser(
       turno.email,
+      motivo === "arrepentimiento" ? "Arrepentimiento registrado" : "Turno cancelado",
       motivo === "arrepentimiento"
         ? `Arrepentimiento en ${turno.placeName}. Horario libre y seña a devolver.`
         : `Turno cancelado en ${turno.placeName}. Horario liberado.`,
+      meta,
+    );
+    notifyPlaceOwner(
+      turno.placeId,
+      motivo === "arrepentimiento" ? "Cliente se arrepintió" : "Cliente canceló",
+      motivo === "arrepentimiento"
+        ? `${turno.nombre || "Cliente"} se arrepintió. Horario libre y seña a devolver.`
+        : `${turno.nombre || "Cliente"} canceló. Horario liberado.`,
+      meta,
     );
     pushPlaceNote(
       turno.placeId,
@@ -748,45 +1042,101 @@ function cancelTurno(id, motivo) {
         : `${turno.nombre || "Cliente"} canceló. Horario liberado.`,
     );
   }
+  if (turno) notifyWaitlist(turno.placeId, turno.serviceId, turno.slot);
 }
 
 function canReprogram(turno) {
   return turno.estado === "confirmado" && Date.now() < slotStart(turno.slot).getTime();
 }
 
+function waitlistRows(placeId) {
+  try {
+    return JSON.parse(memoryGet(`turnoya-wait-${placeId}`) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveWaitlist(placeId, rows) {
+  memorySet(`turnoya-wait-${placeId}`, JSON.stringify(rows.slice(0, 40)));
+}
+
+function joinWaitlist(placeId, payload) {
+  const user = typeof currentUser === "function" ? currentUser() : null;
+  const email = payload.email || user?.email;
+  if (!email) return false;
+  const rows = waitlistRows(placeId);
+  if (rows.some((row) => row.email === email && row.serviceId === payload.serviceId)) return true;
+  rows.unshift({
+    id: `w-${Date.now()}`,
+    email,
+    nombre: payload.nombre || user?.nombre || "",
+    serviceId: payload.serviceId || "",
+    serviceName: payload.serviceName || "",
+    at: Date.now(),
+  });
+  saveWaitlist(placeId, rows);
+  notifyUser(
+    email,
+    "Lista de espera",
+    `Te avisamos si se libera un horario en ${payload.placeName || "el local"}.`,
+    { type: NotificationMetadataType.WAITLIST, placeId },
+  );
+  notifyPlaceOwner(
+    placeId,
+    "Lista de espera",
+    `${payload.nombre || "Alguien"} se anotó en la lista de espera.`,
+    { type: NotificationMetadataType.WAITLIST, placeId },
+  );
+  pushPlaceNote(placeId, `${payload.nombre || "Alguien"} se anotó en la lista de espera.`);
+  return true;
+}
+
+function notifyWaitlist(placeId, serviceId, slot) {
+  const rows = waitlistRows(placeId).filter((row) => !serviceId || !row.serviceId || row.serviceId === serviceId);
+  const first = rows[0];
+  if (!first) return;
+  saveWaitlist(
+    placeId,
+    waitlistRows(placeId).filter((row) => row.id !== first.id),
+  );
+  notifyUser(
+    first.email,
+    "Se liberó un horario",
+    `Se liberó un horario${slot ? ` (${String(slot).replace("T", " ")})` : ""} en el local. Tenés 10 minutos: entrá y reservá.`,
+    { type: NotificationMetadataType.WAITLIST, placeId },
+  );
+}
+
+function todayHuecos(placeId) {
+  if (typeof planAllows === "function" && !planAllows(placeId, "huecos")) return [];
+  const place = findPlace(placeId);
+  const service = placeServices(place)[0];
+  if (!service) return [];
+  const today = dayKey(new Date());
+  const now = new Date();
+  const limitHour = now.getHours() + 6;
+  return freeSlots(placeId, service).filter((key) => {
+    if (!key.startsWith(today)) return false;
+    const hour = Number(key.slice(11, 13));
+    return hour <= limitHour;
+  });
+}
+
+function clientTrust(email) {
+  if (!email) return { label: "Sin dato", score: null };
+  const rows = bookedSlots().filter((row) => row.email === email);
+  const done = rows.filter((row) => row.estado === "concretado").length;
+  const miss = rows.filter((row) => row.estado === "no_show").length;
+  const total = done + miss;
+  if (!total) return { label: "Nuevo en la red TurnoYa", score: null };
+  const score = Math.round((done / total) * 100);
+  return { label: `${score}% asistencia en la red`, score };
+}
+
 function reprogramLink(turno) {
   if (!canReprogram(turno)) return "";
   return `<a class="btn btn-line" href="./reservar.html?id=${turno.placeId}&service=${turno.serviceId || ""}&reprogram=${turno.id}">Reprogramar</a>`;
-}
-
-function userNotes(email) {
-  try {
-    return JSON.parse(memoryGet(`turnoya-notes-${email}`) ?? "[]");
-  } catch {
-    return [];
-  }
-}
-
-function pushNote(email, text) {
-  if (!email) return;
-  const rows = userNotes(email);
-  rows.unshift({ id: `n-${Date.now()}`, text, at: Date.now() });
-  memorySet(`turnoya-notes-${email}`, JSON.stringify(rows.slice(0, 24)));
-}
-
-function placeNotes(placeId) {
-  try {
-    return JSON.parse(memoryGet(`turnoya-bo-notes-${placeId}`) ?? "[]");
-  } catch {
-    return [];
-  }
-}
-
-function pushPlaceNote(placeId, text) {
-  if (!placeId) return;
-  const rows = placeNotes(placeId);
-  rows.unshift({ id: `bn-${Date.now()}`, text, at: Date.now() });
-  memorySet(`turnoya-bo-notes-${placeId}`, JSON.stringify(rows.slice(0, 24)));
 }
 
 function turnoCardHtml(turno) {
@@ -827,6 +1177,7 @@ function turnoCardHtml(turno) {
   return `<article class="quote" data-turno="${turno.id}">
     <strong>${turno.placeName}</strong>
     <p class="meta">${turno.serviceName} · ${when} · ${estadoLabel(turno.estado)}</p>
+    ${turnoGoLinks(turno)}
     ${actions}
   </article>`;
 }

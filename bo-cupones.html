@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cupones · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-cupones.html?id=${id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const place = findPlace(id);
+      const services = placeServices(place);
+      const coupons = placeCoupons(id);
+      const rows = coupons.length ? coupons : [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+      document.getElementById("root").innerHTML = `
+        <h2>Cupones de ${place.name}</h2>
+        <p class="band-lead">Si no hay cupones activos, la ficha no muestra la sección. Oasis de demo: RELAX10 = 10%.</p>
+        <form id="form" class="review-form wide-form">
+          ${rows
+            .map(
+              (coupon, i) => `
+            <fieldset>
+              <label>Código <input name="code-${i}" value="${coupon.code}" /></label>
+              <label>Tipo
+                <select name="type-${i}">
+                  <option value="porcentaje" ${coupon.type === "porcentaje" ? "selected" : ""}>Porcentaje</option>
+                  <option value="fijo" ${coupon.type === "fijo" ? "selected" : ""}>Monto fijo</option>
+                </select>
+              </label>
+              <label>Valor <input name="val-${i}" type="number" min="1" value="${coupon.value}" /></label>
+              <label>Servicio
+                <select name="svc-${i}">
+                  <option value="">Todos</option>
+                  ${services
+                    .map(
+                      (service) =>
+                        `<option value="${service.id}" ${coupon.serviceId === service.id ? "selected" : ""}>${service.name}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <label><input type="checkbox" name="on-${i}" ${coupon.active ? "checked" : ""} /> Activo</label>
+            </fieldset>`,
+            )
+            .join("")}
+          <button class="btn btn-ticket" type="submit">Guardar</button>
+        </form>`;
+      document.getElementById("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        const next = rows
+          .map((_, i) => ({
+            code: String(data.get(`code-${i}`) || "").trim().toUpperCase(),
+            type: data.get(`type-${i}`),
+            value: Number(data.get(`val-${i}`)),
+            serviceId: data.get(`svc-${i}`),
+            active: data.get(`on-${i}`) === "on",
+          }))
+          .filter((row) => row.code);
+        savePlaceCoupons(id, next);
+        location.href = `./ficha.html?id=${id}`;
+      });
+    </script>
+  </body>
+</html>

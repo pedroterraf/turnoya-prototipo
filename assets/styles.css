@@ -112,6 +112,28 @@ img {
   color: var(--ticket);
 }
 
+.flujo-nav {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 8px 14px;
+  background: var(--enamel-deep);
+  -webkit-overflow-scrolling: touch;
+}
+
+.flujo-nav a {
+  flex: 0 0 auto;
+  color: #c9d4cc;
+  text-decoration: none;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.flujo-nav a:hover {
+  color: var(--ticket);
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -727,6 +749,36 @@ img {
   margin-top: 12px;
 }
 
+.review-form.wide-form,
+.review-form:has(fieldset) {
+  max-width: 560px;
+}
+
+.review-form textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  background: var(--chalk);
+  color: var(--ink);
+}
+
+.include-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.service-card .btn {
+  margin-top: 12px;
+}
+
+.sell .review-form .btn-ghost {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
 .review-form:has(.banner-canvas) {
   max-width: 720px;
 }
@@ -737,13 +789,80 @@ img {
   gap: 6px;
 }
 
+.review-form input,
 .review-form select,
 .review-form textarea {
   width: 100%;
-  padding: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
   background: var(--chalk);
   color: var(--ink);
+}
+
+.review-form textarea {
+  min-height: 72px;
+}
+
+.auth-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 480px at 10% -10%, rgba(242, 213, 74, 0.18), transparent 55%),
+    var(--field);
+}
+
+.auth-shell {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 64px);
+  padding: 24px 16px 40px;
+}
+
+.auth-card {
+  width: min(100%, 420px);
+  padding: 28px 22px 24px;
+  background: var(--chalk);
+  box-shadow: var(--shadow);
+}
+
+.auth-card h1 {
+  margin: 4px 0 8px;
+  font-family: var(--display);
+  font-size: clamp(1.7rem, 6vw, 2.2rem);
+  letter-spacing: -0.04em;
+}
+
+.auth-card .review-form {
+  max-width: none;
+}
+
+.auth-card .btn {
+  width: 100%;
+  min-height: 48px;
+}
+
+.otp {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.otp-cell {
+  width: 100%;
+  min-height: 52px;
+  padding: 0;
+  border: 1px solid var(--enamel);
+  background: var(--chalk);
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 1.35rem;
+  text-align: center;
+  caret-color: var(--enamel);
+}
+
+.otp-cell:focus {
+  outline: 3px solid var(--ticket);
+  outline-offset: 2px;
 }
 
 .review-admin {
@@ -801,12 +920,41 @@ img {
 
 .store-hero .btn {
   margin-top: 16px;
+  margin-right: 10px;
+}
+
+.store-hero .btn-line {
+  color: var(--ticket);
 }
 
 .card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
+}
+
+.ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 28px 0 8px;
+}
+
+.ops-stat {
+  padding: 16px;
+  background: var(--chalk);
+  border: 1px solid var(--line);
+}
+
+.ops-stat b {
+  display: block;
+  font-family: var(--display);
+  font-size: 1.8rem;
+  letter-spacing: -0.04em;
+}
+
+.ops-feed {
+  margin-top: 28px;
 }
 
 .service-card {
@@ -954,6 +1102,23 @@ img {
   font-size: 1.1rem;
 }
 
+.cal-head.is-today {
+  background: var(--ticket);
+  color: var(--ticket-ink);
+}
+
+.card-box {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.card-box-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 .cal-slot {
   min-height: 44px;
   border: 0;
@@ -978,6 +1143,125 @@ img {
   color: var(--enamel);
 }
 
+.quote .btn-line {
+  margin-right: 10px;
+}
+
+.nav-logout {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.account-slot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.demo-foot {
+  padding: 12px 22px;
+  background: var(--enamel-deep);
+  color: #c9d4cc;
+  font-size: 0.82rem;
+}
+
+.demo-foot a {
+  color: var(--ticket);
+}
+
+.week-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 12px;
+}
+
+.week-nav .btn-line {
+  margin-top: 0;
+}
+
+.service-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.service-picks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  background: var(--chalk);
+  text-decoration: none;
+}
+
+.service-picks a.is-on {
+  border-color: var(--enamel);
+  background: var(--ticket);
+  color: var(--ticket-ink);
+  font-weight: 650;
+}
+
+.day-grid {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.day-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.day-row input[type="number"] {
+  width: 100%;
+}
+
+.mp-box {
+  padding: 14px;
+  margin: 0 0 16px;
+  background: var(--field);
+  border: 1px solid var(--line);
+}
+
+.pay-fail {
+  color: var(--danger);
+}
+
+.auth-card.wide {
+  width: min(100%, 520px);
+}
+
+.auth-card .btn-line {
+  display: flex;
+  justify-content: center;
+}
+
+.otp-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-width: 260px;
+}
+
+.guide-list {
+  display: grid;
+  gap: 14px;
+}
+
+.guide-list article {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
 .footer {
   padding: 22px;
   background: var(--enamel-deep);
@@ -998,7 +1282,8 @@ img {
 @media (max-width: 900px) {
   .market,
   .sell-hero,
-  .ads-split {
+  .ads-split,
+  .agenda-row {
     grid-template-columns: 1fr;
   }
 
@@ -1006,8 +1291,77 @@ img {
     min-height: 46vh;
   }
 
+  .topbar {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .topbar-nav {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
+
   .topbar-nav .hide-sm {
     display: none;
+  }
+
+  .topbar-nav a,
+  .topbar-nav .btn {
+    min-height: 44px;
+  }
+
+  .city-select {
+    min-width: 0;
+  }
+
+  .band {
+    padding: 28px 16px;
+  }
+
+  .narrow {
+    max-width: none;
+  }
+
+  .card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .store-hero {
+    padding: 28px 16px;
+    min-height: 220px;
+  }
+
+  .cal-head-row,
+  .cal-row {
+    grid-template-columns: repeat(7, minmax(52px, 1fr));
+  }
+
+  .cal-slot {
+    min-height: 48px;
+    font-size: 0.72rem;
+  }
+
+  .otp {
+    gap: 6px;
+  }
+
+  .otp-cell {
+    min-height: 48px;
+    font-size: 1.2rem;
+  }
+
+  .auth-card {
+    padding: 22px 16px;
+  }
+
+  .day-row {
+    grid-template-columns: 1fr;
+  }
+
+  .place-switch {
+    max-width: none;
   }
 
   .tariff-scroller {

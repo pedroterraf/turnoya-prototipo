@@ -19,6 +19,10 @@
       <h2>Pagos, días y cancelación</h2>
       <p class="band-lead">Default: seña mínima $3000 (piso Mercado Pago $10). El horario se retiene 15 minutos; si no pagan, se libera.</p>
       <form id="form" class="review-form">
+        <div class="mp-box">
+          <label><input type="checkbox" name="mp" /> Mercado Pago conectado</label>
+          <p class="meta">Si no está conectado y hay seña, el cliente ve el aviso y igual puede confirmar en el prototipo.</p>
+        </div>
         <label>Cómo se reserva
           <select name="mode">
             <option value="minimo">Mínimo (default)</option>
@@ -33,17 +37,12 @@
         <label class="pay-pct">Techo $ (0 = sin techo) <input name="techo" type="number" min="0" value="0" /></label>
         <label>Días de arrepentimiento (Ley 24.240) <input name="arrep" type="number" min="1" value="10" /></label>
         <label>Horas antes para cancelar (política del local) <input name="horas" type="number" min="0" value="48" /></label>
-        <p class="meta">Días abiertos</p>
-        <label><input type="checkbox" name="d1" /> Lunes</label>
-        <label><input type="checkbox" name="d2" /> Martes</label>
-        <label><input type="checkbox" name="d3" /> Miércoles</label>
-        <label><input type="checkbox" name="d4" /> Jueves</label>
-        <label><input type="checkbox" name="d5" /> Viernes</label>
-        <label><input type="checkbox" name="d6" /> Sábado</label>
-        <label><input type="checkbox" name="d0" /> Domingo</label>
+        <p class="meta">Días y horario de apertura (se cruza con el horario de cada servicio)</p>
+        <div class="day-grid" id="days"></div>
         <button class="btn btn-ticket" type="submit">Guardar</button>
       </form>
     </main>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -53,19 +52,27 @@
       if (!requireOwner(id, `./bo-pagos.html?id=${id}`)) throw new Error("redirect");
       document.getElementById("back").href = `./bo.html?id=${id}`;
       const rule = paymentRule(id);
-      const days = workingDays(id);
       const policy = placePolicy(id);
       const form = document.getElementById("form");
+      const labels = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
       form.mode.value = rule.mode;
       form.minimo.value = rule.minimo ?? 3000;
       form.porcentaje.value = rule.porcentaje ?? 30;
       form.piso.value = rule.piso ?? 10;
       form.techo.value = rule.techo ?? 0;
+      form.mp.checked = rule.mpConnected !== false;
       form.arrep.value = policy.arrepentimientoDias;
       form.horas.value = policy.horasAntesCancelacion;
-      [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
-        form[`d${d}`].checked = days[d] !== false;
-      });
+      document.getElementById("days").innerHTML = [1, 2, 3, 4, 5, 6, 0]
+        .map((d) => {
+          const config = dayConfig(id, d);
+          return `<div class="day-row">
+            <label><input type="checkbox" name="d${d}" ${config.open ? "checked" : ""} /> ${labels[d]}</label>
+            <label>Desde <input name="s${d}" type="number" min="0" max="23" value="${config.start}" /></label>
+            <label>Hasta <input name="e${d}" type="number" min="0" max="23" value="${config.end}" /></label>
+          </div>`;
+        })
+        .join("");
       function syncMode() {
         const mode = form.mode.value;
         document.querySelectorAll(".pay-minimo").forEach((node) => {
@@ -85,6 +92,7 @@
           porcentaje: Number(form.porcentaje.value),
           piso: Number(form.piso.value),
           techo: Number(form.techo.value),
+          mpConnected: form.mp.checked,
         });
         savePlacePolicy(id, {
           arrepentimientoDias: Number(form.arrep.value),
@@ -92,7 +100,9 @@
         });
         const next = {};
         [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
-          next[d] = form[`d${d}`].checked;
+          next[d] = form[`d${d}`].checked
+            ? { open: true, start: Number(form[`s${d}`].value), end: Number(form[`e${d}`].value) }
+            : false;
         });
         saveWorkingDays(id, next);
         location.href = `./bo.html?id=${id}`;

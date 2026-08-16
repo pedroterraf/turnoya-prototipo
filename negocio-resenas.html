@@ -19,10 +19,12 @@
         <span class="brand-aside">panel</span>
       </a>
       <nav class="topbar-nav">
+        <a id="back" href="./bo.html">Panel</a>
         <a href="./index.html">Mapa</a>
       </nav>
     </header>
     <main class="band" id="panel"></main>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -31,6 +33,7 @@
       const params = new URLSearchParams(location.search);
       const place = (typeof findPlace === "function" ? findPlace(params.get("id")) : null) ?? PLACES[0];
       if (!requireOwner(place.id, `./negocio-resenas.html?id=${place.id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${place.id}`;
       const root = document.getElementById("panel");
 
       function paint() {

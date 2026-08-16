@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Locales · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-locales.html")) throw new Error("redirect");
+      const root = document.getElementById("root");
+      function paint() {
+        const list = allPlaces().map(placeView);
+        root.innerHTML = `
+          <h2>Locales</h2>
+          <p class="band-lead">Destacado abre la lista del mapa. Suspender lo saca. El plan Destacado prende el pin dorado.</p>
+          ${list
+            .map((place) => {
+              const live = place.status === "live" && !place.suspended;
+              return `<article class="agenda-row">
+                <div>
+                  <strong>${place.name}</strong>
+                  <p class="meta">${statusLabel(place.status)}${place.suspended ? " · Suspendido" : ""} · ${place.featured ? "Destacado" : "Orgánico"} · plan ${place.plan}</p>
+                </div>
+                <div class="agenda-actions">
+                  <button class="btn ${place.featured ? "btn-ticket" : "btn-ghost"}" type="button" data-feat="${place.id}">${place.featured ? "Quitar destacado" : "Destacar"}</button>
+                  <button class="btn btn-ghost" type="button" data-plan="${place.id}" data-value="${place.plan === "destacado" ? "base" : "destacado"}">${place.plan === "destacado" ? "Bajar a base" : "Plan destacado"}</button>
+                  <button class="btn btn-enamel" type="button" data-suspend="${place.id}">${place.suspended ? "Reactivar" : "Suspender"}</button>
+                  ${live ? `<a class="btn-line" href="./ficha.html?id=${place.id}">Ver ficha</a>` : ""}
+                </div>
+              </article>`;
+            })
+            .join("")}
+        `;
+        root.querySelectorAll("[data-feat]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const place = placeView(findPlace(button.dataset.feat));
+            patchPlaceView(place.id, { featured: !place.featured });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-plan]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const plan = button.dataset.value;
+            patchPlaceView(button.dataset.plan, { plan, featured: plan === "destacado" });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-suspend]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const place = placeView(findPlace(button.dataset.suspend));
+            patchPlaceView(place.id, { suspended: !place.suspended });
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

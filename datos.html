@@ -12,29 +12,41 @@
     />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
-  <body class="sell">
+  <body class="sell auth-page">
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <nav class="topbar-nav">
+        <span class="account-slot" data-client-account></span>
+      </nav>
     </header>
-    <main class="band narrow">
-      <p class="meta">El horario queda retenido hasta que pagues. Si se vence, se libera solo.</p>
-      <p class="hold-clock" id="clock">15:00</p>
-      <h2>Confirmá el turno</h2>
-      <p class="band-lead" id="summary"></p>
-      <p id="who" class="meta"></p>
-      <a class="btn btn-enamel" id="go-pay" href="./pago.html">Continuar</a>
+    <main class="auth-shell">
+      <div class="auth-card wide">
+        <p class="meta">El horario queda retenido hasta que pagues. Si se vence, se libera solo.</p>
+        <p class="hold-clock" id="clock">15:00</p>
+        <h1>Confirmá el turno</h1>
+        <p class="band-lead" id="summary"></p>
+        <p id="who" class="meta"></p>
+        <form id="coupon-form" class="review-form">
+          <label>Cupón <input name="code" placeholder="RELAX10" /></label>
+          <button class="btn btn-ghost" type="submit">Aplicar</button>
+          <p id="coupon-msg" class="meta"></p>
+        </form>
+        <a class="btn btn-enamel" id="go-pay" href="./pago.html">Continuar</a>
+      </div>
     </main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const next = location.pathname + location.search;
       const user = requireUser(next);
-      if (!user) throw new Error("redirect");
-      const draft = readDraft();
+      const draft = ensureDemoDraft();
       if (!draft.placeId || !draft.slot) {
-        location.replace("./index.html");
+        location.replace("./reservar.html?id=oasis");
         throw new Error("redirect");
       }
       writeDraft({
@@ -48,11 +60,33 @@
         ? `${draft.placeName} · ${draft.serviceName} · ${draft.slot.replace("T", " ")} · ${money(draft.price)}`
         : "Elegí un horario.";
       document.getElementById("who").textContent = `${user.nombre} ${user.apellido} · DNI ${user.dni}`;
-      const senia = seniaOf(draft.placeId, draft.price);
-      writeDraft({ senia });
-      document.getElementById("go-pay").textContent =
-        senia > 0 ? `Pagar ${money(senia)} en Mercado Pago` : "Confirmar sin pago";
-      document.getElementById("go-pay").href = senia > 0 ? "./pago.html" : "./pago.html?gratis=1";
+      const listPrice = draft.listPrice || draft.price;
+      writeDraft({ listPrice });
+      function paintPay(price, note) {
+        const senia = seniaOf(draft.placeId, price);
+        writeDraft({ price, senia });
+        document.getElementById("summary").textContent =
+          `${draft.placeName} · ${draft.serviceName} · ${draft.slot.replace("T", " ")} · ${money(price)}`;
+        document.getElementById("go-pay").textContent =
+          senia > 0 ? `Pagar ${money(senia)} en Mercado Pago` : "Confirmar sin pago";
+        document.getElementById("go-pay").href = "./pago.html";
+        if (note) document.getElementById("coupon-msg").textContent = note;
+      }
+      if (!placeCoupons(draft.placeId).some((row) => row.active)) {
+        document.getElementById("coupon-form").hidden = true;
+      }
+      paintPay(listPrice);
+      document.getElementById("coupon-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const code = new FormData(event.target).get("code");
+        const result = applyCoupon(draft.placeId, code, listPrice, draft.serviceId);
+        if (!result.ok) {
+          document.getElementById("coupon-msg").textContent = "Cupón inválido o no aplica a este servicio.";
+          return;
+        }
+        writeDraft({ coupon: result.coupon.code, discount: result.discount });
+        paintPay(result.price, `${result.coupon.code} · −${money(result.discount)}`);
+      });
       watchHold(
         (left) => {
           document.getElementById("clock").textContent = formatHold(left);

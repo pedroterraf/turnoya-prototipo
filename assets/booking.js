@@ -7,9 +7,23 @@ const CAPACITY_OPEN = 0;
 const ARREPENTIMIENTO_DIAS = 10;
 const HORAS_ANTES_CANCEL = 48;
 
-function findPlace(id) {
+function lookupPlace(id) {
+  if (!id) return null;
   const list = typeof allPlaces === "function" ? allPlaces() : PLACES;
-  return list.find((place) => place.id === id) ?? list[0];
+  return list.find((place) => place.id === id || place.slug === id) ?? null;
+}
+
+function findPlace(id) {
+  return lookupPlace(id) ?? (typeof allPlaces === "function" ? allPlaces()[0] : PLACES[0]);
+}
+
+function missingPlaceHtml() {
+  return `<section class="auth-shell"><div class="auth-card">
+    <p class="meta">No encontramos el local</p>
+    <h1>Ese negocio no existe</h1>
+    <p class="band-lead">El enlace está incompleto o el alta todavía no está en este navegador.</p>
+    <a class="btn btn-enamel" href="./index.html">Volver al mapa</a>
+  </div></section>`;
 }
 
 function defaultServices(place) {
@@ -21,6 +35,10 @@ function defaultServices(place) {
         minutes: 60,
         price: 15000,
         capacity: CAPACITY_OPEN,
+        hourStart: 9,
+        hourEnd: 18,
+        description: "Consulta con documentación. No ocupa un consultorio físico.",
+        includes: ["Revisión de papeles", "Plan de acción", "Resumen por mail"],
         image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=80",
       },
     ];
@@ -32,6 +50,10 @@ function defaultServices(place) {
       minutes: 60,
       price: 9000,
       capacity: 1,
+      hourStart: 10,
+      hourEnd: 19,
+      description: "Sesión completa. El horario se tapa: no se pisa con otro turno.",
+      includes: ["Entrevista breve", "Servicio de 60 min", "Agua y toalla"],
       image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80",
     },
     {
@@ -40,22 +62,33 @@ function defaultServices(place) {
       minutes: 30,
       price: 4500,
       capacity: 3,
+      hourStart: 9,
+      hourEnd: 20,
+      description: "Turno breve. Se puede pisar hasta 3 personas en el mismo horario.",
+      includes: ["Servicio de 30 min"],
       image: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80",
     },
   ];
 }
 
 function normalizeService(service) {
-  if (service.capacity != null) return service;
-  if (service.overlap) {
-    return { ...service, capacity: service.overlapLimit || 99 };
+  let capacity = service.capacity;
+  if (capacity == null) {
+    capacity = service.overlap ? service.overlapLimit || 99 : 1;
   }
-  return { ...service, capacity: 1 };
+  return {
+    ...service,
+    capacity,
+    description: service.description ?? "",
+    includes: Array.isArray(service.includes) ? service.includes : [],
+    hourStart: service.hourStart ?? 9,
+    hourEnd: service.hourEnd ?? 19,
+  };
 }
 
 function placeServices(place) {
   try {
-    const stored = JSON.parse(sessionStorage.getItem(`turnoya-services-${place.id}`) ?? "null");
+    const stored = JSON.parse(memoryGet(`turnoya-services-${place.id}`) ?? "null");
     if (stored?.length) return stored.map(normalizeService);
   } catch {
     /* ignore */
@@ -64,7 +97,7 @@ function placeServices(place) {
 }
 
 function savePlaceServices(placeId, services) {
-  sessionStorage.setItem(`turnoya-services-${placeId}`, JSON.stringify(services));
+  memorySet(`turnoya-services-${placeId}`, JSON.stringify(services));
 }
 
 function serviceCapacity(service) {
@@ -79,8 +112,21 @@ function isOpenCapacity(service) {
 function capacityLabel(service) {
   if (isOpenCapacity(service)) return "No ocupa silla";
   const capacity = serviceCapacity(service);
-  if (capacity === 1) return "1 a la vez";
+  if (capacity === 1) return "1 a la vez · no se pisa";
   return `${capacity} en paralelo`;
+}
+
+function serviceHours(service) {
+  const start = Number(normalizeService(service).hourStart);
+  const end = Number(normalizeService(service).hourEnd);
+  const hours = [];
+  for (let hour = start; hour <= end; hour += 1) hours.push(hour);
+  return hours.length ? hours : HOURS;
+}
+
+function hoursLabel(service) {
+  const row = normalizeService(service);
+  return `${pad(row.hourStart)}:00–${pad(row.hourEnd)}:00`;
 }
 
 function placeAddress(place) {
@@ -130,7 +176,7 @@ const HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
 
 function workingDays(placeId) {
   try {
-    const stored = JSON.parse(sessionStorage.getItem(`turnoya-days-${placeId}`) ?? "null");
+    const stored = JSON.parse(memoryGet(`turnoya-days-${placeId}`) ?? "null");
     if (stored) return stored;
   } catch {
     /* ignore */
@@ -138,28 +184,50 @@ function workingDays(placeId) {
   return { 0: false, 1: true, 2: true, 3: true, 4: true, 5: true, 6: false };
 }
 
+function dayConfig(placeId, weekday) {
+  const raw = workingDays(placeId)[weekday];
+  if (raw === false) return { open: false, start: 9, end: 19 };
+  if (raw && typeof raw === "object") {
+    return {
+      open: raw.open !== false,
+      start: Number(raw.start ?? 9),
+      end: Number(raw.end ?? 19),
+    };
+  }
+  return { open: raw !== false, start: 9, end: 19 };
+}
+
+function dayAllowsHour(placeId, date, hour) {
+  const config = dayConfig(placeId, date.getDay());
+  return config.open && hour >= config.start && hour <= config.end;
+}
+
 function saveWorkingDays(placeId, days) {
-  sessionStorage.setItem(`turnoya-days-${placeId}`, JSON.stringify(days));
+  memorySet(`turnoya-days-${placeId}`, JSON.stringify(days));
 }
 
 function paymentRule(placeId) {
-  try {
-    const stored = JSON.parse(sessionStorage.getItem(`turnoya-pay-${placeId}`) ?? "null");
-    if (stored) return stored;
-  } catch {
-    /* ignore */
-  }
-  return {
+  const fallback = {
     mode: "minimo",
     minimo: DEFAULT_MINIMO,
     porcentaje: 30,
     piso: MP_FLOOR,
     techo: 0,
+    mpConnected: true,
   };
+  try {
+    const stored = JSON.parse(memoryGet(`turnoya-pay-${placeId}`) ?? "null");
+    if (stored) {
+      return { ...fallback, ...stored, mpConnected: stored.mpConnected !== false };
+    }
+  } catch {
+    /* ignore */
+  }
+  return fallback;
 }
 
 function savePaymentRule(placeId, rule) {
-  sessionStorage.setItem(`turnoya-pay-${placeId}`, JSON.stringify(rule));
+  memorySet(`turnoya-pay-${placeId}`, JSON.stringify(rule));
 }
 
 function seniaOf(placeId, price) {
@@ -177,7 +245,7 @@ function seniaOf(placeId, price) {
 
 function placePolicy(placeId) {
   try {
-    const stored = JSON.parse(sessionStorage.getItem(`turnoya-policy-${placeId}`) ?? "null");
+    const stored = JSON.parse(memoryGet(`turnoya-policy-${placeId}`) ?? "null");
     if (stored) return stored;
   } catch {
     /* ignore */
@@ -189,19 +257,106 @@ function placePolicy(placeId) {
 }
 
 function savePlacePolicy(placeId, policy) {
-  sessionStorage.setItem(`turnoya-policy-${placeId}`, JSON.stringify(policy));
+  memorySet(`turnoya-policy-${placeId}`, JSON.stringify(policy));
 }
 
 function landingTheme(placeId) {
   try {
-    return JSON.parse(sessionStorage.getItem(`turnoya-theme-${placeId}`) ?? "null") ?? {};
+    return JSON.parse(memoryGet(`turnoya-theme-${placeId}`) ?? "null") ?? {};
   } catch {
     return {};
   }
 }
 
 function saveLandingTheme(placeId, theme) {
-  sessionStorage.setItem(`turnoya-theme-${placeId}`, JSON.stringify(theme));
+  memorySet(`turnoya-theme-${placeId}`, JSON.stringify(theme));
+}
+
+function defaultCoupons(placeId) {
+  if (placeId === "oasis") {
+    return [{ code: "RELAX10", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+  }
+  return [];
+}
+
+function placeCoupons(placeId) {
+  try {
+    const stored = JSON.parse(memoryGet(`turnoya-coupons-${placeId}`) ?? "null");
+    if (stored) return stored;
+  } catch {
+    /* ignore */
+  }
+  return defaultCoupons(placeId);
+}
+
+function savePlaceCoupons(placeId, coupons) {
+  memorySet(`turnoya-coupons-${placeId}`, JSON.stringify(coupons));
+}
+
+function applyCoupon(placeId, code, price, serviceId) {
+  const coupon = placeCoupons(placeId).find(
+    (row) => row.active && row.code.toUpperCase() === String(code || "").trim().toUpperCase(),
+  );
+  if (!coupon) return { ok: false, price, discount: 0 };
+  if (coupon.serviceId && coupon.serviceId !== serviceId) return { ok: false, price, discount: 0 };
+  const discount =
+    coupon.type === "fijo" ? Number(coupon.value) : Math.round((price * Number(coupon.value)) / 100);
+  const next = Math.max(0, price - discount);
+  return { ok: true, price: next, discount, coupon };
+}
+
+function defaultSupport(place) {
+  return {
+    whatsappEnabled: true,
+    emailEnabled: true,
+    whatsapp: place.whatsapp || "3515550000",
+    email: `hola@${place.slug || place.id}.com`,
+  };
+}
+
+function placeSupport(place) {
+  try {
+    const stored = JSON.parse(memoryGet(`turnoya-support-${place.id}`) ?? "null");
+    if (stored) return stored;
+  } catch {
+    /* ignore */
+  }
+  return defaultSupport(place);
+}
+
+function savePlaceSupport(placeId, support) {
+  memorySet(`turnoya-support-${placeId}`, JSON.stringify(support));
+}
+
+function whatsappHref(phone, text) {
+  const digits = String(phone || "").replace(/\D/g, "");
+  const local = digits.startsWith("54") ? digits : `54${digits}`;
+  return `https://wa.me/${local}?text=${encodeURIComponent(text || "")}`;
+}
+
+function placeInquiries(placeId) {
+  try {
+    return JSON.parse(memoryGet(`turnoya-inbox-${placeId}`) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveInquiry(placeId, inquiry) {
+  const rows = placeInquiries(placeId);
+  rows.unshift({ id: `in-${Date.now()}`, createdAt: Date.now(), ...inquiry });
+  memorySet(`turnoya-inbox-${placeId}`, JSON.stringify(rows));
+  pushPlaceNote(placeId, `Consulta de ${inquiry.nombre || "alguien"}: ${inquiry.mensaje || ""}`);
+}
+
+function seedPlaceInbox(placeId) {
+  if (placeInquiries(placeId).length || placeId !== "oasis") return;
+  saveInquiry(placeId, {
+    nombre: "María Sol",
+    email: "maria@correo.com",
+    celular: "3515551111",
+    mensaje: "¿El masaje de 60 incluye hidromasaje?",
+  });
 }
 
 function seedOccupied(placeId) {
@@ -217,7 +372,7 @@ function seedOccupied(placeId) {
 
 function bookedSlots() {
   try {
-    return JSON.parse(sessionStorage.getItem("turnoya-booked") ?? "[]");
+    return JSON.parse(memoryGet("turnoya-booked") ?? "[]");
   } catch {
     return [];
   }
@@ -226,7 +381,7 @@ function bookedSlots() {
 function activeHolds() {
   const now = Date.now();
   try {
-    return JSON.parse(sessionStorage.getItem("turnoya-holds") ?? "[]").filter(
+    return JSON.parse(memoryGet("turnoya-holds") ?? "[]").filter(
       (hold) => hold.expiresAt > now,
     );
   } catch {
@@ -235,7 +390,7 @@ function activeHolds() {
 }
 
 function saveHolds(holds) {
-  sessionStorage.setItem("turnoya-holds", JSON.stringify(holds));
+  memorySet("turnoya-holds", JSON.stringify(holds));
 }
 
 function slotSpan(startKey, minutes) {
@@ -251,7 +406,7 @@ function slotSpan(startKey, minutes) {
 }
 
 function occupancy(placeId, key, exceptId) {
-  let count = seedOccupied(placeId).includes(key) ? 1 : 0;
+  let count = 0;
   bookedSlots()
     .filter((row) => row.placeId === placeId && row.estado !== "cancelado" && row.id !== exceptId)
     .forEach((row) => {
@@ -301,9 +456,47 @@ function formatHold(ms) {
   return `${Math.floor(total / 60)}:${pad(total % 60)}`;
 }
 
+function ensureDemoDraft() {
+  const draft = readDraft();
+  if (draft.placeId && draft.slot) {
+    if (!draftHold()) holdSlot(draft);
+    return draft;
+  }
+  const place = findPlace("oasis");
+  const service = placeServices(place)[0];
+  const slot = freeSlots(place.id, service)[0];
+  if (!slot) return draft;
+  const next = {
+    placeId: place.id,
+    placeName: place.name,
+    slug: place.slug,
+    serviceId: service.id,
+    serviceName: service.name,
+    minutes: service.minutes,
+    price: service.price,
+    slot,
+    senia: seniaOf(place.id, service.price),
+    listPrice: service.price,
+    nombre: "Pedro",
+    apellido: "Terraf",
+    email: "pedroterraf@gmail.com",
+    dni: "30111222",
+  };
+  writeDraft(next);
+  holdSlot(next);
+  return next;
+}
+
 function watchHold(onTick, onExpire) {
   const tick = () => {
-    const hold = draftHold();
+    let hold = draftHold();
+    if (!hold) {
+      const draft = readDraft();
+      if (draft.placeId && draft.slot) {
+        holdSlot(draft);
+        hold = draftHold();
+      }
+    }
     const left = holdMsLeft(hold);
     if (!hold || left <= 0) {
       onExpire();
@@ -317,14 +510,14 @@ function watchHold(onTick, onExpire) {
 
 function readDraft() {
   try {
-    return JSON.parse(sessionStorage.getItem("turnoya-draft") ?? "{}");
+    return JSON.parse(memoryGet("turnoya-draft") ?? "{}");
   } catch {
     return {};
   }
 }
 
 function writeDraft(partial) {
-  sessionStorage.setItem("turnoya-draft", JSON.stringify({ ...readDraft(), ...partial }));
+  memorySet("turnoya-draft", JSON.stringify({ ...readDraft(), ...partial }));
 }
 
 function confirmDraft() {
@@ -338,15 +531,23 @@ function confirmDraft() {
     estado: "confirmado",
   };
   rows.push(turno);
-  sessionStorage.setItem("turnoya-booked", JSON.stringify(rows));
-  sessionStorage.setItem("turnoya-last", JSON.stringify(turno));
+  memorySet("turnoya-booked", JSON.stringify(rows));
+  memorySet("turnoya-last", JSON.stringify(turno));
   saveHolds(activeHolds().filter((hold) => hold.slot !== draft.slot || hold.placeId !== draft.placeId));
+  pushNote(
+    turno.email,
+    `Turno confirmado en ${turno.placeName}: ${turno.serviceName} · ${turno.slot.replace("T", " ")}. Seña ${money(turno.senia || 0)}.`,
+  );
+  pushPlaceNote(
+    turno.placeId,
+    `Nuevo turno: ${turno.nombre || ""} ${turno.apellido || ""} · ${turno.serviceName} · ${turno.slot.replace("T", " ")}.`,
+  );
   return turno;
 }
 
 function lastTurno() {
   try {
-    return JSON.parse(sessionStorage.getItem("turnoya-last") ?? "null");
+    return JSON.parse(memoryGet("turnoya-last") ?? "null");
   } catch {
     return null;
   }
@@ -363,7 +564,7 @@ function placeTurnos(placeId) {
 }
 
 function saveBooked(rows) {
-  sessionStorage.setItem("turnoya-booked", JSON.stringify(rows));
+  memorySet("turnoya-booked", JSON.stringify(rows));
 }
 
 function patchTurno(id, patch) {
@@ -371,16 +572,16 @@ function patchTurno(id, patch) {
   saveBooked(rows);
   const last = lastTurno();
   if (last?.id === id) {
-    sessionStorage.setItem("turnoya-last", JSON.stringify({ ...last, ...patch }));
+    memorySet("turnoya-last", JSON.stringify({ ...last, ...patch }));
   }
   return rows.find((row) => row.id === id) ?? null;
 }
 
 function nextOpenDay(placeId) {
   const today = dayKey(new Date());
-  const daysOn = workingDays(placeId);
   return (
-    weekDays().find((day) => daysOn[day.getDay()] !== false && dayKey(day) >= today) ?? weekDays()[1]
+    weekDays().find((day) => dayConfig(placeId, day.getDay()).open && dayKey(day) >= today) ??
+    weekDays()[1]
   );
 }
 
@@ -428,22 +629,25 @@ function seedPlaceAgenda(placeId) {
     },
   );
   saveBooked(rows);
+  pushNote(
+    "pedroterraf@gmail.com",
+    `Turno confirmado en ${place.name}: ${place.service} · ${slotKey(day, 10, 0).replace("T", " ")}. Seña ${money(3000)}.`,
+  );
 }
 
-function freeSlots(placeId, service, exceptId) {
+function freeSlots(placeId, service, exceptId, from) {
   const today = dayKey(new Date());
   const now = new Date();
-  const daysOn = workingDays(placeId);
   const keys = [];
-  weekDays().forEach((day) => {
-    if (daysOn[day.getDay()] === false) return;
-    HOURS.forEach((hour) => {
+  weekDays(from).forEach((day) => {
+    serviceHours(service).forEach((hour) => {
       [0, 30].forEach((minute) => {
         const sameDay = dayKey(day) === today;
         const pastHour =
           sameDay &&
           (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
         if (dayKey(day) < today || pastHour) return;
+        if (!dayAllowsHour(placeId, day, hour)) return;
         const key = slotKey(day, hour, minute);
         if (canBook(placeId, service, key, exceptId)) keys.push(key);
       });
@@ -468,7 +672,25 @@ function reprogramTurno(id, newSlot) {
     slot: newSlot,
     reprogramaciones: (turno.reprogramaciones || 0) + 1,
   });
+  pushNote(
+    turno.email,
+    `Turno reprogramado en ${turno.placeName}: ${newSlot.replace("T", " ")}.`,
+  );
   return true;
+}
+
+function notifyTurnoChange(id, estado) {
+  const turno = bookedSlots().find((row) => row.id === id);
+  if (!turno?.email) return;
+  if (estado === "concretado") {
+    pushNote(turno.email, `El local confirmó tu visita en ${turno.placeName}. Ya podés calificar.`);
+  }
+  if (estado === "no_show") {
+    pushNote(turno.email, `Marcaron que no fuiste a ${turno.placeName}.`);
+  }
+  if (estado === "cancelado") {
+    pushNote(turno.email, `El local canceló tu turno en ${turno.placeName}. Horario liberado.`);
+  }
 }
 
 function estadoLabel(estado) {
@@ -500,11 +722,65 @@ function cancelTurno(id, motivo) {
   const rows = bookedSlots().map((row) =>
     row.id === id ? { ...row, estado: "cancelado", motivo } : row,
   );
-  sessionStorage.setItem("turnoya-booked", JSON.stringify(rows));
+  memorySet("turnoya-booked", JSON.stringify(rows));
   const last = lastTurno();
   if (last?.id === id) {
-    sessionStorage.setItem("turnoya-last", JSON.stringify({ ...last, estado: "cancelado", motivo }));
+    memorySet("turnoya-last", JSON.stringify({ ...last, estado: "cancelado", motivo }));
   }
+  const turno = rows.find((row) => row.id === id);
+  if (turno?.email) {
+    pushNote(
+      turno.email,
+      motivo === "arrepentimiento"
+        ? `Arrepentimiento en ${turno.placeName}. Horario libre y seña a devolver.`
+        : `Turno cancelado en ${turno.placeName}. Horario liberado.`,
+    );
+    pushPlaceNote(
+      turno.placeId,
+      motivo === "arrepentimiento"
+        ? `${turno.nombre || "Cliente"} se arrepintió. Horario libre y seña a devolver.`
+        : `${turno.nombre || "Cliente"} canceló. Horario liberado.`,
+    );
+  }
+}
+
+function canReprogram(turno) {
+  return turno.estado === "confirmado" && Date.now() < slotStart(turno.slot).getTime();
+}
+
+function reprogramLink(turno) {
+  if (!canReprogram(turno)) return "";
+  return `<a class="btn btn-line" href="./reservar.html?id=${turno.placeId}&service=${turno.serviceId || ""}&reprogram=${turno.id}">Reprogramar</a>`;
+}
+
+function userNotes(email) {
+  try {
+    return JSON.parse(memoryGet(`turnoya-notes-${email}`) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function pushNote(email, text) {
+  if (!email) return;
+  const rows = userNotes(email);
+  rows.unshift({ id: `n-${Date.now()}`, text, at: Date.now() });
+  memorySet(`turnoya-notes-${email}`, JSON.stringify(rows.slice(0, 24)));
+}
+
+function placeNotes(placeId) {
+  try {
+    return JSON.parse(memoryGet(`turnoya-bo-notes-${placeId}`) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function pushPlaceNote(placeId, text) {
+  if (!placeId) return;
+  const rows = placeNotes(placeId);
+  rows.unshift({ id: `bn-${Date.now()}`, text, at: Date.now() });
+  memorySet(`turnoya-bo-notes-${placeId}`, JSON.stringify(rows.slice(0, 24)));
 }
 
 function turnoCardHtml(turno) {
@@ -533,13 +809,13 @@ function turnoCardHtml(turno) {
   } else if (turno.estado === "no_show") {
     actions = `<p class="meta">No te presentaste. El horario se consumió.</p>`;
   } else if (turno.estado === "confirmado" && canRepent(turno)) {
-    actions = `<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="arrepentimiento">Arrepentirme y devolver</button>
+    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="arrepentimiento">Arrepentirme y devolver</button>
       <p class="meta">Ley 24.240 · ${policy.arrepentimientoDias} días · el servicio todavía no se prestó. Se libera el horario y se reintegra lo pagado.</p>`;
   } else if (turno.estado === "confirmado" && canCancelLocal(turno)) {
-    actions = `<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="cancelacion">Cancelar según el local</button>
+    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="cancelacion">Cancelar según el local</button>
       <p class="meta">Ya no aplica arrepentimiento. El local deja cancelar hasta ${policy.horasAntesCancelacion} h antes.</p>`;
   } else if (turno.estado === "confirmado") {
-    actions = `<p class="meta">El local confirma cuando vas. Todavía no se puede calificar.</p>`;
+    actions = `${reprogramLink(turno)}<p class="meta">El local confirma cuando vas. Todavía no se puede calificar.</p>`;
   }
   return `<article class="quote" data-turno="${turno.id}">
     <strong>${turno.placeName}</strong>

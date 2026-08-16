@@ -1,3 +1,20 @@
+function memoryGet(key) {
+  if (localStorage.getItem(key) == null) {
+    const old = sessionStorage.getItem(key);
+    if (old != null) localStorage.setItem(key, old);
+  }
+  return localStorage.getItem(key);
+}
+
+function memorySet(key, value) {
+  localStorage.setItem(key, value);
+}
+
+function memoryRemove(key) {
+  localStorage.removeItem(key);
+  sessionStorage.removeItem(key);
+}
+
 const REVIEW_SEED = {
   oasis: [
     { id: "o1", author: "Lucía M.", stars: 5, text: "El masaje fue puntual y el lugar está impecable.", shownByBusiness: true },
@@ -50,7 +67,7 @@ const REVIEW_SEED = {
 };
 
 function loadReviewBook() {
-  const raw = sessionStorage.getItem("turnoya-reviews");
+  const raw = memoryGet("turnoya-reviews");
   if (!raw) return structuredClone(REVIEW_SEED);
   try {
     return JSON.parse(raw);
@@ -60,7 +77,7 @@ function loadReviewBook() {
 }
 
 function saveReviewBook(book) {
-  sessionStorage.setItem("turnoya-reviews", JSON.stringify(book));
+  memorySet("turnoya-reviews", JSON.stringify(book));
 }
 
 function reviewsFor(placeId) {
@@ -68,7 +85,7 @@ function reviewsFor(placeId) {
 }
 
 function ratingOf(placeId) {
-  const list = reviewsFor(placeId);
+  const list = reviewsFor(placeId).filter((review) => review.turnoId);
   if (!list.length) return { average: 0, count: 0 };
   const sum = list.reduce((acc, review) => acc + review.stars, 0);
   return { average: Math.round((sum / list.length) * 10) / 10, count: list.length };

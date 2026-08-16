@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Turno confirmado · TurnoYa</title>
+    <title>Avisos · TurnoYa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,24 +12,16 @@
     />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
-  <body class="sell auth-page">
+  <body class="sell">
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
       <nav class="topbar-nav">
+        <a href="./index.html">Mapa</a>
+        <a href="./mi-turno.html">Mis turnos</a>
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
-    <main class="auth-shell">
-      <div class="auth-card">
-        <p class="meta">Listo</p>
-        <h1>Turno confirmado</h1>
-        <p class="band-lead" id="detail"></p>
-        <p>Te dejamos el aviso en Avisos (mail y WhatsApp, en el prototipo). Si te arrepentís (10 días y el servicio no se prestó), desde Mis turnos pedís la devolución.</p>
-        <a class="btn btn-enamel" href="./mi-turno.html">Ver mi turno</a>
-        <a class="btn-line" href="./avisos.html">Ver avisos</a>
-        <a class="btn-line" href="./index.html">Volver al mapa</a>
-      </div>
-    </main>
+    <main class="band narrow" id="root"></main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -38,10 +30,21 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const turno = lastTurno();
-      document.getElementById("detail").textContent = turno
-        ? `${turno.placeName} · ${turno.serviceName} · ${turno.slot.replace("T", " ")} · seña ${money(turno.senia)}`
-        : "No hay un turno recién confirmado.";
+      const user = requireUser("./avisos.html");
+      if (!user) throw new Error("redirect");
+      const notes = userNotes(user.email);
+      const root = document.getElementById("root");
+      if (!notes.length) {
+        root.innerHTML =
+          "<h2>Sin avisos</h2><p class=\"band-lead\">Cuando reserves, canceles o el local confirme, aparece acá el mail y el WhatsApp mock.</p>";
+      } else {
+        root.innerHTML = `<h2>Avisos</h2><p class="band-lead">Mail y WhatsApp del prototipo. En producción salen por esos canales.</p>${notes
+          .map(
+            (note) =>
+              `<article class="quote"><p>${note.text}</p><p class="meta">${new Date(note.at).toLocaleString("es-AR")}</p></article>`,
+          )
+          .join("")}`;
+      }
     </script>
   </body>
 </html>

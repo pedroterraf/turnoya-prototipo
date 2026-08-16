@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dinero · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-dinero.html")) throw new Error("redirect");
+      seedPlaceAgenda("oasis");
+      const root = document.getElementById("root");
+      function paint() {
+        const rows = moneyLedger();
+        const refunds = rows.filter((row) => row.kind === "reembolso");
+        const done = rows.filter((row) => row.kind === "reintegrado");
+        const held = rows.filter((row) => row.kind === "senia_retenida");
+        const active = rows.filter((row) => row.kind === "senia_activa");
+        const sum = (list) => list.reduce((acc, row) => acc + (row.amount || 0), 0);
+        root.innerHTML = `
+          <h2>Dinero</h2>
+          <p class="band-lead">Un mismo turno: seña cobrada → concretado / no-show / arrepentimiento o cancelación del local. El reembolso se marca cuando Mercado Pago lo devolvió.</p>
+          <p class="meta">Activas ${money(sum(active))} · retenidas ${money(sum(held))} · a devolver ${money(sum(refunds))} · reintegradas ${money(sum(done))}</p>
+          ${
+            rows.length
+              ? rows
+                  .map(
+                    (row) => `
+              <article class="agenda-row">
+                <div>
+                  <strong>${row.placeName}</strong>
+                  <p class="meta">${row.nombre || ""} ${row.apellido || ""} · ${row.serviceName} · ${row.slot.replace("T", " ")}</p>
+                  <p class="meta">${moneyLabel(row.kind)} · ${money(row.amount)}</p>
+                </div>
+                <div class="agenda-actions">
+                  ${
+                    row.kind === "reembolso"
+                      ? `<button class="btn btn-ticket" type="button" data-refund="${row.id}">Marcar reintegrado</button>`
+                      : ""
+                  }
+                  <a class="btn-line" href="./bo-agenda.html?id=${row.placeId}">Agenda del local</a>
+                </div>
+              </article>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">Todavía no hay señas. Reservá un turno o abrí la agenda de Oasis (carga demos).</p>"
+          }
+        `;
+        root.querySelectorAll("[data-refund]").forEach((button) => {
+          button.addEventListener("click", () => {
+            patchTurno(button.dataset.refund, { reembolsado: true });
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

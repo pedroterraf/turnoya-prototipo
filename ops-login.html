@@ -3,26 +3,24 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Entrar · TurnoYa</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <title>Ops · TurnoYa</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
-      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
     </header>
     <main class="auth-shell">
       <div class="auth-card">
-        <p class="meta">Cliente</p>
-        <h1>Entrar con tu mail</h1>
+        <p class="meta">Plataforma</p>
+        <h1>Entrar a Ops</h1>
         <p class="band-lead">Te mandamos un código de 6 dígitos. En el prototipo es 123456.</p>
         <form id="email-form" class="review-form">
-          <label>Email <input name="email" type="email" required value="pedroterraf@gmail.com" autocomplete="email" /></label>
+          <label>Email <input name="email" type="email" required value="ops@turnoya.com" autocomplete="email" /></label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
           <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
@@ -30,7 +28,7 @@
           <p class="meta" id="otp-hint"></p>
           <div class="otp" role="group" aria-label="Código de 6 dígitos"></div>
           <input type="hidden" name="code" />
-          <button class="btn btn-ticket" type="submit">Verificar</button>
+          <button class="btn btn-ticket" type="submit">Entrar</button>
           <p id="otp-msg" class="meta"></p>
         </form>
       </div>
@@ -43,9 +41,13 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
-      if (currentUser() && profileComplete(currentUser())) location.replace(next);
-      const otp = mountOtp(document.getElementById("otp-form"), () => {
+      const next = new URLSearchParams(location.search).get("next") || "./ops.html";
+      if (currentStaff()) location.replace(next);
+      document.getElementById("skip").addEventListener("click", () => {
+        ensureDemoStaff();
+        location.href = next;
+      });
+      const otp = mountOtp(document.getElementById("otp-form"), (code) => {
         document.getElementById("otp-form").requestSubmit();
       });
       document.getElementById("email-form").addEventListener("submit", (event) => {
@@ -57,18 +59,14 @@
         document.getElementById("otp-hint").textContent = `Código enviado a ${email}. Pegalo o escribilo.`;
         otp.focus();
       });
-      document.getElementById("skip").addEventListener("click", () => {
-        ensureDemoUser();
-        location.href = next;
-      });
       document.getElementById("otp-form").addEventListener("submit", (event) => {
         event.preventDefault();
-        const ok = verifyOtp(otp.read());
-        if (!ok) {
+        if (!checkOtp(otp.read())) {
           document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
           return;
         }
-        location.href = profileComplete(currentUser()) ? next : `./perfil.html?next=${encodeURIComponent(next)}`;
+        saveStaff({ email: memoryGet("turnoya-otp-email") });
+        location.href = next;
       });
     </script>
   </body>

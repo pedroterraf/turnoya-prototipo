@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Guía · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <nav class="topbar-nav">
+        <a href="./index.html">Mapa</a>
+        <span class="account-slot" data-client-account></span>
+      </nav>
+    </header>
+    <main class="band narrow">
+      <p class="meta">Prototipo</p>
+      <h2>Flujo para clickear</h2>
+      <p class="band-lead">No abras el listado de archivos. Entrá por el mapa. La barra de arriba te lleva de un paso al otro. Los logins se saltean con datos de Pedro / Oasis / Ops.</p>
+      <div class="guide-list">
+        <article>
+          <strong>1. Mapa</strong>
+          <p class="meta">Buscá o abrí Oasis.</p>
+          <a class="btn btn-ticket" href="./index.html">Abrir el mapa</a>
+        </article>
+        <article>
+          <strong>2–6. Cliente</strong>
+          <p class="meta">Ficha → horario → confirmar → pagar → mis turnos. Si te pide login, “Seguir con datos de prueba”.</p>
+          <a class="btn btn-enamel" href="./ficha.html?id=oasis">Ficha Oasis</a>
+          <a class="btn-line" href="./reservar.html?id=oasis">Elegir horario</a>
+          <a class="btn-line" href="./datos.html">Confirmar</a>
+          <a class="btn-line" href="./pago.html">Pago</a>
+          <a class="btn-line" href="./mi-turno.html">Mis turnos</a>
+        </article>
+        <article>
+          <strong>7. Dueño</strong>
+          <p class="meta">Agenda: concretó / no vino / reprogramar.</p>
+          <a class="btn btn-enamel" href="./bo-agenda.html?id=oasis">Abrir agenda</a>
+        </article>
+        <article>
+          <strong>8. Ops</strong>
+          <p class="meta">Altas, locales y dinero.</p>
+          <a class="btn btn-enamel" href="./ops.html">Abrir Ops</a>
+        </article>
+      </div>
+    </main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
+  </body>
+</html>

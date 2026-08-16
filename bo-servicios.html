@@ -16,6 +16,7 @@
       <a id="back" href="./bo.html">Volver</a>
     </header>
     <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -28,19 +29,24 @@
       const services = placeServices(place);
       document.getElementById("root").innerHTML = `
         <h2>Servicios de ${place.name}</h2>
-        <p class="band-lead">Capacidad = cuántos turnos caben a la vez. 1 = no se pisa. 3 = tres en paralelo. 0 = no ocupa silla (consultas online).</p>
-        <form id="form" class="review-form">
+        <p class="band-lead">El calendario usa el horario, la duración y la capacidad de este servicio. 1 = no se pisa. N = se pisa N veces. 0 = no ocupa silla.</p>
+        <form id="form" class="review-form wide-form">
           ${services
             .map((service, i) => {
-              const open = isOpenCapacity(service);
+              const row = normalizeService(service);
+              const open = isOpenCapacity(row);
               return `
             <fieldset>
-              <label>Nombre <input name="name-${i}" value="${service.name}" /></label>
-              <label>Minutos <input name="min-${i}" type="number" min="15" step="15" value="${service.minutes}" /></label>
-              <label>Precio <input name="price-${i}" type="number" min="0" value="${service.price}" /></label>
-              <label>Foto (URL) <input name="img-${i}" value="${service.image || ""}" /></label>
+              <label>Nombre <input name="name-${i}" value="${row.name}" /></label>
+              <label>Minutos <input name="min-${i}" type="number" min="15" step="15" value="${row.minutes}" /></label>
+              <label>Precio <input name="price-${i}" type="number" min="0" value="${row.price}" /></label>
+              <label>Desde (hora) <input name="from-${i}" type="number" min="6" max="22" value="${row.hourStart}" /></label>
+              <label>Hasta (hora) <input name="to-${i}" type="number" min="7" max="23" value="${row.hourEnd}" /></label>
+              <label>Descripción <textarea name="desc-${i}">${row.description}</textarea></label>
+              <label>Incluye (uno por línea) <textarea name="inc-${i}">${row.includes.join("\n")}</textarea></label>
+              <label>Foto (URL) <input name="img-${i}" value="${row.image || ""}" /></label>
               <label><input type="checkbox" name="open-${i}" ${open ? "checked" : ""} /> No ocupa recurso (infinito)</label>
-              <label>Capacidad simultánea <input name="cap-${i}" type="number" min="1" value="${open ? 1 : serviceCapacity(service)}" /></label>
+              <label>Capacidad / veces que se pisa <input name="cap-${i}" type="number" min="1" value="${open ? 1 : serviceCapacity(row)}" /></label>
             </fieldset>`;
             })
             .join("")}
@@ -50,10 +56,17 @@
         event.preventDefault();
         const data = new FormData(event.target);
         const next = services.map((service, i) => ({
-          ...service,
+          ...normalizeService(service),
           name: data.get(`name-${i}`),
           minutes: Number(data.get(`min-${i}`)),
           price: Number(data.get(`price-${i}`)),
+          hourStart: Number(data.get(`from-${i}`)),
+          hourEnd: Number(data.get(`to-${i}`)),
+          description: data.get(`desc-${i}`),
+          includes: String(data.get(`inc-${i}`) || "")
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean),
           image: data.get(`img-${i}`),
           capacity: data.get(`open-${i}`) === "on" ? 0 : Number(data.get(`cap-${i}`)) || 1,
         }));

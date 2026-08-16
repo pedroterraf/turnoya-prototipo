@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Altas · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-altas.html")) throw new Error("redirect");
+      seedPendingAlta();
+      const root = document.getElementById("root");
+      function paint() {
+        const queue = allPlaces()
+          .map(placeView)
+          .filter((place) => place.status === "pending" || place.status === "datos" || place.status === "rejected");
+        root.innerHTML = `
+          <h2>Altas</h2>
+          <p class="band-lead">Hasta que no se aprueba, el local no sale en el mapa.</p>
+          ${
+            queue.length
+              ? queue
+                  .map(
+                    (place) => `
+            <article class="agenda-row">
+              <div>
+                <strong>${place.name}</strong>
+                <p class="meta">${CITIES[place.city].label} · ${place.category} · ${place.whatsapp || "sin WhatsApp"}${place.cuit ? ` · CUIT ${place.cuit}` : ""}</p>
+                <p class="meta">${statusLabel(place.status)}${place.nota ? ` · ${place.nota}` : ""}</p>
+              </div>
+              <div class="agenda-actions">
+                <button class="btn btn-ticket" type="button" data-id="${place.id}" data-status="live">Aprobar</button>
+                <button class="btn btn-enamel" type="button" data-id="${place.id}" data-status="datos">Pedir datos</button>
+                <button class="btn btn-ghost" type="button" data-id="${place.id}" data-status="rejected">Rechazar</button>
+              </div>
+            </article>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">No hay altas pendientes. Creá una desde el alta pública.</p>"
+          }
+        `;
+        root.querySelectorAll("[data-status]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const status = button.dataset.status;
+            const nota =
+              status === "datos" ? "Falta CUIT y foto de local." : status === "rejected" ? "Fuera de rubro por ahora." : "";
+            patchPlaceView(button.dataset.id, { status, nota, suspended: false });
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

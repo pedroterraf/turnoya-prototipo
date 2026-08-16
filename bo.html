@@ -26,14 +26,19 @@
       </label>
       <h2 id="title">Backoffice</h2>
       <p class="band-lead">Primero la agenda: ahí se concreta el turno. El resto es config del local.</p>
+      <div id="ops-box"></div>
+      <div id="notes-box"></div>
       <div class="card-grid bo-nav">
         <a class="service-card" id="l-agenda" href="./bo-agenda.html"><div><strong>Agenda</strong><span class="meta">Concretó, no vino, cancelar, reprogramar</span></div></a>
-        <a class="service-card" id="l-serv" href="./bo-servicios.html"><div><strong>Servicios</strong><span class="meta">Precio, duración y capacidad</span></div></a>
+        <a class="service-card" id="l-serv" href="./bo-servicios.html"><div><strong>Servicios</strong><span class="meta">Horario, precio, capacidad, incluye</span></div></a>
+        <a class="service-card" id="l-cup" href="./bo-cupones.html"><div><strong>Cupones</strong><span class="meta">Descuento por código</span></div></a>
+        <a class="service-card" id="l-sup" href="./bo-soporte.html"><div><strong>Soporte</strong><span class="meta">WhatsApp, mail y bandeja</span></div></a>
         <a class="service-card" id="l-land" href="./bo-landing.html"><div><strong>Landing</strong><span class="meta">Color y banner canvas 1440×480 / 1080×720</span></div></a>
-        <a class="service-card" id="l-pay" href="./bo-pagos.html"><div><strong>Pagos y días</strong><span class="meta">Seña, arrepentimiento y días hábiles</span></div></a>
+        <a class="service-card" id="l-pay" href="./bo-pagos.html"><div><strong>Pagos y días</strong><span class="meta">Seña, Mercado Pago, horario por día</span></div></a>
         <a class="service-card" id="l-rev" href="./negocio-resenas.html"><div><strong>Recomendaciones</strong><span class="meta">Textos; las estrellas no se tocan</span></div></a>
       </div>
     </main>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -43,23 +48,69 @@
       let id = params.get("id") || "oasis";
       if (!requireOwner(id, `./bo.html?id=${id}`)) throw new Error("redirect");
       const biz = document.getElementById("biz");
-      allPlaces().forEach((place) => {
-        const option = document.createElement("option");
-        option.value = place.id;
-        option.textContent = `${place.name} · ${place.id}`;
-        biz.append(option);
-      });
+      const mine = new Set([id, ...ownedPlaceIds()]);
+      allPlaces()
+        .filter((place) => mine.has(place.id))
+        .forEach((place) => {
+          const option = document.createElement("option");
+          option.value = place.id;
+          option.textContent = `${place.name} · ${place.id}`;
+          biz.append(option);
+        });
       biz.value = id;
       function paint() {
         const place = findPlace(id);
+        const view = placeView(place);
         document.getElementById("title").textContent = `Backoffice · ${place.name}`;
         document.getElementById("ver").href = `./ficha.html?id=${id}`;
-        ["l-agenda", "l-serv", "l-land", "l-pay", "l-rev"].forEach((key) => {
+        ["l-agenda", "l-serv", "l-cup", "l-sup", "l-land", "l-pay", "l-rev"].forEach((key) => {
           document.getElementById(key).href = document
             .getElementById(key)
             .getAttribute("href")
             .split("?")[0] + `?id=${id}`;
         });
+        const ops = document.getElementById("ops-box");
+        if (view.status === "live" && !view.nota) {
+          ops.innerHTML = "";
+        } else {
+          ops.innerHTML = `<article class="quote">
+            <p class="meta">Estado del alta: ${
+              { live: "Publicado", pending: "En revisión", rejected: "Rechazado", datos: "Pide datos" }[view.status] ||
+              view.status
+            }${view.suspended ? " · suspendido" : ""}</p>
+            ${view.nota ? `<p>${view.nota}</p>` : ""}
+            ${
+              view.status === "datos"
+                ? `<form id="ops-reply" class="review-form">
+                    <label>CUIT <input name="cuit" required placeholder="30-12345678-9" /></label>
+                    <label>Comentario <input name="comentario" placeholder="Mandé la foto en Landing" /></label>
+                    <button class="btn btn-ticket" type="submit">Enviar a Ops</button>
+                  </form>`
+                : view.status !== "live"
+                  ? "<p class=\"meta\">Cuando Ops apruebe, el pin sale en el mapa.</p>"
+                  : ""
+            }
+          </article>`;
+          const reply = document.getElementById("ops-reply");
+          if (reply) {
+            reply.addEventListener("submit", (event) => {
+              event.preventDefault();
+              const data = new FormData(reply);
+              patchPlaceView(id, {
+                status: "pending",
+                nota: `Datos enviados · CUIT ${data.get("cuit")}. ${data.get("comentario") || ""}`.trim(),
+              });
+              paint();
+            });
+          }
+        }
+        const notes = placeNotes(id);
+        document.getElementById("notes-box").innerHTML = notes.length
+          ? `<h3 class="ficha-sub">Avisos del local</h3>${notes
+              .slice(0, 6)
+              .map((note) => `<p class="meta">${note.text}</p>`)
+              .join("")}`
+          : "";
       }
       biz.addEventListener("change", () => {
         id = biz.value;

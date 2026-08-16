@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Soporte · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-soporte.html?id=${id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const place = findPlace(id);
+      seedPlaceInbox(id);
+      const support = placeSupport(place);
+      const inbox = placeInquiries(id);
+      document.getElementById("root").innerHTML = `
+        <h2>Soporte de ${place.name}</h2>
+        <p class="band-lead">Elegís si el cliente te escribe por WhatsApp, por mail, o las dos. Los mensajes del form llegan acá.</p>
+        <form id="form" class="review-form">
+          <label><input type="checkbox" name="wpp" ${support.whatsappEnabled ? "checked" : ""} /> Habilitar WhatsApp</label>
+          <label>Número <input name="whatsapp" value="${support.whatsapp}" /></label>
+          <label><input type="checkbox" name="mail" ${support.emailEnabled ? "checked" : ""} /> Habilitar correo</label>
+          <label>Email del local <input name="email" type="email" value="${support.email}" /></label>
+          <button class="btn btn-ticket" type="submit">Guardar canales</button>
+        </form>
+        <h3 class="ficha-sub">Bandeja</h3>
+        ${
+          inbox.length
+            ? inbox
+                .map((row) => {
+                  const text = `Hola ${row.nombre}, te escribo de ${place.name} por tu consulta.`;
+                  return `<article class="agenda-row">
+                    <div>
+                      <strong>${row.nombre}</strong>
+                      <p class="meta">${row.email} · ${row.celular || "sin celular"}</p>
+                      <p>${row.mensaje}</p>
+                    </div>
+                    <div class="agenda-actions">
+                      ${
+                        support.whatsappEnabled && row.celular
+                          ? `<a class="btn btn-ticket" href="${whatsappHref(row.celular, text)}" target="_blank" rel="noreferrer">WhatsApp</a>`
+                          : ""
+                      }
+                      ${
+                        support.emailEnabled
+                          ? `<a class="btn btn-enamel" href="mailto:${row.email}?subject=${encodeURIComponent(place.name)}&body=${encodeURIComponent(text)}">Correo</a>`
+                          : ""
+                      }
+                    </div>
+                  </article>`;
+                })
+                .join("")
+            : "<p class=\"meta\">Todavía no hay consultas.</p>"
+        }
+      `;
+      document.getElementById("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        savePlaceSupport(id, {
+          whatsappEnabled: data.get("wpp") === "on",
+          emailEnabled: data.get("mail") === "on",
+          whatsapp: data.get("whatsapp"),
+          email: data.get("email"),
+        });
+        location.reload();
+      });
+    </script>
+  </body>
+</html>

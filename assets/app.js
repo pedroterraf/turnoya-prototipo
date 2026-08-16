@@ -249,7 +249,7 @@ function withDistance(places) {
 
 function extraPlaces() {
   try {
-    return JSON.parse(sessionStorage.getItem("turnoya-places") ?? "[]");
+    return JSON.parse(memoryGet("turnoya-places") ?? "[]");
   } catch {
     return [];
   }
@@ -262,11 +262,51 @@ function allPlaces() {
 function saveExtraPlace(place) {
   const list = extraPlaces().filter((row) => row.id !== place.id);
   list.push(place);
-  sessionStorage.setItem("turnoya-places", JSON.stringify(list));
+  memorySet("turnoya-places", JSON.stringify(list));
+}
+
+function loadOverrides() {
+  try {
+    return JSON.parse(memoryGet("turnoya-overrides") ?? "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveOverrides(map) {
+  memorySet("turnoya-overrides", JSON.stringify(map));
+}
+
+function placeView(place) {
+  const extra = extraPlaces().find((row) => row.id === place.id);
+  const base = extra ? { ...place, ...extra } : place;
+  const override = loadOverrides()[place.id] ?? {};
+  return {
+    ...base,
+    featured: override.featured ?? base.featured,
+    suspended: override.suspended === true,
+    status: override.status ?? base.status ?? "live",
+    plan: override.plan ?? base.plan ?? "base",
+    nota: override.nota ?? base.nota ?? "",
+  };
+}
+
+function patchPlaceView(placeId, patch) {
+  const overrides = loadOverrides();
+  overrides[placeId] = { ...overrides[placeId], ...patch };
+  saveOverrides(overrides);
+  const extra = extraPlaces().find((row) => row.id === placeId);
+  if (extra) saveExtraPlace({ ...extra, ...patch });
+}
+
+function publicPlaces() {
+  return allPlaces()
+    .map(placeView)
+    .filter((place) => place.status === "live" && !place.suspended);
 }
 
 function filteredPlaces() {
-  return withDistance(allPlaces().filter(matchesPlace));
+  return withDistance(publicPlaces().filter(matchesPlace));
 }
 
 function pinIcon(place) {
@@ -288,6 +328,19 @@ function youIcon() {
     iconSize: [36, 36],
     iconAnchor: [18, 18],
   });
+}
+
+function nextSlotOf(place) {
+  if (typeof placeServices !== "function" || typeof freeSlots !== "function") {
+    return place.nextSlot || "Ver horarios";
+  }
+  const service = placeServices(place)[0];
+  const first = freeSlots(place.id, service)[0];
+  if (!first) return "Sin horarios";
+  const [date, time] = first.split("T");
+  const today = typeof dayKey === "function" ? dayKey(new Date()) : "";
+  const label = date === today ? "Hoy" : date.slice(5).replace("-", "/");
+  return `${label} ${time}`;
 }
 
 function renderFilters() {
@@ -344,7 +397,7 @@ function renderResults(places) {
           ${sponsoredSlot ? '<span class="badge">Patrocinado</span>' : place.featured ? '<span class="badge">Destacado</span>' : `<span class="badge badge-soft">${place.category}</span>`}
           <strong>${place.name}</strong>
           ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count)}
-          <span class="meta">${place.service} · a ${place.km} km · ${place.nextSlot}</span>
+          <span class="meta">${place.service} · a ${place.km} km · ${nextSlotOf(place)}</span>
         </span>
       </button>`;
     })
@@ -388,7 +441,7 @@ function selectPlace(id) {
       ${place.featured ? '<span class="badge">Destacado</span>' : ""}
       <h3>${place.name}</h3>
       ${starsMarkup(rating.average, rating.count)}
-      <p class="meta">${place.service} · ${place.km} km · próximo ${place.nextSlot}</p>
+      <p class="meta">${place.service} · ${place.km} km · próximo ${nextSlotOf(place)}</p>
       <p class="meta">turnoya.com/${place.slug}</p>
       <span class="btn btn-enamel">Ir al negocio</span>
     </a>
@@ -480,6 +533,6 @@ function boot() {
   requestLocation();
 }
 
-if (document.getElementById("map")) {
-  boot();
+function startMarket() {
+  if (document.getElementById("map")) boot();
 }

@@ -10,49 +10,77 @@
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell auth-page">
     <header class="topbar">
       <a class="brand" href="./negocios.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">dueño</span></a>
     </header>
-    <main class="band narrow">
-      <h2 id="title">Entrar al backoffice</h2>
-      <p class="band-lead">Código de prueba 123456. Este login es del dueño, no del cliente.</p>
-      <form id="email-form" class="review-form">
-        <label>Email del local <input name="email" type="email" required value="oasis@turnoya.com" /></label>
-        <button class="btn btn-enamel" type="submit">Enviar código</button>
-      </form>
-      <form id="otp-form" class="review-form" hidden>
-        <label>Código <input name="code" inputmode="numeric" required maxlength="6" /></label>
-        <button class="btn btn-ticket" type="submit">Entrar</button>
-        <p id="otp-msg" class="meta"></p>
-      </form>
+    <main class="auth-shell">
+      <div class="auth-card">
+        <p class="meta">Dueño del local</p>
+        <h1 id="title">Entrar al backoffice</h1>
+        <p class="band-lead">Código de 6 dígitos. En el prototipo es 123456.</p>
+        <form id="email-form" class="review-form">
+          <label>Email del local <input name="email" type="email" required value="oasis@turnoya.com" autocomplete="email" /></label>
+          <button class="btn btn-enamel" type="submit">Enviar código</button>
+          <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
+        </form>
+        <form id="otp-form" class="review-form" hidden>
+          <p class="meta" id="otp-hint"></p>
+          <div class="otp" role="group" aria-label="Código de 6 dígitos"></div>
+          <input type="hidden" name="code" />
+          <button class="btn btn-ticket" type="submit">Entrar</button>
+          <p id="otp-msg" class="meta"></p>
+        </form>
+      </div>
     </main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
       const id = params.get("id") || "oasis";
       const next = params.get("next") || `./bo-agenda.html?id=${id}`;
       const place = findPlace(id);
       document.getElementById("title").textContent = `Dueño · ${place.name}`;
-      const owner = currentOwner();
-      if (owner?.placeId === id) location.replace(next);
+      if (currentOwner()?.placeId === id) location.replace(next);
+      document.getElementById("skip").addEventListener("click", () => {
+        ensureDemoOwner(id);
+        location.href = next;
+      });
+      const otp = mountOtp(document.getElementById("otp-form"), () => {
+        document.getElementById("otp-form").requestSubmit();
+      });
       document.getElementById("email-form").addEventListener("submit", (event) => {
         event.preventDefault();
-        sendOtp(new FormData(event.target).get("email"));
+        const email = new FormData(event.target).get("email");
+        sendOtp(email);
         event.target.hidden = true;
         document.getElementById("otp-form").hidden = false;
+        document.getElementById("otp-hint").textContent = `Código enviado a ${email}. Pegalo o escribilo.`;
+        otp.focus();
       });
       document.getElementById("otp-form").addEventListener("submit", (event) => {
         event.preventDefault();
-        if (!checkOtp(new FormData(event.target).get("code"))) {
-          document.getElementById("otp-msg").textContent = "Código incorrecto.";
+        if (!checkOtp(otp.read())) {
+          document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
+          return;
+        }
+        const email = memoryGet("turnoya-otp-email");
+        const seeded = PLACES.some((row) => row.id === id);
+        if (id === "oasis" && email !== "oasis@turnoya.com") {
+          document.getElementById("otp-msg").textContent = "Oasis es de oasis@turnoya.com.";
+          return;
+        }
+        if (seeded && id !== "oasis" && !ownedPlaceIds().includes(id)) {
+          document.getElementById("otp-msg").textContent = "Este local no es tuyo. Entrá al que diste de alta.";
           return;
         }
         saveOwner({
-          email: sessionStorage.getItem("turnoya-otp-email"),
+          email,
           placeId: id,
         });
         location.href = next;

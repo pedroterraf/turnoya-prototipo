@@ -19,6 +19,7 @@
       </nav>
     </header>
     <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
@@ -50,7 +51,16 @@
         root.innerHTML = `
           <p class="meta">${owner.email} · ${place.name}</p>
           <h2>Agenda</h2>
-          <p class="band-lead">Confirmado → concretó o no vino. Recién ahí el cliente puede calificar. Cancelar libera el horario.</p>
+          <p class="band-lead">Confirmado → concretó o no vino. Recién ahí el cliente puede calificar. Cancelar libera el horario y devuelve la seña.</p>
+          ${
+            activeHolds()
+              .filter((hold) => hold.placeId === id)
+              .map(
+                (hold) =>
+                  `<p class="meta">Hold 15 min · ${hold.nombre || "alguien"} · ${hold.serviceName} · ${hold.slot.replace("T", " ")} · queda ${formatHold(holdMsLeft(hold))}</p>`,
+              )
+              .join("")
+          }
           ${
             list.length
               ? list
@@ -100,6 +110,7 @@
               estado,
               motivo: estado === "cancelado" ? "local" : estado,
             });
+            notifyTurnoChange(button.dataset.id, estado);
             paint();
           });
         });

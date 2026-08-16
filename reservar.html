@@ -15,78 +15,139 @@
   <body class="sell">
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
-      <a id="back-ficha" href="./ficha.html">Volver al negocio</a>
+      <nav class="topbar-nav">
+        <a id="back-ficha" href="./ficha.html">Volver al negocio</a>
+        <span class="account-slot" data-client-account></span>
+      </nav>
     </header>
-    <main class="band">
-      <p class="meta">Elegí un horario · el servicio ocupa su duración en la grilla</p>
-      <h2 id="place-title"></h2>
-      <p class="band-lead" id="service-label"></p>
-      <p class="meta" id="expired" hidden>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
-      <div class="cal-wrap">
-        <div class="watermark cal-mark">TurnoYa</div>
-        <div id="calendar" class="cal"></div>
-      </div>
-    </main>
+    <main class="band" id="root"></main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
-      const place = findPlace(params.get("id"));
-      const services = placeServices(place);
-      const service =
-        services.find((item) => item.id === params.get("service")) ?? services[0];
-      const daysOn = workingDays(place.id);
-      document.getElementById("back-ficha").href = `./ficha.html?id=${place.id}`;
-      document.getElementById("place-title").textContent = place.name;
-      if (params.get("expired") === "1") {
-        document.getElementById("expired").hidden = false;
+      const place = lookupPlace(params.get("id"));
+      const root = document.getElementById("root");
+      if (!place) {
+        root.innerHTML = missingPlaceHtml();
+        throw new Error("missing");
       }
-      document.getElementById("service-label").textContent =
-        `${service.name} · ${service.minutes} min · ${money(service.price)} · ${capacityLabel(service)}`;
-
-      const days = weekDays();
+      const view = placeView(place);
+      if (view.status !== "live" || view.suspended) {
+        location.replace(`./ficha.html?id=${place.id}`);
+        throw new Error("redirect");
+      }
+      const services = placeServices(place);
+      const service = services.find((item) => item.id === params.get("service")) ?? services[0];
+      const reprogramId = params.get("reprogram");
+      document.getElementById("back-ficha").href = `./ficha.html?id=${place.id}`;
+      const picked = normalizeService(service);
+      const week = Math.min(8, Math.max(0, Number(params.get("week") || 0) || 0));
+      const from = new Date();
+      from.setDate(from.getDate() + week * 7);
+      const days = weekDays(from);
       const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
       const today = dayKey(new Date());
       const now = new Date();
-      const root = document.getElementById("calendar");
-      const head = days
-        .map((day) => `<div class="cal-head">${labels[day.getDay()]}<b>${day.getDate()}</b></div>`)
+      const expired = params.get("expired") === "1";
+      const openCount = freeSlots(place.id, service, reprogramId, from).length;
+      const weekQuery = (nextWeek) => {
+        const q = new URLSearchParams({
+          id: place.id,
+          service: service.id,
+        });
+        if (reprogramId) q.set("reprogram", reprogramId);
+        if (nextWeek) q.set("week", String(nextWeek));
+        return `./reservar.html?${q}`;
+      };
+      const chips = services
+        .map((item) => {
+          const href = `./reservar.html?id=${place.id}&service=${item.id}${
+            reprogramId ? `&reprogram=${reprogramId}` : ""
+          }${week ? `&week=${week}` : ""}`;
+          return `<a class="${item.id === service.id ? "is-on" : ""}" href="${href}">${item.name}</a>`;
+        })
         .join("");
-      const rows = HOURS.flatMap((hour) =>
-        [0, 30].map((minute) => {
-          const cells = days
-            .map((day) => {
-              const key = slotKey(day, hour, minute);
-              const closed = daysOn[day.getDay()] === false;
-              const sameDay = dayKey(day) === today;
-              const pastHour =
-                sameDay &&
-                (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
-              const past = dayKey(day) < today || pastHour;
-              const free = !closed && !past && canBook(place.id, service, key);
-              return `<button class="cal-slot${free ? "" : " is-taken"}" type="button" data-slot="${key}" ${
-                free ? "" : "disabled"
-              }>${free ? `${pad(hour)}:${pad(minute)}` : closed ? "Cerrado" : "Ocupado"}</button>`;
-            })
-            .join("");
-          return `<div class="cal-row">${cells}</div>`;
-        }),
-      ).join("");
-      root.innerHTML = `<div class="cal-head-row">${head}</div>${rows}`;
-
-      root.addEventListener("click", (event) => {
+      const head = days
+        .map(
+          (day) =>
+            `<div class="cal-head${dayKey(day) === today ? " is-today" : ""}">${labels[day.getDay()]}<b>${day.getDate()}</b></div>`,
+        )
+        .join("");
+      const rows = serviceHours(picked)
+        .flatMap((hour) =>
+          [0, 30].map((minute) => {
+            const cells = days
+              .map((day) => {
+                const key = slotKey(day, hour, minute);
+                const closed = !dayAllowsHour(place.id, day, hour);
+                const sameDay = dayKey(day) === today;
+                const pastHour =
+                  sameDay &&
+                  (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
+                const past = dayKey(day) < today || pastHour;
+                const free = !closed && !past && canBook(place.id, service, key, reprogramId);
+                return `<button class="cal-slot${free ? "" : " is-taken"}" type="button" data-slot="${key}" ${
+                  free ? "" : "disabled"
+                }>${free ? `${pad(hour)}:${pad(minute)}` : closed ? "Cerrado" : "Ocupado"}</button>`;
+              })
+              .join("");
+            return `<div class="cal-row">${cells}</div>`;
+          }),
+        )
+        .join("");
+      root.innerHTML = `
+        <p class="meta">${
+          reprogramId
+            ? "Elegí el nuevo horario. No se cobra de nuevo."
+            : "Elegí un horario · el servicio ocupa su duración en la grilla"
+        }</p>
+        <h2>${place.name}</h2>
+        <div class="service-picks">${chips}</div>
+        <p class="band-lead">${picked.name} · ${picked.minutes} min · ${money(picked.price)} · ${hoursLabel(picked)} · ${capacityLabel(picked)}</p>
+        ${picked.description ? `<p class="meta">${picked.description}</p>` : ""}
+        ${
+          picked.includes.length
+            ? `<ul class="include-list">${picked.includes.map((item) => `<li>${item}</li>`).join("")}</ul>`
+            : ""
+        }
+        <p class="meta" ${expired ? "" : "hidden"}>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
+        <p class="week-nav">
+          ${week > 0 ? `<a class="btn-line" href="${weekQuery(week - 1)}">Semana anterior</a>` : "<span></span>"}
+          ${week < 8 ? `<a class="btn-line" href="${weekQuery(week + 1)}">Semana siguiente</a>` : "<span></span>"}
+        </p>
+        <div class="cal-wrap">
+          <div class="watermark cal-mark">TurnoYa</div>
+          <div id="calendar" class="cal">
+            <div class="cal-head-row">${head}</div>${rows}
+          </div>
+        </div>
+        ${
+          openCount
+            ? ""
+            : "<p class=\"meta\">No hay horarios libres en estos 7 días para este servicio. Probá otro o pedile al local que abra más días.</p>"
+        }`;
+      document.getElementById("calendar").addEventListener("click", (event) => {
         const button = event.target.closest("[data-slot]");
         if (!button || button.disabled) return;
+        if (reprogramId) {
+          if (reprogramTurno(reprogramId, button.dataset.slot)) {
+            location.href = "./mi-turno.html?moved=1";
+          }
+          return;
+        }
         const draft = {
           placeId: place.id,
           placeName: place.name,
           slug: place.slug,
           serviceId: service.id,
           serviceName: service.name,
-          minutes: service.minutes,
-          price: service.price,
+          minutes: picked.minutes,
+          price: picked.price,
           slot: button.dataset.slot,
           senia: seniaOf(place.id, service.price),
         };

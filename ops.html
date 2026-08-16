@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ops · TurnoYa</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <button class="btn btn-ghost" id="out" type="button">Salir</button>
+    </header>
+    <main class="band">
+      <p class="meta" id="who"></p>
+      <h2>Plataforma</h2>
+      <p class="band-lead">Acá se aprueba el alta, se destaca un pin y se ven las señas / reembolsos de todos los locales.</p>
+      <div class="card-grid">
+        <a class="service-card" href="./ops-altas.html"><div><strong>Altas</strong><span class="meta">Aprobar, pedir datos o rechazar</span></div></a>
+        <a class="service-card" href="./ops-locales.html"><div><strong>Locales</strong><span class="meta">Destacado, plan, suspender</span></div></a>
+        <a class="service-card" href="./ops-dinero.html"><div><strong>Dinero</strong><span class="meta">Señas, no-show y arrepentimientos</span></div></a>
+      </div>
+      <div id="dash"></div>
+    </main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const staff = requireStaff("./ops.html");
+      if (staff) seedPendingAlta();
+      if (!staff) throw new Error("redirect");
+      document.getElementById("who").textContent = staff.email;
+      document.getElementById("out").addEventListener("click", () => {
+        logoutStaff();
+        location.href = "./ops-login.html";
+      });
+      seedPlaceAgenda("oasis");
+      const views = allPlaces().map(placeView);
+      const queue = views.filter((place) => place.status === "pending" || place.status === "datos");
+      const live = views.filter((place) => place.status === "live" && !place.suspended);
+      const featured = live.filter((place) => place.featured);
+      const ledger = moneyLedger();
+      const sum = (kind) =>
+        ledger.filter((row) => row.kind === kind).reduce((acc, row) => acc + (row.amount || 0), 0);
+      const refunds = ledger.filter((row) => row.kind === "reembolso");
+      document.getElementById("dash").innerHTML = `
+        <div class="ops-stats">
+          <div class="ops-stat"><b>${queue.length}</b><span class="meta">Altas en cola</span></div>
+          <div class="ops-stat"><b>${live.length}</b><span class="meta">Locales publicados</span></div>
+          <div class="ops-stat"><b>${featured.length}</b><span class="meta">Destacados</span></div>
+          <div class="ops-stat"><b>${money(sum("senia_activa"))}</b><span class="meta">Señas activas</span></div>
+          <div class="ops-stat"><b>${money(sum("reembolso"))}</b><span class="meta">A devolver</span></div>
+        </div>
+        <section class="ops-feed">
+          <h3 class="ficha-sub">Cola de altas</h3>
+          ${
+            queue.length
+              ? queue
+                  .map(
+                    (place) =>
+                      `<article class="agenda-row">
+                        <div>
+                          <strong>${place.name}</strong>
+                          <p class="meta">${statusLabel(place.status)} · ${CITIES[place.city].label}${place.nota ? ` · ${place.nota}` : ""}</p>
+                        </div>
+                        <a class="btn-line" href="./ops-altas.html">Revisar</a>
+                      </article>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">No hay altas pendientes.</p>"
+          }
+        </section>
+        <section class="ops-feed">
+          <h3 class="ficha-sub">Últimos movimientos</h3>
+          ${
+            ledger.length
+              ? ledger
+                  .slice(0, 5)
+                  .map(
+                    (row) =>
+                      `<article class="agenda-row">
+                        <div>
+                          <strong>${row.placeName}</strong>
+                          <p class="meta">${moneyLabel(row.kind)} · ${money(row.amount)} · ${row.nombre || ""} ${row.apellido || ""}</p>
+                        </div>
+                        <a class="btn-line" href="./ops-dinero.html">Ver dinero</a>
+                      </article>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">Todavía no hay señas.</p>"
+          }
+          ${
+            refunds.length
+              ? `<p class="meta">${refunds.length} reembolso${refunds.length > 1 ? "s" : ""} esperando marca de Ops.</p>`
+              : ""
+          }
+        </section>
+      `;
+    </script>
+  </body>
+</html>

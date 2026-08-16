@@ -21,26 +21,29 @@
       <nav class="topbar-nav">
         <a href="./index.html">Mapa</a>
         <a href="./mi-turno.html">Mis turnos</a>
-        <a href="./login.html" id="auth-link">Entrar</a>
         <a href="./bo.html" id="bo-link">Backoffice</a>
+        <span class="account-slot" data-client-account></span>
       </nav>
     </header>
     <main id="ficha"></main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
-      const place = findPlace(new URLSearchParams(location.search).get("id"));
+      const place = lookupPlace(new URLSearchParams(location.search).get("id"));
+      if (!place) {
+        document.getElementById("ficha").innerHTML = missingPlaceHtml();
+        throw new Error("missing");
+      }
       const services = placeServices(place);
       const theme = landingTheme(place.id);
       const user = currentUser();
       document.title = `${place.name} · TurnoYa`;
       document.getElementById("brand-aside").textContent = place.slug;
-      document.getElementById("auth-link").textContent = user ? user.email : "Entrar";
-      document.getElementById("auth-link").href = user
-        ? "./perfil.html"
-        : `./login.html?next=${encodeURIComponent(location.href)}`;
       document.getElementById("bo-link").href = `./bo.html?id=${place.id}`;
       if (theme.primaryHex) {
         document.documentElement.style.setProperty("--enamel", theme.primaryHex);
@@ -58,6 +61,8 @@
         const mine = mineHere();
         const rating = ratingOf(place.id);
         const quotes = publishedQuotes(place.id);
+        const view = placeView(place);
+        const published = view.status === "live" && !view.suspended;
         document.getElementById("ficha").innerHTML = `
         <section class="store-hero${banner ? " has-banner" : ""}" style="${banner ? `background-image:url('${banner}')` : ""}">
           <div class="store-hero-copy">
@@ -65,7 +70,12 @@
             <h1>${place.name}</h1>
             ${starsMarkup(rating.average, rating.count)}
             <p>${place.service} en ${CITIES[place.city].label}.</p>
-            <a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
+            ${
+              published
+                ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
+                   <button class="btn btn-line" type="button" id="share">Compartir</button>`
+                : `<p class="meta">Este local no está publicado en el mapa.${view.suspended ? " Está suspendido." : " El alta sigue en revisión."}</p>`
+            }
           </div>
         </section>
         ${
@@ -85,17 +95,29 @@
           <h2>Servicios</h2>
           <div class="card-grid">
             ${services
-              .map(
-                (service) => `
-              <a class="service-card" href="./reservar.html?id=${place.id}&service=${service.id}">
-                <img src="${service.image}" alt="${service.name}" />
+              .map((service) => {
+                const row = normalizeService(service);
+                return `
+              <article class="service-card">
+                <img src="${row.image}" alt="${row.name}" />
                 <div>
-                  <strong>${service.name}</strong>
-                  <span class="meta">${service.minutes} min · ${capacityLabel(service)}</span>
-                  <span class="price">${money(service.price)}</span>
+                  <strong>${row.name}</strong>
+                  <span class="meta">${row.minutes} min · ${hoursLabel(row)} · ${capacityLabel(row)}</span>
+                  ${row.description ? `<p class="meta">${row.description}</p>` : ""}
+                  ${
+                    row.includes.length
+                      ? `<ul class="include-list">${row.includes.map((item) => `<li>${item}</li>`).join("")}</ul>`
+                      : ""
+                  }
+                  <span class="price">${money(row.price)}</span>
+                  ${
+                    published
+                      ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}&service=${row.id}">Elegir horario</a>`
+                      : ""
+                  }
                 </div>
-              </a>`,
-              )
+              </article>`;
+              })
               .join("")}
           </div>
         </section>
@@ -104,6 +126,49 @@
           <iframe class="map-embed" title="Mapa del local" src="${mapsEmbed(place)}" loading="lazy"></iframe>
           <p class="meta">${placeAddress(place)}</p>
         </section>
+        ${(() => {
+          const live = placeCoupons(place.id).filter((row) => row.active);
+          if (!live.length) return "";
+          return `<section class="band">
+            <h2>Cupones</h2>
+            ${live
+              .map(
+                (coupon) =>
+                  `<p class="meta"><strong>${coupon.code}</strong> · ${
+                    coupon.type === "fijo" ? money(coupon.value) : `${coupon.value}%`
+                  } off${coupon.serviceId ? " en un servicio" : ""}</p>`,
+              )
+              .join("")}
+          </section>`;
+        })()}
+        ${(() => {
+          const support = placeSupport(place);
+          if (!support.whatsappEnabled && !support.emailEnabled) return "";
+          return `<section class="band" id="soporte">
+            <h2>Soporte</h2>
+            <p class="band-lead">Escribinos por el canal que el local habilitó.</p>
+            ${
+              support.whatsappEnabled
+                ? `<a class="btn btn-ticket" href="${whatsappHref(
+                    support.whatsapp,
+                    `Hola, consulto por ${place.name}`,
+                  )}" target="_blank" rel="noreferrer">WhatsApp del local</a>`
+                : ""
+            }
+            ${
+              support.emailEnabled
+                ? `<form id="support-form" class="review-form">
+                    <label>Nombre <input name="nombre" required value="${user?.nombre || ""}" /></label>
+                    <label>Email <input name="email" type="email" required value="${user?.email || ""}" /></label>
+                    <label>Celular <input name="celular" value="${user?.celular || ""}" /></label>
+                    <label>Mensaje <textarea name="mensaje" required></textarea></label>
+                    <button class="btn btn-enamel" type="submit">Enviar consulta</button>
+                    <p id="support-msg" class="meta"></p>
+                  </form>`
+                : ""
+            }
+          </section>`;
+        })()}
         <section class="band">
           <h2>Recomendaciones</h2>
           ${
@@ -119,6 +184,33 @@
         </section>
       `;
         bindTurnoActions(document.getElementById("ficha"), paint);
+        const share = document.getElementById("share");
+        if (share) {
+          share.addEventListener("click", async () => {
+            const url = location.href;
+            try {
+              if (navigator.share) {
+                await navigator.share({ title: place.name, url });
+                return;
+              }
+              await navigator.clipboard.writeText(url);
+              share.textContent = "Enlace copiado";
+            } catch {
+              /* ignore */
+            }
+          });
+        }
+        const supportForm = document.getElementById("support-form");
+        if (supportForm) {
+          supportForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(supportForm));
+            saveInquiry(place.id, data);
+            document.getElementById("support-msg").textContent =
+              "Listo. El local te responde por el canal que tenga activo.";
+            supportForm.reset();
+          });
+        }
       }
       paint();
     </script>

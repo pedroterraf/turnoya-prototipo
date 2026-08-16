@@ -45,7 +45,9 @@
       }
       const services = placeServices(place);
       const service = services.find((item) => item.id === params.get("service")) ?? services[0];
-      const reprogramId = params.get("reprogram");
+      const requestedReprogram = params.get("reprogram");
+      const reprogramId =
+        requestedReprogram && placeAllowsReprogram(place.id) ? requestedReprogram : null;
       document.getElementById("back-ficha").href = `./ficha.html?id=${place.id}`;
       const picked = normalizeService(service);
       const week = Math.min(8, Math.max(0, Number(params.get("week") || 0) || 0));
@@ -99,33 +101,47 @@
         root.innerHTML = `
           <p class="meta">${
             reprogramId
-              ? "Elegí el nuevo horario. El bloque mide la duración del servicio."
-              : "Clickeá un hueco. El bloque amarillo mide exactamente los minutos de este servicio."
+              ? "Elegí el nuevo horario. Sin cobro extra. El bloque mide la duración del servicio."
+              : requestedReprogram
+                ? "Este local no permite reprogramar. Podés reservar un turno nuevo."
+                : "Clickeá un hueco. El bloque amarillo mide exactamente los minutos de este servicio."
           }</p>
           <h2>${place.name}</h2>
           <div class="service-picks">${chips}</div>
           <p class="band-lead">${picked.name} · ${picked.minutes} min · ${money(picked.price)} · ${hoursLabel(picked)} · ${capacityLabel(picked)}</p>
           ${picked.description ? `<p class="meta">${picked.description}</p>` : ""}
           <p class="meta" ${expired ? "" : "hidden"}>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
-          <p class="week-nav">
-            ${week > 0 ? `<a class="btn-line" href="${weekQuery(week - 1)}">Semana anterior</a>` : "<span></span>"}
-            ${week < 8 ? `<a class="btn-line" href="${weekQuery(week + 1)}">Semana siguiente</a>` : "<span></span>"}
-          </p>
+          <nav class="week-nav">
+            ${
+              week > 0
+                ? `<a class="week-nav-btn" href="${weekQuery(week - 1)}">Anterior</a>`
+                : `<span class="week-nav-btn is-off">Anterior</span>`
+            }
+            <p class="week-nav-label">${days[0].toLocaleDateString("es-AR", {
+              day: "numeric",
+              month: "short",
+            })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</p>
+            ${
+              week < 8
+                ? `<a class="week-nav-btn" href="${weekQuery(week + 1)}">Siguiente</a>`
+                : `<span class="week-nav-btn is-off">Siguiente</span>`
+            }
+          </nav>
           <div class="cal-wrap">
             <div class="watermark cal-mark">TurnoYa</div>
             ${renderTimeGrid({ place, service: picked, days, exceptId: reprogramId, selection })}
           </div>
           <div class="tg-legend">
-            <span><i class="is-busy"></i> Ocupado · no se pisa</span>
-            <span><i class="is-parallel"></i> Ocupado · se pisa</span>
+            <span><i class="is-busy"></i> Ocupado</span>
+            <span><i class="is-buffer"></i> Margen</span>
             <span><i class="is-hold"></i> Alguien está pagando</span>
             <span><i class="is-pick"></i> Tu turno (${picked.minutes} min)</span>
           </div>
           <p class="meta" id="cal-msg"></p>
           <div id="pick-bar" ${selection ? "" : "hidden"}>
-            <button class="btn btn-ticket" id="confirm-slot" type="button">Reservar ${
-              selection ? selection.replace("T", " ") : ""
-            } · ${picked.minutes} min</button>
+            <button class="btn btn-ticket" id="confirm-slot" type="button">${
+              reprogramId ? "Confirmar nuevo horario" : "Reservar"
+            } ${selection ? selection.replace("T", " ") : ""} · ${picked.minutes} min</button>
           </div>
           ${
             openCount
@@ -158,14 +174,17 @@
           waitBtn.addEventListener("click", () => {
             ensureDemoUser();
             const user = currentUser();
-            joinWaitlist(place.id, {
+            const joined = joinWaitlist(place.id, {
               email: user.email,
               nombre: user.nombre,
               serviceId: service.id,
               serviceName: service.name,
               placeName: place.name,
             });
-            document.getElementById("wait-msg").textContent = "Listo. Si alguien cancela, te avisamos en Avisos.";
+            document.getElementById("wait-msg").textContent = joined.already
+              ? "Ya estás en la lista. Si se libera un hueco, te avisamos acá."
+              : "Listo. Si se libera un horario, te llega a Notificaciones.";
+            if (typeof paintClientAccount === "function") paintClientAccount();
           });
         }
       }

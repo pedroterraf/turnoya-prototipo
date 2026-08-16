@@ -37,6 +37,17 @@
         <label class="pay-pct">Techo $ (0 = sin techo) <input name="techo" type="number" min="0" value="0" /></label>
         <label>Días de arrepentimiento (Ley 24.240) <input name="arrep" type="number" min="1" value="10" /></label>
         <label>Horas antes para cancelar (política del local) <input name="horas" type="number" min="0" value="48" /></label>
+        <label>Reprogramar
+          <select name="reprog">
+            <option value="yes">Sí · el cliente cambia el horario, sin cobro extra</option>
+            <option value="no">No · no se puede reprogramar</option>
+          </select>
+        </label>
+        <p class="meta">Si está en sí, el cliente ve Reprogramar en sus turnos y no paga de nuevo. Vos siempre podés mover un turno desde la agenda.</p>
+        <label>Margen entre turnos que no se pisan (minutos)
+          <input name="gap" type="number" min="0" step="1" value="5" />
+        </label>
+        <p class="meta">Solo entre turnos que no se pisan. 0 = uno puede empezar cuando termina el otro. 5, 15 o los minutos que quieras.</p>
         <p class="meta">Días y horario de apertura. Se ven en la agenda. Los feriados se importan allá, no acá.</p>
         <div class="day-grid" id="days"></div>
         <button class="btn btn-ticket" type="submit">Guardar</button>
@@ -65,6 +76,8 @@
       form.mp.checked = rule.mpConnected !== false;
       form.arrep.value = policy.arrepentimientoDias;
       form.horas.value = policy.horasAntesCancelacion;
+      form.gap.value = exclusiveGapMinutes(id);
+      form.reprog.value = placeAllowsReprogram(id) ? "yes" : "no";
       document.getElementById("days").innerHTML = [1, 2, 3, 4, 5, 6, 0]
         .map((d) => {
           const config = dayConfig(id, d);
@@ -99,6 +112,8 @@
         savePlacePolicy(id, {
           arrepentimientoDias: Number(form.arrep.value),
           horasAntesCancelacion: Number(form.horas.value),
+          exclusiveGapMinutes: Math.max(0, Number(form.gap.value) || 0),
+          allowReprogram: form.reprog.value === "yes",
         });
         const next = {};
         [0, 1, 2, 3, 4, 5, 6].forEach((d) => {

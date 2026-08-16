@@ -30,8 +30,15 @@
       document.getElementById("back").href = `./bo.html?id=${id}`;
       let services = placeServices(place).map(normalizeService);
 
+      function overlapMode(row) {
+        if (isOpenCapacity(row)) return "unlimited";
+        if (serviceCapacity(row) > 1) return "yes";
+        return "no";
+      }
+
       function fieldsetHtml(row, i) {
-        const open = isOpenCapacity(row);
+        const mode = overlapMode(row);
+        const cap = serviceCapacity(row);
         return `
           <fieldset data-index="${i}">
             <label>Nombre <input name="name-${i}" value="${row.name || ""}" /></label>
@@ -42,8 +49,19 @@
             <label>Descripción <textarea name="desc-${i}">${row.description || ""}</textarea></label>
             <label>Incluye (uno por línea) <textarea name="inc-${i}">${(row.includes || []).join("\n")}</textarea></label>
             <label>Foto (URL) <input name="img-${i}" value="${row.image || ""}" /></label>
-            <label><input type="checkbox" name="open-${i}" ${open ? "checked" : ""} /> No ocupa recurso (infinito)</label>
-            <label>Capacidad / veces que se pisa <input name="cap-${i}" type="number" min="1" value="${open ? 1 : serviceCapacity(row)}" /></label>
+            <label>¿Se puede pisar este turno?
+              <select name="overlap-${i}">
+                <option value="no" ${mode === "no" ? "selected" : ""}>No</option>
+                <option value="yes" ${mode === "yes" ? "selected" : ""}>Sí, con un tope</option>
+                <option value="unlimited" ${mode === "unlimited" ? "selected" : ""}>Sí, ilimitado</option>
+              </select>
+            </label>
+            <label data-cap-wrap="${i}" ${mode === "yes" ? "" : "hidden"}>
+              Veces que se puede pisar
+              <input name="cap-${i}" type="number" min="2" step="1" value="${mode === "yes" ? cap : 2}" ${
+                mode === "yes" ? "required" : ""
+              } />
+            </label>
             <button class="btn btn-line" type="button" data-remove="${i}">Quitar servicio</button>
           </fieldset>`;
       }
@@ -51,6 +69,13 @@
       function readForm(form) {
         return [...form.querySelectorAll("fieldset")].map((box) => {
           const i = box.dataset.index;
+          const mode = form[`overlap-${i}`].value;
+          let capacity = 1;
+          if (mode === "unlimited") capacity = 0;
+          if (mode === "yes") {
+            capacity = Number(form[`cap-${i}`].value);
+            if (!Number.isFinite(capacity) || capacity < 2) capacity = 2;
+          }
           return {
             id: services[Number(i)]?.id || `${id}-new-${i}`,
             name: form[`name-${i}`].value,
@@ -64,7 +89,7 @@
               .map((line) => line.trim())
               .filter(Boolean),
             image: form[`img-${i}`].value,
-            capacity: form[`open-${i}`].checked ? 0 : Number(form[`cap-${i}`].value) || 1,
+            capacity,
           };
         });
       }
@@ -72,7 +97,7 @@
       function paint() {
         document.getElementById("root").innerHTML = `
           <h2>Servicios de ${place.name}</h2>
-          <p class="band-lead">El calendario usa el horario, la duración y la capacidad. 1 = no se pisa. N = en paralelo. 0 = no ocupa silla.</p>
+          <p class="band-lead">Si se pisa, el cliente no ve el hueco como ocupado. Tenés que poner cuántas veces, o ilimitado. El backoffice sí muestra el turno.</p>
           <form id="form" class="review-form wide-form">
             ${services.map(fieldsetHtml).join("")}
             <button class="btn btn-enamel" id="add" type="button">Agregar servicio</button>
@@ -99,6 +124,16 @@
             capacity: 1,
           });
           paint();
+        });
+        form.querySelectorAll("[name^='overlap-']").forEach((select) => {
+          select.addEventListener("change", () => {
+            const i = select.name.slice("overlap-".length);
+            const wrap = form.querySelector(`[data-cap-wrap="${i}"]`);
+            const input = form[`cap-${i}`];
+            const on = select.value === "yes";
+            if (wrap) wrap.hidden = !on;
+            if (input) input.required = on;
+          });
         });
         form.querySelectorAll("[data-remove]").forEach((button) => {
           button.addEventListener("click", () => {

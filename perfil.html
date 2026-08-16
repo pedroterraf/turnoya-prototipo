@@ -29,11 +29,11 @@
           <label>Nombre <input name="nombre" required /></label>
           <label>Apellido <input name="apellido" required /></label>
           <label>DNI <input name="dni" required inputmode="numeric" /></label>
-          <label>País <input name="pais" required value="Argentina" /></label>
-          <label>Provincia <input name="provincia" required value="Córdoba" /></label>
-          <label>Ciudad <input name="ciudad" required value="Córdoba" /></label>
+          <label>País <div data-search-select="pais"></div></label>
+          <label>Provincia <div data-search-select="provincia"></div></label>
+          <label>Ciudad <div data-search-select="ciudad"></div></label>
           <label>Celular (opcional) <input name="celular" inputmode="tel" /></label>
-          <div id="phone-box" hidden>
+          <div id="phone-box" class="otp-block" hidden>
             <p class="meta">WhatsApp Cloud · código de prueba 0000. Si no lo verificás, el celular no se guarda.</p>
             <div class="otp otp-4" role="group" aria-label="Código de WhatsApp"></div>
             <input type="hidden" name="sms" />
@@ -50,6 +50,7 @@
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/geo.js"></script>
     <script src="./assets/site.js"></script>
     <script>
       const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
@@ -57,26 +58,44 @@
       if (!user) location.replace(`./login.html?next=${encodeURIComponent(location.href)}`);
       const form = document.getElementById("form");
       const wa = mountOtp(form, null, 4);
-      ["nombre", "apellido", "dni", "pais", "provincia", "ciudad", "celular"].forEach((key) => {
+      const phoneBox = document.getElementById("phone-box");
+      const savedPhone = user.phoneVerified ? String(user.celular || "").trim() : "";
+      ["nombre", "apellido", "dni", "celular"].forEach((key) => {
         if (user[key]) form.elements[key].value = user[key];
       });
-      form.elements.celular.addEventListener("input", () => {
-        document.getElementById("phone-box").hidden = !form.elements.celular.value.trim();
+      bindGeoSelects(form, {
+        pais: user.pais || "Argentina",
+        provincia: user.provincia || "Córdoba",
+        ciudad: user.ciudad || "Córdoba",
       });
-      document.getElementById("phone-box").hidden = !form.elements.celular.value.trim();
+      function phoneValue() {
+        return form.elements.celular.value.trim();
+      }
+      function needsPhoneCode(phone) {
+        return Boolean(phone) && phone !== savedPhone;
+      }
+      function syncPhoneBox() {
+        const show = needsPhoneCode(phoneValue());
+        phoneBox.hidden = !show;
+        if (!show) wa.clear();
+      }
+      form.elements.celular.addEventListener("input", syncPhoneBox);
+      syncPhoneBox();
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         const data = Object.fromEntries(new FormData(form));
-        data.sms = wa.read();
-        if (data.celular && data.sms !== "0000") {
-          document.getElementById("msg").textContent = "Verificá el WhatsApp con 0000 o dejá el celular vacío.";
+        const phone = phoneValue();
+        const code = wa.read();
+        if (needsPhoneCode(phone) && code !== "0000") {
+          document.getElementById("msg").textContent =
+            "Verificá el WhatsApp con 0000 o dejá el celular vacío.";
           return;
         }
-        const phoneOk = Boolean(data.celular && data.sms === "0000");
+        const phoneOk = Boolean(phone) && (phone === savedPhone || code === "0000");
         saveUser({
           ...user,
           ...data,
-          celular: phoneOk ? data.celular : "",
+          celular: phoneOk ? phone : "",
           phoneVerified: phoneOk,
         });
         location.href = next;

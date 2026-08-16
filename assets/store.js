@@ -14,3 +14,7 @@ function memoryRemove(key) {
   localStorage.removeItem(key);
   sessionStorage.removeItem(key);
 }
+
+if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  import("./assets/motion.js");
+}

@@ -69,7 +69,6 @@
       function paint() {
         const mine = mineHere();
         const rating = ratingOf(place.id);
-        const quotes = publishedQuotes(place.id);
         const view = placeView(place);
         const published = view.status === "live" && !view.suspended;
         document.getElementById("ficha").innerHTML = `
@@ -77,7 +76,7 @@
           <div class="store-hero-copy">
             <p class="meta">turnoya.com/${place.slug}</p>
             <h1>${place.name}</h1>
-            ${starsMarkup(rating.average, rating.count)}
+            ${starsMarkup(rating.average, rating.count, place.id)}
             <p>${place.service} en ${cityLabel(place.city)}.</p>
             ${
               published
@@ -145,10 +144,10 @@
           ${directionsPanelHtml(place)}
         </section>
         ${(() => {
-          const live = placeCoupons(place.id).filter((row) => row.active);
+          const live = publicPlaceCoupons(place.id);
           if (!live.length) return "";
           return `<section class="band">
-            <h2>Cupones</h2>
+            <h2>Cupones disponibles</h2>
             ${live
               .map(
                 (coupon) =>
@@ -201,17 +200,18 @@
               </section>`
             : ""
         }
-        <section class="band">
-          <h2>Recomendaciones</h2>
+        <section class="band" id="resenas">
+          <h2>Reseñas</h2>
           ${
-            quotes.length
-              ? quotes
+            reviewsFor(place.id).filter((row) => row.text).length
+              ? reviewsFor(place.id)
+                  .filter((row) => row.text)
                   .map(
-                    (quote) =>
-                      `<blockquote class="quote">“${quote.text}”<cite>${quote.author}</cite></blockquote>`,
+                    (row) =>
+                      `<blockquote class="quote">“${row.text}”<cite>${row.author} · ${"★".repeat(row.stars)}${"☆".repeat(5 - row.stars)}</cite></blockquote>`,
                   )
                   .join("")
-              : "<p class=\"meta\">Todavía no hay recomendaciones.</p>"
+              : "<p class=\"meta\">Todavía no hay reseñas.</p>"
           }
         </section>
       `;
@@ -238,14 +238,17 @@
           wait.addEventListener("click", () => {
             ensureDemoUser();
             const user = currentUser();
-            joinWaitlist(place.id, {
+            const joined = joinWaitlist(place.id, {
               email: user.email,
               nombre: user.nombre,
               serviceId: services[0]?.id,
               serviceName: services[0]?.name,
               placeName: place.name,
             });
-            document.getElementById("wait-msg").textContent = "Listo. Te llega el aviso en Avisos.";
+            document.getElementById("wait-msg").textContent = joined.already
+              ? "Ya estás en la lista. Si se libera un hueco, te avisamos acá."
+              : "Listo. Si se libera un horario, te llega a Notificaciones.";
+            if (typeof paintClientAccount === "function") paintClientAccount();
           });
         }
         const supportForm = document.getElementById("support-form");
@@ -262,6 +265,9 @@
       }
       try {
         paint();
+        if (location.hash === "#resenas") {
+          document.getElementById("resenas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
       } catch (error) {
         document.getElementById("ficha").innerHTML = `
           <section class="store-hero">

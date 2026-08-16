@@ -6,6 +6,7 @@ const DEFAULT_MINIMO = 3000;
 const CAPACITY_OPEN = 0;
 const ARREPENTIMIENTO_DIAS = 10;
 const HORAS_ANTES_CANCEL = 48;
+const WAITLIST_CLAIM_MINUTES = 10;
 
 function lookupPlace(id) {
   if (!id) return null;
@@ -50,7 +51,7 @@ function defaultServices(place) {
       minutes: 60,
       price: 9000,
       capacity: 1,
-      hourStart: 10,
+      hourStart: 9,
       hourEnd: 19,
       description: "Sesión completa. El horario se tapa: no se pisa con otro turno.",
       includes: ["Entrevista breve", "Servicio de 60 min", "Agua y toalla"],
@@ -121,11 +122,16 @@ function isOpenCapacity(service) {
   return capacity === CAPACITY_OPEN || capacity >= 99;
 }
 
+function serviceAllowsOverlap(service) {
+  if (!service) return false;
+  return isOpenCapacity(service) || serviceCapacity(service) > 1;
+}
+
 function capacityLabel(service) {
-  if (isOpenCapacity(service)) return "No ocupa silla";
+  if (isOpenCapacity(service)) return "Se pisa · ilimitado";
   const capacity = serviceCapacity(service);
-  if (capacity === 1) return "1 a la vez · no se pisa";
-  return `${capacity} en paralelo`;
+  if (capacity === 1) return "No se pisa";
+  return `Se pisa hasta ${capacity}`;
 }
 
 function serviceHours(service) {
@@ -484,7 +490,20 @@ function placePolicy(placeId) {
   return {
     arrepentimientoDias: ARREPENTIMIENTO_DIAS,
     horasAntesCancelacion: HORAS_ANTES_CANCEL,
+    exclusiveGapMinutes: 5,
+    allowReprogram: true,
   };
+}
+
+function placeAllowsReprogram(placeId) {
+  return placePolicy(placeId).allowReprogram !== false;
+}
+
+function exclusiveGapMinutes(placeId) {
+  const raw = placePolicy(placeId).exclusiveGapMinutes;
+  if (raw == null || raw === "") return 5;
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : 5;
 }
 
 function savePlacePolicy(placeId, policy) {
@@ -505,9 +524,22 @@ function saveLandingTheme(placeId, theme) {
 
 function defaultCoupons(placeId) {
   if (placeId === "oasis") {
-    return [{ code: "RELAX10", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+    return [
+      { code: "RELAX10", type: "porcentaje", value: 10, active: true, visibility: "public", serviceId: "" },
+      { code: "OASISVIP", type: "porcentaje", value: 20, active: true, visibility: "private", serviceId: "" },
+    ];
   }
   return [];
+}
+
+function couponVisibility(coupon) {
+  return coupon?.visibility === "private" ? "private" : "public";
+}
+
+function publicPlaceCoupons(placeId) {
+  return placeCoupons(placeId).filter(
+    (row) => row.active !== false && couponVisibility(row) === "public" && row.code,
+  );
 }
 
 function placeCoupons(placeId) {
@@ -643,18 +675,52 @@ function slotSpan(startKey, minutes) {
 }
 
 function occupancy(placeId, key, exceptId) {
-  let count = 0;
-  bookedSlots()
+  return occupantsAt(placeId, key, exceptId).length;
+}
+
+function occupantsAt(placeId, key, exceptId) {
+  const place = findPlace(placeId);
+  const services = place ? placeServices(place) : [];
+  const resolve = (row) => {
+    const service = services.find((item) => item.id === row.serviceId);
+    return { row, service, allowsOverlap: serviceAllowsOverlap(service) };
+  };
+  const booked = bookedSlots()
     .filter((row) => row.placeId === placeId && row.estado !== "cancelado" && row.id !== exceptId)
-    .forEach((row) => {
-      if (slotSpan(row.slot, row.minutes ?? 30).includes(key)) count += 1;
-    });
-  activeHolds()
+    .filter((row) => slotSpan(row.slot, row.minutes ?? 30).includes(key))
+    .map(resolve);
+  const holds = activeHolds()
     .filter((hold) => hold.placeId === placeId)
-    .forEach((hold) => {
-      if (slotSpan(hold.slot, hold.minutes ?? 30).includes(key)) count += 1;
-    });
-  return count;
+    .filter((hold) => slotSpan(hold.slot, hold.minutes ?? 30).includes(key))
+    .map(resolve);
+  return [...booked, ...holds];
+}
+
+function slotHasExclusive(placeId, key, exceptId) {
+  return occupantsAt(placeId, key, exceptId).some((item) => !item.allowsOverlap);
+}
+
+function exclusiveBookings(placeId, exceptId) {
+  const place = findPlace(placeId);
+  const services = place ? placeServices(place) : [];
+  const isExclusive = (row) => {
+    const service = services.find((item) => item.id === row.serviceId);
+    return !serviceAllowsOverlap(service);
+  };
+  const booked = bookedSlots()
+    .filter((row) => row.placeId === placeId && row.estado !== "cancelado" && row.id !== exceptId)
+    .filter(isExclusive);
+  const holds = activeHolds().filter((hold) => hold.placeId === placeId).filter(isExclusive);
+  return [...booked, ...holds];
+}
+
+function exclusiveGapOk(placeId, startMs, endMs, exceptId) {
+  const gap = exclusiveGapMinutes(placeId) * 60000;
+  return exclusiveBookings(placeId, exceptId).every((row) => {
+    const from = slotStart(row.slot).getTime();
+    const to = from + Number(row.minutes || 30) * 60000;
+    return endMs + gap <= from || to + gap <= startMs;
+  });
 }
 
 function canBook(placeId, service, startKey, exceptId) {
@@ -669,10 +735,10 @@ function canBook(placeId, service, startKey, exceptId) {
   const close = new Date(start);
   close.setHours(Math.min(config.end, row.hourEnd), 0, 0, 0);
   if (end > close) return false;
-  if (isOpenCapacity(row)) return true;
+  if (serviceAllowsOverlap(row)) return true;
   const keys = slotSpan(startKey, row.minutes);
-  const limit = serviceCapacity(row);
-  return keys.every((key) => occupancy(placeId, key, exceptId) < limit);
+  if (!keys.every((key) => !slotHasExclusive(placeId, key, exceptId))) return false;
+  return exclusiveGapOk(placeId, start.getTime(), end.getTime(), exceptId);
 }
 
 function holdSlot(draft) {
@@ -789,6 +855,7 @@ function confirmDraft() {
   memorySet("turnoya-booked", JSON.stringify(rows));
   memorySet("turnoya-last", JSON.stringify(turno));
   saveHolds(activeHolds().filter((hold) => hold.slot !== draft.slot || hold.placeId !== draft.placeId));
+  dropWaitlistEmail(turno.placeId, turno.email);
   notifyUser(
     turno.email,
     "Turno confirmado",
@@ -925,9 +992,10 @@ function freeSlots(placeId, service, exceptId, from) {
   return keys.slice(0, 12);
 }
 
-function reprogramTurno(id, newSlot) {
+function reprogramTurno(id, newSlot, fromOwner) {
   const turno = bookedSlots().find((row) => row.id === id);
   if (!turno || turno.estado !== "confirmado") return false;
+  if (!fromOwner && !placeAllowsReprogram(turno.placeId)) return false;
   const place = findPlace(turno.placeId);
   const service =
     placeServices(place).find((item) => item.id === turno.serviceId) ?? {
@@ -1046,7 +1114,11 @@ function cancelTurno(id, motivo) {
 }
 
 function canReprogram(turno) {
-  return turno.estado === "confirmado" && Date.now() < slotStart(turno.slot).getTime();
+  return (
+    placeAllowsReprogram(turno.placeId) &&
+    turno.estado === "confirmado" &&
+    Date.now() < slotStart(turno.slot).getTime()
+  );
 }
 
 function waitlistRows(placeId) {
@@ -1061,13 +1133,38 @@ function saveWaitlist(placeId, rows) {
   memorySet(`turnoya-wait-${placeId}`, JSON.stringify(rows.slice(0, 40)));
 }
 
+function isOnWaitlist(placeId, email, serviceId) {
+  const key = String(email || "").toLowerCase();
+  if (!key) return false;
+  return waitlistRows(placeId).some(
+    (row) =>
+      String(row.email || "").toLowerCase() === key &&
+      (!serviceId || !row.serviceId || row.serviceId === serviceId),
+  );
+}
+
+function dropWaitlistEmail(placeId, email) {
+  const key = String(email || "").toLowerCase();
+  if (!placeId || !key) return;
+  saveWaitlist(
+    placeId,
+    waitlistRows(placeId).filter((row) => String(row.email || "").toLowerCase() !== key),
+  );
+}
+
+function askNotifyPermission() {
+  if (typeof Notification === "undefined" || Notification.permission !== "default") return;
+  Notification.requestPermission().catch(() => {});
+}
+
 function joinWaitlist(placeId, payload) {
   const user = typeof currentUser === "function" ? currentUser() : null;
   const email = payload.email || user?.email;
-  if (!email) return false;
+  if (!email) return { ok: false, already: false };
+  askNotifyPermission();
+  if (isOnWaitlist(placeId, email, payload.serviceId)) return { ok: true, already: true };
   const rows = waitlistRows(placeId);
-  if (rows.some((row) => row.email === email && row.serviceId === payload.serviceId)) return true;
-  rows.unshift({
+  rows.push({
     id: `w-${Date.now()}`,
     email,
     nombre: payload.nombre || user?.nombre || "",
@@ -1079,8 +1176,8 @@ function joinWaitlist(placeId, payload) {
   notifyUser(
     email,
     "Lista de espera",
-    `Te avisamos si se libera un horario en ${payload.placeName || "el local"}.`,
-    { type: NotificationMetadataType.WAITLIST, placeId },
+    `Te avisamos en Notificaciones si se libera un horario en ${payload.placeName || "el local"}.`,
+    { type: NotificationMetadataType.WAITLIST, placeId, serviceId: payload.serviceId || "" },
   );
   notifyPlaceOwner(
     placeId,
@@ -1089,22 +1186,37 @@ function joinWaitlist(placeId, payload) {
     { type: NotificationMetadataType.WAITLIST, placeId },
   );
   pushPlaceNote(placeId, `${payload.nombre || "Alguien"} se anotó en la lista de espera.`);
-  return true;
+  return { ok: true, already: false };
 }
 
 function notifyWaitlist(placeId, serviceId, slot) {
-  const rows = waitlistRows(placeId).filter((row) => !serviceId || !row.serviceId || row.serviceId === serviceId);
-  const first = rows[0];
-  if (!first) return;
+  const now = Date.now();
+  const rows = waitlistRows(placeId);
+  const next = rows
+    .filter((row) => !serviceId || !row.serviceId || row.serviceId === serviceId)
+    .sort((left, right) => (left.at || 0) - (right.at || 0))
+    .find((row) => !row.claimUntil || row.claimUntil <= now);
+  if (!next) return;
   saveWaitlist(
     placeId,
-    waitlistRows(placeId).filter((row) => row.id !== first.id),
+    rows.map((row) =>
+      row.id === next.id
+        ? { ...row, claimUntil: now + WAITLIST_CLAIM_MINUTES * 60 * 1000, claimSlot: slot || "" }
+        : row,
+    ),
   );
+  const place = findPlace(placeId);
+  const when = slot ? String(slot).replace("T", " ") : "un horario";
   notifyUser(
-    first.email,
+    next.email,
     "Se liberó un horario",
-    `Se liberó un horario${slot ? ` (${String(slot).replace("T", " ")})` : ""} en el local. Tenés 10 minutos: entrá y reservá.`,
-    { type: NotificationMetadataType.WAITLIST, placeId },
+    `Se liberó ${when} en ${place?.name || "el local"}. Tenés ${WAITLIST_CLAIM_MINUTES} minutos para reservar.`,
+    {
+      type: NotificationMetadataType.WAITLIST,
+      placeId,
+      serviceId: next.serviceId || serviceId || "",
+      slot: slot || "",
+    },
   );
 }
 

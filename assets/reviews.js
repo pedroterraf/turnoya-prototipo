@@ -146,9 +146,19 @@ function setQuoteVisible(placeId, reviewId, visible) {
   saveReviewBook(book);
 }
 
-function starsMarkup(average, count) {
+function reviewsHref(placeId) {
+  return `./ficha.html?id=${placeId}#resenas`;
+}
+
+function starsMarkup(average, count, placeId) {
   const full = Math.round(average);
   const glyphs = Array.from({ length: 5 }, (_, i) => (i < full ? "★" : "☆")).join("");
-  if (!count) return `<span class="stars" aria-label="Sin calificaciones">☆☆☆☆☆</span>`;
-  return `<span class="stars" aria-label="${average} de 5">${glyphs} <b>${average}</b> <em>(${count})</em></span>`;
+  const inner = count
+    ? `${glyphs} <b>${average}</b> <em>(${count})</em>`
+    : "☆☆☆☆☆";
+  const label = count ? `${average} de 5. Ver reseñas` : "Sin calificaciones. Ver reseñas";
+  if (!placeId) {
+    return `<span class="stars" aria-label="${label}">${inner}</span>`;
+  }
+  return `<a class="stars" href="${reviewsHref(placeId)}" aria-label="${label}" onclick="event.stopPropagation()">${inner}</a>`;
 }

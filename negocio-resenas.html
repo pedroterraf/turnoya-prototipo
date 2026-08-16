@@ -48,7 +48,7 @@
         root.innerHTML = `
           <p class="meta">Panel del negocio · ${place.name}</p>
           <h2>Recomendaciones a mostrar</h2>
-          ${starsMarkup(live.average, live.count)}
+          ${starsMarkup(live.average, live.count, place.id)}
           <p class="band-lead">Las estrellas son el promedio de quienes concretaron el turno. No las editás. Elegís qué textos salen; en la ficha pública no se dice que los elegiste vos.</p>
           <div class="review-admin">
             ${

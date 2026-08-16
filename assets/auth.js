@@ -225,41 +225,24 @@ function mountOtp(form, onComplete, length = 6) {
 
   return {
     read,
+    clear: () => {
+      cells.forEach((cell) => {
+        cell.value = "";
+      });
+      hidden.value = "";
+    },
     focus: () => {
       cells[0].focus();
     },
   };
 }
 
-function paintFlujoNav() {
-  if (document.querySelector("[data-flujo-nav]")) return;
-  const bar = document.createElement("nav");
-  bar.className = "flujo-nav";
-  bar.setAttribute("data-flujo-nav", "");
-  bar.innerHTML = [
-    ["./index.html", "1. Mapa"],
-    ["./ficha.html?id=oasis", "2. Ficha"],
-    ["./reservar.html?id=oasis", "3. Horario"],
-    ["./datos.html", "4. Confirmar"],
-    ["./pago.html", "5. Pago"],
-    ["./mi-turno.html", "6. Turnos"],
-    ["./bo-agenda.html?id=oasis", "7. Agenda"],
-    ["./ops.html", "8. Ops"],
-  ]
-    .map(([href, label]) => `<a href="${href}">${label}</a>`)
-    .join("");
-  const topbar = document.querySelector(".topbar");
-  if (topbar) topbar.after(bar);
-  else document.body.prepend(bar);
-}
-
-paintFlujoNav();
-
 function paintBoNav() {
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
   const isBo =
     (page.startsWith("bo") && page !== "bo-login.html") || page === "negocio-resenas.html";
   if (!isBo) return;
+  document.body.classList.add("bo-page");
   if (document.querySelector("[data-bo-nav]")) return;
   const id = new URLSearchParams(location.search).get("id") || "oasis";
   const bar = document.createElement("nav");
@@ -284,7 +267,7 @@ function paintBoNav() {
       return `<a href="${url}"${here ? ' aria-current="page"' : ""}>${label}</a>`;
     })
     .join("");
-  const after = document.querySelector("[data-flujo-nav]") || document.querySelector(".topbar");
+  const after = document.querySelector(".topbar");
   if (after) after.after(bar);
   else document.body.prepend(bar);
 }

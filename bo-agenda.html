@@ -97,7 +97,7 @@
         root.innerHTML = `
           <p class="meta">${owner.email} · ${place.name}</p>
           <h2>Agenda</h2>
-          <p class="band-lead">La grilla usa el horario hábil de Pagos. Los feriados que dejes tapan el día; los que saques vuelven a abrir.</p>
+          <p class="band-lead">Clickeá un hueco o un turno que se pisa para asignar otro arriba. Los que no se pisan tapan el horario.</p>
           <p class="meta">${hoursLine()} · <a href="./bo-pagos.html?id=${id}">Editar horarios</a> · <a href="./bo-caja.html?id=${id}">Caja y ARCA</a></p>
           <form id="walk" class="review-form wide-form">
             <p class="ficha-sub">Turno de mostrador</p>
@@ -120,15 +120,29 @@
             <button class="btn btn-ticket" type="submit">Crear turno ahora</button>
             <p class="meta">${walkMsg}</p>
           </form>
-          <p class="week-nav">
-            ${week > 0 ? `<button class="btn-line" type="button" data-week="${week - 1}">Semana anterior</button>` : "<span></span>"}
-            ${week < 8 ? `<button class="btn-line" type="button" data-week="${week + 1}">Semana siguiente</button>` : "<span></span>"}
-          </p>
+          <nav class="week-nav">
+            ${
+              week > 0
+                ? `<button class="week-nav-btn" type="button" data-week="${week - 1}">Anterior</button>`
+                : `<span class="week-nav-btn is-off">Anterior</span>`
+            }
+            <p class="week-nav-label">${days[0].toLocaleDateString("es-AR", {
+              day: "numeric",
+              month: "short",
+            })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</p>
+            ${
+              week < 8
+                ? `<button class="week-nav-btn" type="button" data-week="${week + 1}">Siguiente</button>`
+                : `<span class="week-nav-btn is-off">Siguiente</span>`
+            }
+          </nav>
           <div class="cal-wrap">
             ${renderTimeGrid({ place, days, hourRange: range, view: "owner" })}
           </div>
           <div class="tg-legend">
-            <span><i class="is-owner"></i> Turno</span>
+            <span><i class="is-owner"></i> Turno · no se pisa</span>
+            <span><i class="is-buffer"></i> Margen</span>
+            <span><i class="is-owner-overlap"></i> Se pisa · clickeá para asignar arriba</span>
             <span><i class="is-hold"></i> Hold 15 min</span>
             <span><i class="is-holiday"></i> Feriado (cerrado)</span>
             <span><i class="is-off"></i> Fuera de horario</span>
@@ -243,6 +257,20 @@
           place,
           hourRange: range,
           days,
+          view: "owner",
+          getService: () =>
+            services.find((row) => row.id === document.querySelector("#walk [name='serviceId']")?.value) ||
+            services[0],
+          onPick: (key) => {
+            const when = document.querySelector("#walk [name='when']");
+            const hint = document.querySelector("#walk .meta");
+            if (when) when.value = key;
+            if (hint) hint.textContent = `Horario ${key.replace("T", " ")}. Completá el cliente y creá el turno.`;
+          },
+          onBlocked: (text) => {
+            const hint = document.querySelector("#walk .meta");
+            if (hint) hint.textContent = text;
+          },
           onEvent: (eventId) => {
             const node = document.getElementById(`turno-${eventId}`);
             if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -337,7 +365,7 @@
         });
         root.querySelectorAll("[data-move]").forEach((button) => {
           button.addEventListener("click", () => {
-            reprogramTurno(button.dataset.move, button.dataset.slot);
+            reprogramTurno(button.dataset.move, button.dataset.slot, true);
             openId = null;
             paint();
           });

@@ -28,5 +28,45 @@
         <a class="btn-line" href="./recorrido.html">Ver la guía completa</a>
       </div>
     </main>
+    <script>
+      const page = location.pathname.replace(/\/$/, "").split("/").pop();
+      const known = [
+        "alta",
+        "avisos",
+        "notificaciones",
+        "bo",
+        "bo-agenda",
+        "bo-caja",
+        "bo-cupones",
+        "bo-landing",
+        "bo-login",
+        "bo-pagos",
+        "bo-plan",
+        "bo-servicios",
+        "bo-soporte",
+        "datos",
+        "ficha",
+        "index",
+        "listo",
+        "login",
+        "mi-turno",
+        "mp",
+        "negocio-resenas",
+        "negocios",
+        "ops",
+        "ops-altas",
+        "ops-dinero",
+        "ops-locales",
+        "ops-login",
+        "pago",
+        "perfil",
+        "recorrido",
+        "reservar",
+      ];
+      if (known.includes(page)) {
+        location.replace(`./${page}.html${location.search}${location.hash}`);
+      }
+    </script>
   </body>
 </html>
+

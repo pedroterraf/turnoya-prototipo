@@ -379,7 +379,7 @@ function renderReco(places) {
       <button class="reco-card" type="button" data-id="${place.id}">
         <span class="badge">Destacado</span>
         <strong>${place.name}</strong>
-        ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count)}
+        ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count, place.id)}
         <span class="meta">${place.service} · ${place.km} km</span>
       </button>`,
     )
@@ -408,7 +408,7 @@ function renderResults(places) {
           ${sponsoredSlot ? '<span class="badge">Patrocinado</span>' : place.featured ? '<span class="badge">Destacado</span>' : `<span class="badge badge-soft">${place.category}</span>`}
           ${typeof todayHuecos === "function" && todayHuecos(place.id).length ? '<span class="badge badge-hueco">Hoy hay hueco</span>' : ""}
           <strong>${place.name}</strong>
-          ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count)}
+          ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count, place.id)}
           <span class="meta">${place.service} · a ${place.km} km${
             state.userLat != null && typeof etaMinutes === "function"
               ? ` · ${etaMinutes(place.km, travelMode())} min`
@@ -495,7 +495,7 @@ function selectPlace(id) {
     <div class="drawer-body">
       ${place.featured ? '<span class="badge">Destacado</span>' : ""}
       <h3>${place.name}</h3>
-      ${starsMarkup(rating.average, rating.count)}
+      ${starsMarkup(rating.average, rating.count, place.id)}
       <p class="meta">${place.service} · ${place.km} km · próximo ${nextSlotOf(place)}</p>
       <p class="meta">turnoya.com/${place.slug}</p>
       ${typeof directionsPanelHtml === "function" ? directionsPanelHtml(place) : ""}

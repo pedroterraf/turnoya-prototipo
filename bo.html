@@ -12,35 +12,40 @@
     />
     <link rel="stylesheet" href="./assets/styles.css" />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">BO</span></a>
       <nav class="topbar-nav">
         <a id="ver" href="./ficha.html">Ver landing</a>
-        <a href="./avisos.html?rol=dueno">Avisos</a>
+        <span data-nav-bell data-inbox="./notificaciones.html?rol=dueno"></span>
         <button class="btn btn-ghost" id="out" type="button">Salir</button>
       </nav>
     </header>
     <main class="band">
-      <label class="place-switch">Negocio
-        <select id="biz"></select>
-      </label>
-      <h2 id="title">Backoffice</h2>
-      <p class="band-lead">El local se opera de acá: agenda en vivo, caja, facturas ARCA y la ficha. No hace falta pasar por el turnero público.</p>
+      <div class="bo-head">
+        <div>
+          <h2 id="title">Backoffice</h2>
+          <p class="band-lead">Agenda, caja y ficha. El cliente no entra acá.</p>
+        </div>
+        <label class="place-switch">Negocio
+          <select id="biz"></select>
+        </label>
+      </div>
       <div id="dash"></div>
       <div id="ops-box"></div>
       <div id="notes-box"></div>
       <div id="local-box"></div>
-      <div class="card-grid bo-nav">
-        <a class="service-card" id="l-agenda" href="./bo-agenda.html"><div><strong>Agenda</strong><span class="meta">Turno de mostrador, cobro y factura</span></div></a>
-        <a class="service-card" id="l-caja" href="./bo-caja.html"><div><strong>Caja y ARCA</strong><span class="meta">Métricas, CSV/Excel, facturas A/B/C</span></div></a>
-        <a class="service-card" id="l-serv" href="./bo-servicios.html"><div><strong>Servicios</strong><span class="meta">Horario, precio, capacidad, incluye</span></div></a>
-        <a class="service-card" id="l-cup" href="./bo-cupones.html"><div><strong>Cupones</strong><span class="meta">Descuento por código</span></div></a>
-        <a class="service-card" id="l-sup" href="./bo-soporte.html"><div><strong>Soporte</strong><span class="meta">WhatsApp, mail y bandeja</span></div></a>
-        <a class="service-card" id="l-land" href="./bo-landing.html"><div><strong>Landing</strong><span class="meta">Color y banner canvas 1440×480 / 1080×720</span></div></a>
-        <a class="service-card" id="l-pay" href="./bo-pagos.html"><div><strong>Pagos y días</strong><span class="meta">Seña, Mercado Pago, horario por día</span></div></a>
-        <a class="service-card" id="l-rev" href="./negocio-resenas.html"><div><strong>Recomendaciones</strong><span class="meta">Textos; las estrellas no se tocan</span></div></a>
-        <a class="service-card" id="l-plan" href="./bo-plan.html"><div><strong>Plan</strong><span class="meta">Calle, Barrio, Ciudad, Red · 0% comisión</span></div></a>
+      <h3 class="bo-section-label">Operar el local</h3>
+      <div class="bo-tiles">
+        <a class="bo-tile" id="l-agenda" href="./bo-agenda.html"><strong>Agenda</strong><span class="meta">Turno de mostrador, cobro y factura</span></a>
+        <a class="bo-tile" id="l-caja" href="./bo-caja.html"><strong>Caja y ARCA</strong><span class="meta">Métricas, CSV/Excel, facturas A/B/C</span></a>
+        <a class="bo-tile" id="l-serv" href="./bo-servicios.html"><strong>Servicios</strong><span class="meta">Horario, precio, capacidad, incluye</span></a>
+        <a class="bo-tile" id="l-cup" href="./bo-cupones.html"><strong>Cupones</strong><span class="meta">Descuento por código</span></a>
+        <a class="bo-tile" id="l-sup" href="./bo-soporte.html"><strong>Soporte</strong><span class="meta">WhatsApp, mail y bandeja</span></a>
+        <a class="bo-tile" id="l-land" href="./bo-landing.html"><strong>Landing</strong><span class="meta">Color y banner 1440×480 / 1080×720</span></a>
+        <a class="bo-tile" id="l-pay" href="./bo-pagos.html"><strong>Pagos y días</strong><span class="meta">Seña, Mercado Pago, horario por día</span></a>
+        <a class="bo-tile" id="l-rev" href="./negocio-resenas.html"><strong>Recomendaciones</strong><span class="meta">Elegís textos. Las estrellas no se tocan.</span></a>
+        <a class="bo-tile" id="l-plan" href="./bo-plan.html"><strong>Plan</strong><span class="meta">Calle, Barrio, Ciudad, Red · 0% comisión</span></a>
       </div>
     </main>
     <script src="./assets/store.js"></script>
@@ -51,6 +56,7 @@
     <script src="./assets/accounts.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
       let id = params.get("id") || "oasis";
@@ -71,14 +77,6 @@
         const view = placeView(place);
         document.getElementById("title").textContent = `Backoffice · ${place.name}`;
         document.getElementById("ver").href = `./ficha.html?id=${id}`;
-        const ownerMail = placeOwnerEmail(id);
-        const ownerUnread = unreadCount(ownerMail);
-        const avisosLink = document.querySelector('a[href^="./avisos.html"]');
-        if (avisosLink) {
-          avisosLink.innerHTML = ownerUnread
-            ? `Avisos <span class="nav-unread">${ownerUnread}</span>`
-            : "Avisos";
-        }
         seedPlaceAgenda(id);
         const metrics = placeMetrics(id);
         document.getElementById("dash").innerHTML = `
@@ -90,8 +88,10 @@
             <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Olvidaron cobrar</span></div>
             <div class="ops-stat"><b>${metrics.facturas}</b><span class="meta">Facturas ARCA</span></div>
           </div>
-          <p><a class="btn btn-ticket" href="./bo-agenda.html?id=${id}">Crear turno ahora</a>
-          <a class="btn btn-enamel" href="./bo-caja.html?id=${id}">Abrir caja</a></p>`;
+          <div class="bo-actions">
+            <a class="btn btn-ticket" href="./bo-agenda.html?id=${id}">Crear turno ahora</a>
+            <a class="btn btn-enamel" href="./bo-caja.html?id=${id}">Abrir caja</a>
+          </div>`;
         ["l-agenda", "l-caja", "l-serv", "l-cup", "l-sup", "l-land", "l-pay", "l-rev", "l-plan"].forEach((key) => {
           document.getElementById(key).href = document
             .getElementById(key)
@@ -102,7 +102,7 @@
         if (view.status === "live" && !view.nota) {
           ops.innerHTML = "";
         } else {
-          ops.innerHTML = `<article class="quote">
+          ops.innerHTML = `<article class="bo-panel">
             <p class="meta">Estado del alta: ${
               { live: "Publicado", pending: "En revisión", rejected: "Rechazado", datos: "Pide datos" }[view.status] ||
               view.status
@@ -135,42 +135,44 @@
         }
         const notes = placeNotes(id);
         document.getElementById("notes-box").innerHTML = notes.length
-          ? `<h3 class="ficha-sub">Avisos del local</h3>${notes
+          ? `<section class="bo-panel"><h3 class="ficha-sub">Avisos del local</h3><div class="bo-notes">${notes
               .slice(0, 6)
               .map((note) => `<p class="meta">${note.text}</p>`)
-              .join("")}`
+              .join("")}</div></section>`
           : "";
         const cats = CATEGORIES.filter((row) => row.id !== "todos");
         document.getElementById("local-box").innerHTML = `
-          <h3 class="ficha-sub">Datos del local</h3>
-          <p class="band-lead">Esto se ve en el mapa y en la ficha pública.</p>
-          <form id="local-form" class="review-form wide-form">
-            <label>Nombre <input name="name" value="${place.name || ""}" /></label>
-            <label>Servicio que se muestra <input name="service" value="${place.service || ""}" /></label>
-            <label>Rubro
-              <select name="category">
-                ${cats
-                  .map(
-                    (row) =>
-                      `<option value="${row.id}" ${place.category === row.id ? "selected" : ""}>${row.label}</option>`,
-                  )
-                  .join("")}
-              </select>
-            </label>
-            <label>Ciudad
-              <select name="city">
-                ${Object.entries(CITIES)
-                  .map(
-                    ([key, row]) =>
-                      `<option value="${key}" ${place.city === key ? "selected" : ""}>${row.label}</option>`,
-                  )
-                  .join("")}
-              </select>
-            </label>
-            <label>Dirección <input name="address" value="${place.address || ""}" placeholder="San Martín 500" /></label>
-            <button class="btn btn-ticket" type="submit">Guardar datos</button>
-            <p id="local-msg" class="meta"></p>
-          </form>`;
+          <section class="bo-panel">
+            <h3 class="ficha-sub">Datos del local</h3>
+            <p class="band-lead">Esto se ve en el mapa y en la ficha pública.</p>
+            <form id="local-form" class="bo-form">
+              <label>Nombre <input name="name" value="${place.name || ""}" /></label>
+              <label>Servicio que se muestra <input name="service" value="${place.service || ""}" /></label>
+              <label>Rubro
+                <select name="category">
+                  ${cats
+                    .map(
+                      (row) =>
+                        `<option value="${row.id}" ${place.category === row.id ? "selected" : ""}>${row.label}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <label>Ciudad
+                <select name="city">
+                  ${Object.entries(CITIES)
+                    .map(
+                      ([key, row]) =>
+                        `<option value="${key}" ${place.city === key ? "selected" : ""}>${row.label}</option>`,
+                    )
+                    .join("")}
+                </select>
+              </label>
+              <label>Dirección <input name="address" value="${place.address || ""}" placeholder="San Martín 500" /></label>
+              <button class="btn btn-ticket" type="submit">Guardar datos</button>
+              <p id="local-msg" class="meta"></p>
+            </form>
+          </section>`;
         document.getElementById("local-form").addEventListener("submit", (event) => {
           event.preventDefault();
           const form = event.target;

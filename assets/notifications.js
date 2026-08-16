@@ -110,6 +110,12 @@ function createNotification(payload) {
   const rows = loadNotifications().filter((item) => item.id !== row.id);
   rows.unshift(row);
   saveNotifications(rows);
+  memorySet("turnoya-notify-ping", JSON.stringify({ id: row.id, userKey, at: createdAt }));
+  try {
+    window.dispatchEvent(new CustomEvent("turnoya-notify", { detail: row }));
+  } catch {
+    /* ignore */
+  }
   return row;
 }
 
@@ -176,7 +182,9 @@ function notificationHref(notification) {
     return `./ficha.html?id=${meta.placeId}`;
   }
   if (meta.type === NotificationMetadataType.WAITLIST && meta.placeId) {
-    return `./reservar.html?id=${meta.placeId}`;
+    const query = new URLSearchParams({ id: meta.placeId });
+    if (meta.serviceId) query.set("service", meta.serviceId);
+    return `./reservar.html?${query}`;
   }
   if (meta.type === NotificationMetadataType.INQUIRY && meta.placeId) {
     return `./bo-soporte.html?id=${meta.placeId}`;

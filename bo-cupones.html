@@ -30,9 +30,12 @@
       const place = findPlace(id);
       const services = placeServices(place);
       let rows = placeCoupons(id);
-      if (!rows.length) rows = [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+      if (!rows.length) {
+        rows = [{ code: "", type: "porcentaje", value: 10, active: true, visibility: "public", serviceId: "" }];
+      }
 
       function fieldsetHtml(coupon, i) {
+        const visibility = couponVisibility(coupon);
         return `
           <fieldset data-index="${i}">
             <label>Código <input name="code-${i}" value="${coupon.code || ""}" /></label>
@@ -54,7 +57,13 @@
                   .join("")}
               </select>
             </label>
-            <label><input type="checkbox" name="on-${i}" ${coupon.active !== false ? "checked" : ""} /> Activo</label>
+            <label>Visibilidad
+              <select name="vis-${i}">
+                <option value="public" ${visibility === "public" ? "selected" : ""}>Público · se ve en la ficha</option>
+                <option value="private" ${visibility === "private" ? "selected" : ""}>Privado · solo con el código</option>
+              </select>
+            </label>
+            <label><input type="checkbox" name="on-${i}" ${coupon.active !== false ? "checked" : ""} /> Disponible</label>
             <button class="btn btn-line" type="button" data-remove="${i}">Quitar</button>
           </fieldset>`;
       }
@@ -67,6 +76,7 @@
             type: form[`type-${i}`].value,
             value: Number(form[`val-${i}`].value),
             serviceId: form[`svc-${i}`].value,
+            visibility: form[`vis-${i}`].value === "private" ? "private" : "public",
             active: form[`on-${i}`].checked,
           };
         });
@@ -75,7 +85,7 @@
       function paint() {
         document.getElementById("root").innerHTML = `
           <h2>Cupones de ${place.name}</h2>
-          <p class="band-lead">Si no hay cupones activos, la ficha no muestra la sección. Oasis de demo: RELAX10 = 10%.</p>
+          <p class="band-lead">Los públicos y disponibles se ven en la ficha. Los privados no: el cliente los carga si tiene el código. Oasis: RELAX10 público · OASISVIP privado.</p>
           <form id="form" class="review-form wide-form">
             ${rows.map(fieldsetHtml).join("")}
             <button class="btn btn-enamel" id="add" type="button">Agregar cupón</button>
@@ -89,13 +99,15 @@
             return;
           }
           rows = readForm(form);
-          rows.push({ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" });
+          rows.push({ code: "", type: "porcentaje", value: 10, active: true, visibility: "public", serviceId: "" });
           paint();
         });
         form.querySelectorAll("[data-remove]").forEach((button) => {
           button.addEventListener("click", () => {
             rows = readForm(form).filter((_, index) => index !== Number(button.dataset.remove));
-            if (!rows.length) rows = [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+            if (!rows.length) {
+              rows = [{ code: "", type: "porcentaje", value: 10, active: true, visibility: "public", serviceId: "" }];
+            }
             paint();
           });
         });

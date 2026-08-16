@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TurnoYa para negocios</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">TurnoYa</span>
+        <span class="brand-aside">para negocios</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="./index.html">Ver el mapa</a>
+        <a class="btn btn-ticket" href="#planes">Ver planes</a>
+      </nav>
+    </header>
+
+    <section class="sell-hero">
+      <div class="sell-copy">
+        <h1>Tu local en el mapa. Tu calendario, tuyo.</h1>
+        <p>
+          Shopify, pero de turnos. Cada negocio tiene su página en
+          turnoya.com/tu-local. El cliente también te encuentra por cercanía cuando busca un servicio.
+        </p>
+        <div class="sell-actions">
+          <a class="btn btn-ticket" href="./alta.html">Empezar el alta</a>
+          <a class="btn btn-ghost" href="./bo-login.html?id=oasis">Entrar al backoffice</a>
+          <a class="btn btn-ghost" href="#destacados">Quiero aparecer primero</a>
+        </div>
+      </div>
+      <aside class="sell-ticket">
+        <span>Cómo entra un cliente</span>
+        <ol>
+          <li>Busca “masaje” o “kinesio” en TurnoYa.</li>
+          <li>El mapa le tira los pins más cercanos.</li>
+          <li>Si pagás Destacado, tu ficha abre la lista.</li>
+          <li>Reserva en tu calendario. La marca de agua dice TurnoYa, no invade.</li>
+        </ol>
+      </aside>
+    </section>
+
+    <section class="band" id="resenas">
+      <h2>Estrellas reales, textos a elección</h2>
+      <p class="band-lead">
+        Solo califica quien tuvo el turno y lo concretó en el lugar. El promedio de estrellas es de
+        todos esos votos: el negocio no lo toca. Lo que sí elige es qué recomendaciones se leen en la ficha.
+      </p>
+      <p><a class="btn btn-enamel" href="./negocio-resenas.html?id=oasis">Probar el panel de Oasis</a></p>
+    </section>
+
+    <section class="band" id="alta">
+      <h2>Alta en una tarde</h2>
+      <p class="band-lead">
+        Tomamos el boceto que ya tenés: servicios, horarios, seña con Mercado Pago, WhatsApp y panel.
+        Lo que cambia es que ahora hay muchos negocios, no uno.
+      </p>
+    </section>
+
+    <section class="band" id="planes">
+      <h2>Planes por sucursales</h2>
+      <p class="band-lead">
+        Base tomada de lo que ya cobra el mercado local (TurnosYa.com). Los montos del prototipo son de
+        referencia, no una lista de precios publicada.
+      </p>
+      <div class="tariff-toolbar">
+        <a class="btn btn-enamel" href="./negocios.html">Volver</a>
+        <div class="plan-nav" hidden>
+          <button class="btn btn-ghost" type="button" id="plan-prev">Atrás</button>
+          <span id="plan-label">1 / 4</span>
+          <button class="btn btn-ticket" type="button" id="plan-next">Siguiente</button>
+        </div>
+      </div>
+      <div class="tariff-scroller">
+      <div class="tariff" role="table" aria-label="Planes">
+        <div class="tariff-head">Incluye</div>
+        <div class="tariff-head">Starter</div>
+        <div class="tariff-head popular">Advanced</div>
+        <div class="tariff-head">Plus</div>
+        <div class="tariff-head">Business</div>
+
+        <div class="tariff-cell tariff-row-label">Precio de referencia</div>
+        <div class="tariff-cell">desde $20.000</div>
+        <div class="tariff-cell">a medida</div>
+        <div class="tariff-cell">a medida</div>
+        <div class="tariff-cell">a medida</div>
+
+        <div class="tariff-cell tariff-row-label">Sucursales</div>
+        <div class="tariff-cell">1</div>
+        <div class="tariff-cell">4</div>
+        <div class="tariff-cell">10</div>
+        <div class="tariff-cell">+10</div>
+
+        <div class="tariff-cell tariff-row-label">Página propia</div>
+        <div class="tariff-cell">turnoya.com/tu-local</div>
+        <div class="tariff-cell">sí</div>
+        <div class="tariff-cell">sí</div>
+        <div class="tariff-cell">sí + dominio</div>
+
+        <div class="tariff-cell tariff-row-label">Pin en el mapa</div>
+        <div class="tariff-cell">orgánico</div>
+        <div class="tariff-cell">orgánico</div>
+        <div class="tariff-cell">orgánico</div>
+        <div class="tariff-cell">orgánico</div>
+
+        <div class="tariff-cell tariff-row-label">Calendario y seña</div>
+        <div class="tariff-cell">sí</div>
+        <div class="tariff-cell">sí</div>
+        <div class="tariff-cell">sí</div>
+        <div class="tariff-cell">sí</div>
+      </div>
+      </div>
+      <div class="plan-cards" id="plan-cards">
+        <article class="plan-card" data-plan="0">
+          <h3>Starter</h3>
+          <dl>
+            <div><dt>Precio de referencia</dt><dd>desde $20.000</dd></div>
+            <div><dt>Sucursales</dt><dd>1</dd></div>
+            <div><dt>Página propia</dt><dd>turnoya.com/tu-local</dd></div>
+            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
+            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
+          </dl>
+        </article>
+        <article class="plan-card" data-plan="1" hidden>
+          <h3>Advanced</h3>
+          <dl>
+            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
+            <div><dt>Sucursales</dt><dd>4</dd></div>
+            <div><dt>Página propia</dt><dd>sí</dd></div>
+            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
+            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
+          </dl>
+        </article>
+        <article class="plan-card" data-plan="2" hidden>
+          <h3>Plus</h3>
+          <dl>
+            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
+            <div><dt>Sucursales</dt><dd>10</dd></div>
+            <div><dt>Página propia</dt><dd>sí</dd></div>
+            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
+            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
+          </dl>
+        </article>
+        <article class="plan-card" data-plan="3" hidden>
+          <h3>Business</h3>
+          <dl>
+            <div><dt>Precio de referencia</dt><dd>a medida</dd></div>
+            <div><dt>Sucursales</dt><dd>+10</dd></div>
+            <div><dt>Página propia</dt><dd>sí + dominio</dd></div>
+            <div><dt>Pin en el mapa</dt><dd>orgánico</dd></div>
+            <div><dt>Calendario y seña</dt><dd>sí</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section class="band" id="destacados">
+      <div class="ads-split">
+        <div>
+          <h2>Publicidad que se entiende</h2>
+          <p class="band-lead">
+            El cliente busca un servicio. Nosotros no escondemos quién pagó por estar arriba: se etiqueta
+            Destacado o Patrocinado. El resto se ordena por cercanía.
+          </p>
+        </div>
+        <div class="ads-panel">
+          <h3>Plus Destacado</h3>
+          <p>Carrusel de recomendados, pin dorado y un slot en la lista de esa ciudad y rubro.</p>
+          <p>Se vende por ciudad + categoría, no para todo el país de un saque.</p>
+          <a class="btn btn-enamel" href="#alta">Pedir Destacado</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Prototipo UI · no es la web en producción · TurnoYa no es TurnosYa.com
+    </footer>
+    <script>
+      const cards = Array.from(document.querySelectorAll(".plan-card"));
+      const nav = document.querySelector(".plan-nav");
+      const label = document.getElementById("plan-label");
+      const prev = document.getElementById("plan-prev");
+      const next = document.getElementById("plan-next");
+      let index = 0;
+
+      function showMobileNav() {
+        return window.matchMedia("(max-width: 900px)").matches;
+      }
+
+      function renderPlan() {
+        cards.forEach((card, i) => {
+          card.hidden = i !== index;
+        });
+        label.textContent = `${index + 1} / ${cards.length}`;
+        prev.disabled = index === 0;
+        next.disabled = index === cards.length - 1;
+        nav.hidden = !showMobileNav();
+      }
+
+      prev.addEventListener("click", () => {
+        if (index === 0) return;
+        index -= 1;
+        renderPlan();
+      });
+      next.addEventListener("click", () => {
+        if (index === cards.length - 1) return;
+        index += 1;
+        renderPlan();
+      });
+      window.addEventListener("resize", renderPlan);
+      renderPlan();
+    </script>
+  </body>
+</html>

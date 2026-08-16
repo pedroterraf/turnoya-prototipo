@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Confirmar · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+    </header>
+    <main class="band narrow">
+      <p class="meta">El horario queda retenido hasta que pagues. Si se vence, se libera solo.</p>
+      <p class="hold-clock" id="clock">15:00</p>
+      <h2>Confirmá el turno</h2>
+      <p class="band-lead" id="summary"></p>
+      <p id="who" class="meta"></p>
+      <a class="btn btn-enamel" id="go-pay" href="./pago.html">Continuar</a>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const next = location.pathname + location.search;
+      const user = requireUser(next);
+      if (!user) throw new Error("redirect");
+      const draft = readDraft();
+      if (!draft.placeId || !draft.slot) {
+        location.replace("./index.html");
+        throw new Error("redirect");
+      }
+      writeDraft({
+        nombre: user.nombre,
+        apellido: user.apellido,
+        telefono: user.celular || "",
+        email: user.email,
+        dni: user.dni,
+      });
+      document.getElementById("summary").textContent = draft.slot
+        ? `${draft.placeName} · ${draft.serviceName} · ${draft.slot.replace("T", " ")} · ${money(draft.price)}`
+        : "Elegí un horario.";
+      document.getElementById("who").textContent = `${user.nombre} ${user.apellido} · DNI ${user.dni}`;
+      const senia = seniaOf(draft.placeId, draft.price);
+      writeDraft({ senia });
+      document.getElementById("go-pay").textContent =
+        senia > 0 ? `Pagar ${money(senia)} en Mercado Pago` : "Confirmar sin pago";
+      document.getElementById("go-pay").href = senia > 0 ? "./pago.html" : "./pago.html?gratis=1";
+      watchHold(
+        (left) => {
+          document.getElementById("clock").textContent = formatHold(left);
+        },
+        () => {
+          location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);
+        },
+      );
+    </script>
+  </body>
+</html>

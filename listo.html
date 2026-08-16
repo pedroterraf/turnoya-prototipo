@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Turno confirmado · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+    </header>
+    <main class="band narrow">
+      <p class="meta">Listo</p>
+      <h2>Turno confirmado</h2>
+      <p class="band-lead" id="detail"></p>
+      <p>Te mandamos el enlace a tu mail. Si te arrepentís (10 días y el servicio no se prestó), desde Mis turnos pedís la devolución: se libera el horario y se reintegra por Mercado Pago.</p>
+      <a class="btn btn-enamel" href="./mi-turno.html">Ver mi turno</a>
+      <a class="btn-line" href="./index.html">Volver al mapa</a>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script>
+      const turno = lastTurno();
+      document.getElementById("detail").textContent = turno
+        ? `${turno.placeName} · ${turno.serviceName} · ${turno.slot.replace("T", " ")} · seña ${money(turno.senia)}`
+        : "No hay un turno recién confirmado.";
+    </script>
+  </body>
+</html>

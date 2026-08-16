@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Negocio · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">TurnoYa</span>
+        <span class="brand-aside" id="brand-aside">negocio</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="./index.html">Mapa</a>
+        <a href="./mi-turno.html">Mis turnos</a>
+        <a href="./login.html" id="auth-link">Entrar</a>
+        <a href="./bo.html" id="bo-link">Backoffice</a>
+      </nav>
+    </header>
+    <main id="ficha"></main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const place = findPlace(new URLSearchParams(location.search).get("id"));
+      const services = placeServices(place);
+      const theme = landingTheme(place.id);
+      const user = currentUser();
+      document.title = `${place.name} · TurnoYa`;
+      document.getElementById("brand-aside").textContent = place.slug;
+      document.getElementById("auth-link").textContent = user ? user.email : "Entrar";
+      document.getElementById("auth-link").href = user
+        ? "./perfil.html"
+        : `./login.html?next=${encodeURIComponent(location.href)}`;
+      document.getElementById("bo-link").href = `./bo.html?id=${place.id}`;
+      if (theme.primaryHex) {
+        document.documentElement.style.setProperty("--enamel", theme.primaryHex);
+      }
+      const banner =
+        (window.matchMedia("(max-width: 720px)").matches
+          ? theme.bannerMobile || theme.bannerDesktop
+          : theme.bannerDesktop || theme.bannerMobile) || "";
+
+      function mineHere() {
+        return user ? userTurnos(user.email).filter((row) => row.placeId === place.id) : [];
+      }
+
+      function paint() {
+        const mine = mineHere();
+        const rating = ratingOf(place.id);
+        const quotes = publishedQuotes(place.id);
+        document.getElementById("ficha").innerHTML = `
+        <section class="store-hero${banner ? " has-banner" : ""}" style="${banner ? `background-image:url('${banner}')` : ""}">
+          <div class="store-hero-copy">
+            <p class="meta">turnoya.com/${place.slug}</p>
+            <h1>${place.name}</h1>
+            ${starsMarkup(rating.average, rating.count)}
+            <p>${place.service} en ${CITIES[place.city].label}.</p>
+            <a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
+          </div>
+        </section>
+        ${
+          user
+            ? `<section class="band" id="mis-turnos-local">
+                <h2>Tus turnos acá</h2>
+                ${
+                  mine.length
+                    ? mine.map(turnoCardHtml).join("") +
+                      `<a class="btn-line" href="./mi-turno.html">Ver todos tus turnos</a>`
+                    : `<p class="meta">Todavía no reservaste en este local.</p>`
+                }
+              </section>`
+            : `<section class="band"><p class="meta"><a href="./login.html?next=${encodeURIComponent(location.href)}">Entrá</a> para ver tus turnos de este negocio.</p></section>`
+        }
+        <section class="band">
+          <h2>Servicios</h2>
+          <div class="card-grid">
+            ${services
+              .map(
+                (service) => `
+              <a class="service-card" href="./reservar.html?id=${place.id}&service=${service.id}">
+                <img src="${service.image}" alt="${service.name}" />
+                <div>
+                  <strong>${service.name}</strong>
+                  <span class="meta">${service.minutes} min · ${capacityLabel(service)}</span>
+                  <span class="price">${money(service.price)}</span>
+                </div>
+              </a>`,
+              )
+              .join("")}
+          </div>
+        </section>
+        <section class="band">
+          <h2>Dónde estamos</h2>
+          <iframe class="map-embed" title="Mapa del local" src="${mapsEmbed(place)}" loading="lazy"></iframe>
+          <p class="meta">${placeAddress(place)}</p>
+        </section>
+        <section class="band">
+          <h2>Recomendaciones</h2>
+          ${
+            quotes.length
+              ? quotes
+                  .map(
+                    (quote) =>
+                      `<blockquote class="quote">“${quote.text}”<cite>${quote.author}</cite></blockquote>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">Todavía no hay recomendaciones.</p>"
+          }
+        </section>
+      `;
+        bindTurnoActions(document.getElementById("ficha"), paint);
+      }
+      paint();
+    </script>
+  </body>
+</html>

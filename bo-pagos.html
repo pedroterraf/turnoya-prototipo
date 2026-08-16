@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pagos · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band narrow">
+      <h2>Pagos, días y cancelación</h2>
+      <p class="band-lead">Default: seña mínima $3000 (piso Mercado Pago $10). El horario se retiene 15 minutos; si no pagan, se libera.</p>
+      <form id="form" class="review-form">
+        <label>Cómo se reserva
+          <select name="mode">
+            <option value="minimo">Mínimo (default)</option>
+            <option value="porcentaje">Porcentaje del precio</option>
+            <option value="entero">Pago entero</option>
+            <option value="ninguno">Sin pago</option>
+          </select>
+        </label>
+        <label class="pay-minimo">Mínimo en pesos <input name="minimo" type="number" min="10" value="3000" /></label>
+        <label class="pay-pct">Porcentaje <input name="porcentaje" type="number" min="1" max="100" value="30" /></label>
+        <label class="pay-pct">Piso $ <input name="piso" type="number" min="10" value="10" /></label>
+        <label class="pay-pct">Techo $ (0 = sin techo) <input name="techo" type="number" min="0" value="0" /></label>
+        <label>Días de arrepentimiento (Ley 24.240) <input name="arrep" type="number" min="1" value="10" /></label>
+        <label>Horas antes para cancelar (política del local) <input name="horas" type="number" min="0" value="48" /></label>
+        <p class="meta">Días abiertos</p>
+        <label><input type="checkbox" name="d1" /> Lunes</label>
+        <label><input type="checkbox" name="d2" /> Martes</label>
+        <label><input type="checkbox" name="d3" /> Miércoles</label>
+        <label><input type="checkbox" name="d4" /> Jueves</label>
+        <label><input type="checkbox" name="d5" /> Viernes</label>
+        <label><input type="checkbox" name="d6" /> Sábado</label>
+        <label><input type="checkbox" name="d0" /> Domingo</label>
+        <button class="btn btn-ticket" type="submit">Guardar</button>
+      </form>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-pagos.html?id=${id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const rule = paymentRule(id);
+      const days = workingDays(id);
+      const policy = placePolicy(id);
+      const form = document.getElementById("form");
+      form.mode.value = rule.mode;
+      form.minimo.value = rule.minimo ?? 3000;
+      form.porcentaje.value = rule.porcentaje ?? 30;
+      form.piso.value = rule.piso ?? 10;
+      form.techo.value = rule.techo ?? 0;
+      form.arrep.value = policy.arrepentimientoDias;
+      form.horas.value = policy.horasAntesCancelacion;
+      [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
+        form[`d${d}`].checked = days[d] !== false;
+      });
+      function syncMode() {
+        const mode = form.mode.value;
+        document.querySelectorAll(".pay-minimo").forEach((node) => {
+          node.hidden = mode !== "minimo";
+        });
+        document.querySelectorAll(".pay-pct").forEach((node) => {
+          node.hidden = mode !== "porcentaje";
+        });
+      }
+      form.mode.addEventListener("change", syncMode);
+      syncMode();
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        savePaymentRule(id, {
+          mode: form.mode.value,
+          minimo: Number(form.minimo.value),
+          porcentaje: Number(form.porcentaje.value),
+          piso: Number(form.piso.value),
+          techo: Number(form.techo.value),
+        });
+        savePlacePolicy(id, {
+          arrepentimientoDias: Number(form.arrep.value),
+          horasAntesCancelacion: Number(form.horas.value),
+        });
+        const next = {};
+        [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
+          next[d] = form[`d${d}`].checked;
+        });
+        saveWorkingDays(id, next);
+        location.href = `./bo.html?id=${id}`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mis turnos · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <a href="./index.html">Mapa</a>
+    </header>
+    <main class="band narrow" id="root"></main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const user = requireUser("./mi-turno.html");
+      if (!user) throw new Error("redirect");
+      const root = document.getElementById("root");
+      function paint() {
+        const list = userTurnos(user.email);
+        if (!list.length) {
+          root.innerHTML = "<h2>No tenés turnos</h2><p class=\"band-lead\">Reservá desde el mapa. Acá ves todos tus locales.</p>";
+          return;
+        }
+        root.innerHTML = `<h2>Tus turnos</h2><p class="band-lead">Todos los negocios. En la ficha de cada local ves solo los de ese lugar.</p>${list
+          .map(turnoCardHtml)
+          .join("")}`;
+        bindTurnoActions(root, paint);
+      }
+      paint();
+    </script>
+  </body>
+</html>

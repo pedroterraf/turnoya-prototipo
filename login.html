@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Entrar · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+    </header>
+    <main class="band narrow">
+      <h2>Entrar con tu mail</h2>
+      <p class="band-lead">Te mandamos un código al mail. En el prototipo es 123456. El login va después de elegir el horario, no antes.</p>
+      <form id="email-form" class="review-form">
+        <label>Email <input name="email" type="email" required value="pedroterraf@gmail.com" /></label>
+        <button class="btn btn-enamel" type="submit">Enviar código</button>
+      </form>
+      <form id="otp-form" class="review-form" hidden>
+        <label>Código <input name="code" inputmode="numeric" required maxlength="6" /></label>
+        <button class="btn btn-ticket" type="submit">Verificar</button>
+        <p id="otp-msg" class="meta"></p>
+      </form>
+    </main>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
+      if (currentUser() && profileComplete(currentUser())) location.replace(next);
+      document.getElementById("email-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendOtp(new FormData(event.target).get("email"));
+        event.target.hidden = true;
+        document.getElementById("otp-form").hidden = false;
+      });
+      document.getElementById("otp-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const ok = verifyOtp(new FormData(event.target).get("code"));
+        if (!ok) {
+          document.getElementById("otp-msg").textContent = "Código incorrecto.";
+          return;
+        }
+        location.href = profileComplete(currentUser()) ? next : `./perfil.html?next=${encodeURIComponent(next)}`;
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Reservar · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back-ficha" href="./ficha.html">Volver al negocio</a>
+    </header>
+    <main class="band">
+      <p class="meta">Elegí un horario · el servicio ocupa su duración en la grilla</p>
+      <h2 id="place-title"></h2>
+      <p class="band-lead" id="service-label"></p>
+      <p class="meta" id="expired" hidden>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
+      <div class="cal-wrap">
+        <div class="watermark cal-mark">TurnoYa</div>
+        <div id="calendar" class="cal"></div>
+      </div>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const place = findPlace(params.get("id"));
+      const services = placeServices(place);
+      const service =
+        services.find((item) => item.id === params.get("service")) ?? services[0];
+      const daysOn = workingDays(place.id);
+      document.getElementById("back-ficha").href = `./ficha.html?id=${place.id}`;
+      document.getElementById("place-title").textContent = place.name;
+      if (params.get("expired") === "1") {
+        document.getElementById("expired").hidden = false;
+      }
+      document.getElementById("service-label").textContent =
+        `${service.name} · ${service.minutes} min · ${money(service.price)} · ${capacityLabel(service)}`;
+
+      const days = weekDays();
+      const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const today = dayKey(new Date());
+      const now = new Date();
+      const root = document.getElementById("calendar");
+      const head = days
+        .map((day) => `<div class="cal-head">${labels[day.getDay()]}<b>${day.getDate()}</b></div>`)
+        .join("");
+      const rows = HOURS.flatMap((hour) =>
+        [0, 30].map((minute) => {
+          const cells = days
+            .map((day) => {
+              const key = slotKey(day, hour, minute);
+              const closed = daysOn[day.getDay()] === false;
+              const sameDay = dayKey(day) === today;
+              const pastHour =
+                sameDay &&
+                (hour < now.getHours() || (hour === now.getHours() && minute <= now.getMinutes()));
+              const past = dayKey(day) < today || pastHour;
+              const free = !closed && !past && canBook(place.id, service, key);
+              return `<button class="cal-slot${free ? "" : " is-taken"}" type="button" data-slot="${key}" ${
+                free ? "" : "disabled"
+              }>${free ? `${pad(hour)}:${pad(minute)}` : closed ? "Cerrado" : "Ocupado"}</button>`;
+            })
+            .join("");
+          return `<div class="cal-row">${cells}</div>`;
+        }),
+      ).join("");
+      root.innerHTML = `<div class="cal-head-row">${head}</div>${rows}`;
+
+      root.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-slot]");
+        if (!button || button.disabled) return;
+        const draft = {
+          placeId: place.id,
+          placeName: place.name,
+          slug: place.slug,
+          serviceId: service.id,
+          serviceName: service.name,
+          minutes: service.minutes,
+          price: service.price,
+          slot: button.dataset.slot,
+          senia: seniaOf(place.id, service.price),
+        };
+        writeDraft(draft);
+        holdSlot(draft);
+        const nextDatos = `./datos.html?id=${place.id}`;
+        const user = currentUser();
+        if (user && profileComplete(user)) {
+          location.href = nextDatos;
+          return;
+        }
+        if (user) {
+          location.href = `./perfil.html?next=${encodeURIComponent(nextDatos)}`;
+          return;
+        }
+        location.href = `./login.html?next=${encodeURIComponent(nextDatos)}`;
+      });
+    </script>
+  </body>
+</html>

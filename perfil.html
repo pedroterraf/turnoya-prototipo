@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Perfil · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+    </header>
+    <main class="band narrow">
+      <h2>Tus datos</h2>
+      <p class="band-lead">Lo mínimo para reservar. El celular es opcional. Si lo cargás, lo verificamos por WhatsApp (no SMS).</p>
+      <form id="form" class="review-form">
+        <label>Nombre <input name="nombre" required /></label>
+        <label>Apellido <input name="apellido" required /></label>
+        <label>DNI <input name="dni" required inputmode="numeric" /></label>
+        <label>País <input name="pais" required value="Argentina" /></label>
+        <label>Provincia <input name="provincia" required value="Córdoba" /></label>
+        <label>Ciudad <input name="ciudad" required value="Córdoba" /></label>
+        <label>Celular (opcional) <input name="celular" inputmode="tel" /></label>
+        <div id="phone-box" hidden>
+          <p class="meta">WhatsApp Cloud · código de prueba 0000. Si no lo verificás, el celular no se guarda.</p>
+          <label>Código de WhatsApp <input name="sms" inputmode="numeric" /></label>
+        </div>
+        <button class="btn btn-enamel" type="submit">Guardar</button>
+        <p id="msg" class="meta"></p>
+      </form>
+    </main>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
+      const user = currentUser();
+      if (!user) location.replace(`./login.html?next=${encodeURIComponent(location.href)}`);
+      const form = document.getElementById("form");
+      ["nombre", "apellido", "dni", "pais", "provincia", "ciudad", "celular"].forEach((key) => {
+        if (user[key]) form.elements[key].value = user[key];
+      });
+      form.elements.celular.addEventListener("input", () => {
+        document.getElementById("phone-box").hidden = !form.elements.celular.value.trim();
+      });
+      document.getElementById("phone-box").hidden = !form.elements.celular.value.trim();
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = Object.fromEntries(new FormData(form));
+        if (data.celular && data.sms !== "0000") {
+          document.getElementById("msg").textContent = "Verificá el WhatsApp con 0000 o dejá el celular vacío.";
+          return;
+        }
+        const phoneOk = Boolean(data.celular && data.sms === "0000");
+        saveUser({
+          ...user,
+          ...data,
+          celular: phoneOk ? data.celular : "",
+          phoneVerified: phoneOk,
+        });
+        location.href = next;
+      });
+    </script>
+  </body>
+</html>

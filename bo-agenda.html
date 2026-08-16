@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agenda · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">agenda</span></a>
+      <nav class="topbar-nav">
+        <a id="back" href="./bo.html">Panel</a>
+        <button class="btn btn-ghost" id="out" type="button">Salir</button>
+      </nav>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      const owner = requireOwner(id, `./bo-agenda.html?id=${id}`);
+      if (!owner) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      document.getElementById("out").addEventListener("click", () => {
+        logoutOwner();
+        location.href = `./bo-login.html?id=${id}`;
+      });
+      seedPlaceAgenda(id);
+      const place = findPlace(id);
+      const root = document.getElementById("root");
+
+      function serviceOf(turno) {
+        return (
+          placeServices(place).find((item) => item.id === turno.serviceId) ?? {
+            minutes: turno.minutes,
+            capacity: 1,
+          }
+        );
+      }
+
+      function paint(openId) {
+        const list = placeTurnos(id);
+        root.innerHTML = `
+          <p class="meta">${owner.email} · ${place.name}</p>
+          <h2>Agenda</h2>
+          <p class="band-lead">Confirmado → concretó o no vino. Recién ahí el cliente puede calificar. Cancelar libera el horario.</p>
+          ${
+            list.length
+              ? list
+                  .map((turno) => {
+                    const slots =
+                      openId === turno.id
+                        ? freeSlots(id, serviceOf(turno), turno.id)
+                        : [];
+                    return `<article class="agenda-row">
+                      <div>
+                        <strong>${turno.slot.replace("T", " ")}</strong>
+                        <p class="meta">${turno.nombre} ${turno.apellido} · ${turno.serviceName} · seña ${money(turno.senia || 0)}</p>
+                        <p class="meta">${estadoLabel(turno.estado)}</p>
+                      </div>
+                      <div class="agenda-actions">
+                        ${
+                          turno.estado === "confirmado"
+                            ? `<button class="btn btn-ticket" type="button" data-estado="concretado" data-id="${turno.id}">Concretó</button>
+                               <button class="btn btn-enamel" type="button" data-estado="no_show" data-id="${turno.id}">No vino</button>
+                               <button class="btn btn-ghost" type="button" data-estado="cancelado" data-id="${turno.id}">Cancelar</button>
+                               <button class="btn btn-ghost" type="button" data-reprog="${turno.id}">Reprogramar</button>`
+                            : ""
+                        }
+                        ${
+                          slots.length
+                            ? `<div class="reprog-list">${slots
+                                .map(
+                                  (slot) =>
+                                    `<button class="chip" type="button" data-move="${turno.id}" data-slot="${slot}">${slot.replace("T", " ")}</button>`,
+                                )
+                                .join("")}</div>`
+                            : openId === turno.id
+                              ? `<p class="meta">No hay otro horario libre en estos 7 días.</p>`
+                              : ""
+                        }
+                      </div>
+                    </article>`;
+                  })
+                  .join("")
+              : "<p class=\"meta\">No hay turnos. Cuando un cliente reserve, aparecen acá.</p>"
+          }
+        `;
+        root.querySelectorAll("[data-estado]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const estado = button.dataset.estado;
+            patchTurno(button.dataset.id, {
+              estado,
+              motivo: estado === "cancelado" ? "local" : estado,
+            });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-reprog]").forEach((button) => {
+          button.addEventListener("click", () => paint(button.dataset.reprog));
+        });
+        root.querySelectorAll("[data-move]").forEach((button) => {
+          button.addEventListener("click", () => {
+            reprogramTurno(button.dataset.move, button.dataset.slot);
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pago · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+    </header>
+    <main class="band narrow">
+      <p class="meta">Mercado Pago · prototipo</p>
+      <p class="hold-clock" id="clock">15:00</p>
+      <h2 id="title">Pago</h2>
+      <p class="band-lead" id="detail"></p>
+      <p class="meta">Si te arrepentís dentro de los 10 días y el servicio no se prestó, se libera el horario y se reintegra lo pagado. Después rige la política del local.</p>
+      <button class="btn btn-ticket" id="pay" type="button">Pagar</button>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const draft = readDraft();
+      const senia = draft.senia ?? 0;
+      document.getElementById("title").textContent = senia > 0 ? `Pagar ${money(senia)}` : "Sin seña";
+      document.getElementById("detail").textContent =
+        `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}`;
+      document.getElementById("pay").textContent = senia > 0 ? "Ir a Mercado Pago" : "Confirmar turno";
+      document.getElementById("pay").addEventListener("click", () => {
+        if (!draftHold()) {
+          location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);
+          return;
+        }
+        writeDraft({ pagado: senia > 0 });
+        const turno = confirmDraft();
+        location.href = `./listo.html?id=${turno.id}`;
+      });
+      watchHold(
+        (left) => {
+          document.getElementById("clock").textContent = formatHold(left);
+        },
+        () => {
+          location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);
+        },
+      );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alta · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./negocios.html"><span class="brand-mark">TurnoYa</span></a>
+      <a href="./negocios.html">Volver</a>
+    </header>
+    <main class="band narrow">
+      <p class="meta">Alta del negocio</p>
+      <h2>Tu local en el mapa</h2>
+      <form id="form" class="review-form">
+        <label>Nombre del negocio <input name="nombre" required placeholder="Oasis MultiSpa" /></label>
+        <label>Ciudad
+          <select name="ciudad">
+            <option value="cordoba">Córdoba</option>
+            <option value="caba">CABA</option>
+            <option value="rosario">Rosario</option>
+            <option value="mendoza">Mendoza</option>
+            <option value="tucuman">Tucumán</option>
+          </select>
+        </label>
+        <label>Rubro
+          <select name="rubro">
+            <option value="belleza">Belleza</option>
+            <option value="salud">Salud</option>
+            <option value="fitness">Fitness</option>
+            <option value="mascotas">Mascotas</option>
+            <option value="oficios">Oficios</option>
+          </select>
+        </label>
+        <label>WhatsApp <input name="whatsapp" required placeholder="351..." /></label>
+        <button class="btn btn-ticket" type="submit">Crear mi página</button>
+      </form>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script>
+      document.getElementById("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        const name = String(data.get("nombre")).trim();
+        const slug = name
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+        const city = data.get("ciudad");
+        const place = {
+          id: slug || `local-${Date.now()}`,
+          name,
+          slug,
+          category: data.get("rubro"),
+          service: "Consulta",
+          city,
+          lat: CITIES[city].lat + 0.004,
+          lng: CITIES[city].lng + 0.004,
+          km: 0.5,
+          featured: false,
+          nextSlot: "Hoy 16:00",
+          whatsapp: data.get("whatsapp"),
+        };
+        saveExtraPlace(place);
+        location.href = `./bo.html?id=${place.id}`;
+      });
+    </script>
+  </body>
+</html>

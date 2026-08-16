@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Servicios · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-servicios.html?id=${id}`)) throw new Error("redirect");
+      const place = findPlace(id);
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const services = placeServices(place);
+      document.getElementById("root").innerHTML = `
+        <h2>Servicios de ${place.name}</h2>
+        <p class="band-lead">Capacidad = cuántos turnos caben a la vez. 1 = no se pisa. 3 = tres en paralelo. 0 = no ocupa silla (consultas online).</p>
+        <form id="form" class="review-form">
+          ${services
+            .map((service, i) => {
+              const open = isOpenCapacity(service);
+              return `
+            <fieldset>
+              <label>Nombre <input name="name-${i}" value="${service.name}" /></label>
+              <label>Minutos <input name="min-${i}" type="number" min="15" step="15" value="${service.minutes}" /></label>
+              <label>Precio <input name="price-${i}" type="number" min="0" value="${service.price}" /></label>
+              <label>Foto (URL) <input name="img-${i}" value="${service.image || ""}" /></label>
+              <label><input type="checkbox" name="open-${i}" ${open ? "checked" : ""} /> No ocupa recurso (infinito)</label>
+              <label>Capacidad simultánea <input name="cap-${i}" type="number" min="1" value="${open ? 1 : serviceCapacity(service)}" /></label>
+            </fieldset>`;
+            })
+            .join("")}
+          <button class="btn btn-ticket" type="submit">Guardar</button>
+        </form>`;
+      document.getElementById("form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const data = new FormData(event.target);
+        const next = services.map((service, i) => ({
+          ...service,
+          name: data.get(`name-${i}`),
+          minutes: Number(data.get(`min-${i}`)),
+          price: Number(data.get(`price-${i}`)),
+          image: data.get(`img-${i}`),
+          capacity: data.get(`open-${i}`) === "on" ? 0 : Number(data.get(`cap-${i}`)) || 1,
+        }));
+        savePlaceServices(id, next);
+        location.href = `./ficha.html?id=${id}`;
+      });
+    </script>
+  </body>
+</html>

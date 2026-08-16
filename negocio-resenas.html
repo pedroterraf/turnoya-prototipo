@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Recomendaciones del local · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./negocios.html">
+        <span class="brand-mark">TurnoYa</span>
+        <span class="brand-aside">panel</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="./index.html">Mapa</a>
+      </nav>
+    </header>
+    <main class="band" id="panel"></main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const place = (typeof findPlace === "function" ? findPlace(params.get("id")) : null) ?? PLACES[0];
+      if (!requireOwner(place.id, `./negocio-resenas.html?id=${place.id}`)) throw new Error("redirect");
+      const root = document.getElementById("panel");
+
+      function paint() {
+        const list = reviewsFor(place.id);
+        const live = ratingOf(place.id);
+        root.innerHTML = `
+          <p class="meta">Panel del negocio · ${place.name}</p>
+          <h2>Recomendaciones a mostrar</h2>
+          ${starsMarkup(live.average, live.count)}
+          <p class="band-lead">Las estrellas son el promedio de quienes concretaron el turno. No las editás. Elegís qué textos salen; en la ficha pública no se dice que los elegiste vos.</p>
+          <div class="review-admin">
+            ${list
+              .map(
+                (review) => `
+              <label class="review-row">
+                <input type="checkbox" data-id="${review.id}" ${review.shownByBusiness ? "checked" : ""} />
+                <span>
+                  <strong>${review.author}</strong> · ${"★".repeat(review.stars)}${"☆".repeat(5 - review.stars)}
+                  <span class="meta">${review.text}</span>
+                </span>
+              </label>`,
+              )
+              .join("")}
+          </div>
+          <p class="meta"><a href="./ficha.html?id=${place.id}">Ver la ficha como la ve el cliente</a></p>
+        `;
+        root.querySelectorAll("input[type=checkbox]").forEach((input) => {
+          input.addEventListener("change", () => {
+            setQuoteVisible(place.id, input.dataset.id, input.checked);
+            paint();
+          });
+        });
+      }
+
+      paint();
+    </script>
+  </body>
+</html>

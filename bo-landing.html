@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Landing · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band">
+      <h2>Landing del local</h2>
+      <p class="band-lead">No se publica el archivo suelto. Recortás en canvas: desktop 1440×480, mobile 1080×720, JPEG 86%. Arrastrá para encuadrar; la rueda o el slider hacen zoom. Sin foto, queda el color de marca.</p>
+      <form id="form" class="review-form">
+        <label>Color principal <input name="primary" type="color" value="#0b3d2e" /></label>
+        <label>Imagen
+          <input id="file" type="file" accept="image/*" />
+        </label>
+        <div class="banner-tools">
+          <button class="chip" type="button" data-size="desktop" aria-pressed="true">Desktop 1440×480</button>
+          <button class="chip" type="button" data-size="mobile">Mobile 1080×720</button>
+        </div>
+        <label>Zoom <input id="zoom" type="range" min="1" max="3" step="0.05" value="1" /></label>
+        <canvas id="canvas" class="banner-canvas"></canvas>
+        <p class="meta" id="hint">Color de marca. Subí una foto para recortar.</p>
+        <button class="btn btn-ticket" type="submit">Guardar landing</button>
+      </form>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-landing.html?id=${id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const theme = landingTheme(id);
+      const form = document.getElementById("form");
+      if (theme.primaryHex) form.primary.value = theme.primaryHex;
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const zoom = document.getElementById("zoom");
+      let mode = "desktop";
+      let image = null;
+      const sizes = { desktop: BANNER_DESKTOP, mobile: BANNER_MOBILE };
+      const crop = {
+        desktop: { x: 0, y: 0, scale: 1 },
+        mobile: { x: 0, y: 0, scale: 1 },
+      };
+
+      function paint() {
+        const size = sizes[mode];
+        const frame = crop[mode];
+        canvas.width = size.w;
+        canvas.height = size.h;
+        ctx.fillStyle = form.primary.value;
+        ctx.fillRect(0, 0, size.w, size.h);
+        if (!image) return;
+        const cover = Math.max(size.w / image.width, size.h / image.height) * frame.scale;
+        const w = image.width * cover;
+        const h = image.height * cover;
+        ctx.drawImage(image, frame.x + (size.w - w) / 2, frame.y + (size.h - h) / 2, w, h);
+      }
+
+      function exportMode(nextMode) {
+        mode = nextMode;
+        zoom.value = crop[mode].scale;
+        paint();
+        return canvas.toDataURL("image/jpeg", 0.86);
+      }
+
+      document.getElementById("file").addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          image = new Image();
+          image.onload = () => {
+            document.getElementById("hint").textContent = "Arrastrá para encuadrar. El archivo original no se publica.";
+            paint();
+          };
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+      document.querySelectorAll("[data-size]").forEach((button) => {
+        button.addEventListener("click", () => {
+          mode = button.dataset.size;
+          zoom.value = crop[mode].scale;
+          document.querySelectorAll("[data-size]").forEach((node) => {
+            node.setAttribute("aria-pressed", String(node === button));
+          });
+          paint();
+        });
+      });
+      zoom.addEventListener("input", () => {
+        crop[mode].scale = Number(zoom.value);
+        paint();
+      });
+      form.primary.addEventListener("input", paint);
+      let dragging = false;
+      let lastX = 0;
+      let lastY = 0;
+      canvas.addEventListener("pointerdown", (event) => {
+        dragging = true;
+        lastX = event.clientX;
+        lastY = event.clientY;
+        canvas.setPointerCapture(event.pointerId);
+      });
+      canvas.addEventListener("pointermove", (event) => {
+        if (!dragging) return;
+        const size = sizes[mode];
+        const scale = canvas.getBoundingClientRect().width / size.w;
+        crop[mode].x += (event.clientX - lastX) / scale;
+        crop[mode].y += (event.clientY - lastY) / scale;
+        lastX = event.clientX;
+        lastY = event.clientY;
+        paint();
+      });
+      canvas.addEventListener("pointerup", () => {
+        dragging = false;
+      });
+      canvas.addEventListener(
+        "wheel",
+        (event) => {
+          event.preventDefault();
+          crop[mode].scale = Math.min(3, Math.max(1, crop[mode].scale + (event.deltaY > 0 ? -0.08 : 0.08)));
+          zoom.value = crop[mode].scale;
+          paint();
+        },
+        { passive: false },
+      );
+      paint();
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const desktop = exportMode("desktop");
+        const mobile = exportMode("mobile");
+        saveLandingTheme(id, {
+          primaryHex: form.primary.value,
+          bannerDesktop: image ? desktop : "",
+          bannerMobile: image ? mobile : "",
+        });
+        location.href = `./ficha.html?id=${id}`;
+      });
+    </script>
+  </body>
+</html>

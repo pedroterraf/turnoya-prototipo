@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TurnoYa — turnos cerca tuyo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body>
+    <a class="skip" href="#query">Ir a la búsqueda</a>
+    <header class="topbar">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">TurnoYa</span>
+        <span class="brand-aside">Argentina</span>
+      </a>
+      <nav class="topbar-nav">
+        <label>
+          <span class="visually-hidden">Ciudad</span>
+          <select id="city" class="city-select" aria-label="Elegir ciudad">
+            <option value="cordoba">Córdoba</option>
+            <option value="caba">CABA</option>
+            <option value="rosario">Rosario</option>
+            <option value="mendoza">Mendoza</option>
+            <option value="tucuman">Tucumán</option>
+          </select>
+        </label>
+        <a href="./login.html?next=./mi-turno.html">Mis turnos</a>
+        <a href="./negocios.html">¿Tenés un negocio?</a>
+        <a class="btn btn-ticket" href="./negocios.html">Publicar</a>
+      </nav>
+    </header>
+
+    <main class="market">
+      <section class="rail" aria-label="Resultados">
+        <div class="ticket">
+          <span>Turno · cerca</span>
+          <h1>¿Qué necesitás hoy?</h1>
+          <p id="location-status">Pedimos tu ubicación para mostrarte lo más cercano.</p>
+          <div class="search-row">
+            <input
+              id="query"
+              type="search"
+              placeholder="Masaje, kinesio, corte, vet…"
+              autocomplete="off"
+            />
+            <button class="btn btn-enamel" id="search-btn" type="button">Buscar</button>
+          </div>
+        </div>
+        <div id="filters" class="filters" role="group" aria-label="Rubros"></div>
+        <div id="reco" class="reco">
+          <h2>Recomendados cerca tuyo</h2>
+          <div id="reco-track" class="reco-track"></div>
+        </div>
+        <div class="results">
+          <h2 id="results-count">Cerca</h2>
+          <div id="results-list"></div>
+        </div>
+      </section>
+
+      <section class="map-wrap" aria-label="Mapa de negocios">
+        <div id="map" class="map"></div>
+        <div class="watermark">TurnoYa</div>
+      </section>
+    </main>
+
+    <aside id="drawer" class="drawer" hidden></aside>
+
+    <style>
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+      }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+  </body>
+</html>

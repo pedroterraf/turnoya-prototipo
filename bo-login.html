@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dueño · TurnoYa</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./negocios.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">dueño</span></a>
+    </header>
+    <main class="band narrow">
+      <h2 id="title">Entrar al backoffice</h2>
+      <p class="band-lead">Código de prueba 123456. Este login es del dueño, no del cliente.</p>
+      <form id="email-form" class="review-form">
+        <label>Email del local <input name="email" type="email" required value="oasis@turnoya.com" /></label>
+        <button class="btn btn-enamel" type="submit">Enviar código</button>
+      </form>
+      <form id="otp-form" class="review-form" hidden>
+        <label>Código <input name="code" inputmode="numeric" required maxlength="6" /></label>
+        <button class="btn btn-ticket" type="submit">Entrar</button>
+        <p id="otp-msg" class="meta"></p>
+      </form>
+    </main>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const id = params.get("id") || "oasis";
+      const next = params.get("next") || `./bo-agenda.html?id=${id}`;
+      const place = findPlace(id);
+      document.getElementById("title").textContent = `Dueño · ${place.name}`;
+      const owner = currentOwner();
+      if (owner?.placeId === id) location.replace(next);
+      document.getElementById("email-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        sendOtp(new FormData(event.target).get("email"));
+        event.target.hidden = true;
+        document.getElementById("otp-form").hidden = false;
+      });
+      document.getElementById("otp-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!checkOtp(new FormData(event.target).get("code"))) {
+          document.getElementById("otp-msg").textContent = "Código incorrecto.";
+          return;
+        }
+        saveOwner({
+          email: sessionStorage.getItem("turnoya-otp-email"),
+          placeId: id,
+        });
+        location.href = next;
+      });
+    </script>
+  </body>
+</html>

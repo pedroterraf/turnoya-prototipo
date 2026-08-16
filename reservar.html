@@ -30,12 +30,11 @@
     <script src="./assets/site.js"></script>
     <script>
       const params = new URLSearchParams(location.search);
-      const place = lookupPlace(params.get("id"));
+      const place = lookupPlace(params.get("id")) || lookupPlace("oasis");
       const root = document.getElementById("root");
       if (!place) {
         root.innerHTML = missingPlaceHtml();
-        throw new Error("missing");
-      }
+      } else {
       const view = placeView(place);
       if (view.status !== "live" || view.suspended) {
         location.replace(`./ficha.html?id=${place.id}`);
@@ -155,16 +154,10 @@
         holdSlot(draft);
         const nextDatos = `./datos.html?id=${place.id}`;
         const user = currentUser();
-        if (user && profileComplete(user)) {
-          location.href = nextDatos;
-          return;
-        }
-        if (user) {
-          location.href = `./perfil.html?next=${encodeURIComponent(nextDatos)}`;
-          return;
-        }
-        location.href = `./login.html?next=${encodeURIComponent(nextDatos)}`;
+        ensureDemoUser();
+        location.href = nextDatos;
       });
+      }
     </script>
   </body>
 </html>

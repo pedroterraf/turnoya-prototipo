@@ -28,6 +28,7 @@
       <p class="band-lead">Primero la agenda: ahí se concreta el turno. El resto es config del local.</p>
       <div id="ops-box"></div>
       <div id="notes-box"></div>
+      <div id="local-box"></div>
       <div class="card-grid bo-nav">
         <a class="service-card" id="l-agenda" href="./bo-agenda.html"><div><strong>Agenda</strong><span class="meta">Concretó, no vino, cancelar, reprogramar</span></div></a>
         <a class="service-card" id="l-serv" href="./bo-servicios.html"><div><strong>Servicios</strong><span class="meta">Horario, precio, capacidad, incluye</span></div></a>
@@ -111,6 +112,57 @@
               .map((note) => `<p class="meta">${note.text}</p>`)
               .join("")}`
           : "";
+        const cats = CATEGORIES.filter((row) => row.id !== "todos");
+        document.getElementById("local-box").innerHTML = `
+          <h3 class="ficha-sub">Datos del local</h3>
+          <p class="band-lead">Esto se ve en el mapa y en la ficha pública.</p>
+          <form id="local-form" class="review-form wide-form">
+            <label>Nombre <input name="name" value="${place.name || ""}" /></label>
+            <label>Servicio que se muestra <input name="service" value="${place.service || ""}" /></label>
+            <label>Rubro
+              <select name="category">
+                ${cats
+                  .map(
+                    (row) =>
+                      `<option value="${row.id}" ${place.category === row.id ? "selected" : ""}>${row.label}</option>`,
+                  )
+                  .join("")}
+              </select>
+            </label>
+            <label>Ciudad
+              <select name="city">
+                ${Object.entries(CITIES)
+                  .map(
+                    ([key, row]) =>
+                      `<option value="${key}" ${place.city === key ? "selected" : ""}>${row.label}</option>`,
+                  )
+                  .join("")}
+              </select>
+            </label>
+            <label>Dirección <input name="address" value="${place.address || ""}" placeholder="San Martín 500" /></label>
+            <button class="btn btn-ticket" type="submit">Guardar datos</button>
+            <p id="local-msg" class="meta"></p>
+          </form>`;
+        document.getElementById("local-form").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const form = event.target;
+          const city = form.city.value;
+          const coords = CITIES[city] || { lat: place.lat, lng: place.lng };
+          saveExtraPlace({
+            ...place,
+            name: form.name.value,
+            service: form.service.value,
+            category: form.category.value,
+            city,
+            address: form.address.value,
+            lat: city === place.city ? place.lat : coords.lat + 0.004,
+            lng: city === place.city ? place.lng : coords.lng + 0.004,
+          });
+          const option = [...biz.options].find((row) => row.value === id);
+          if (option) option.textContent = `${form.name.value} · ${id}`;
+          paint();
+          document.getElementById("local-msg").textContent = "Guardado. Se ve en el mapa y en la ficha.";
+        });
       }
       biz.addEventListener("change", () => {
         id = biz.value;

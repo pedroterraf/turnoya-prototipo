@@ -256,7 +256,9 @@ function extraPlaces() {
 }
 
 function allPlaces() {
-  return [...PLACES, ...extraPlaces()];
+  const extras = extraPlaces();
+  const extraIds = new Set(extras.map((row) => row.id));
+  return [...PLACES.filter((place) => !extraIds.has(place.id)), ...extras];
 }
 
 function saveExtraPlace(place) {

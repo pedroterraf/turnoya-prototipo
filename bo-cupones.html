@@ -23,60 +23,85 @@
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
-      if (!requireOwner(id, `./bo-cupones.html?id=${id}`)) throw new Error("redirect");
+      requireOwner(id, `./bo-cupones.html?id=${id}`);
       document.getElementById("back").href = `./bo.html?id=${id}`;
       const place = findPlace(id);
       const services = placeServices(place);
-      const coupons = placeCoupons(id);
-      const rows = coupons.length ? coupons : [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
-      document.getElementById("root").innerHTML = `
-        <h2>Cupones de ${place.name}</h2>
-        <p class="band-lead">Si no hay cupones activos, la ficha no muestra la sección. Oasis de demo: RELAX10 = 10%.</p>
-        <form id="form" class="review-form wide-form">
-          ${rows
-            .map(
-              (coupon, i) => `
-            <fieldset>
-              <label>Código <input name="code-${i}" value="${coupon.code}" /></label>
-              <label>Tipo
-                <select name="type-${i}">
-                  <option value="porcentaje" ${coupon.type === "porcentaje" ? "selected" : ""}>Porcentaje</option>
-                  <option value="fijo" ${coupon.type === "fijo" ? "selected" : ""}>Monto fijo</option>
-                </select>
-              </label>
-              <label>Valor <input name="val-${i}" type="number" min="1" value="${coupon.value}" /></label>
-              <label>Servicio
-                <select name="svc-${i}">
-                  <option value="">Todos</option>
-                  ${services
-                    .map(
-                      (service) =>
-                        `<option value="${service.id}" ${coupon.serviceId === service.id ? "selected" : ""}>${service.name}</option>`,
-                    )
-                    .join("")}
-                </select>
-              </label>
-              <label><input type="checkbox" name="on-${i}" ${coupon.active ? "checked" : ""} /> Activo</label>
-            </fieldset>`,
-            )
-            .join("")}
-          <button class="btn btn-ticket" type="submit">Guardar</button>
-        </form>`;
-      document.getElementById("form").addEventListener("submit", (event) => {
-        event.preventDefault();
-        const data = new FormData(event.target);
-        const next = rows
-          .map((_, i) => ({
-            code: String(data.get(`code-${i}`) || "").trim().toUpperCase(),
-            type: data.get(`type-${i}`),
-            value: Number(data.get(`val-${i}`)),
-            serviceId: data.get(`svc-${i}`),
-            active: data.get(`on-${i}`) === "on",
-          }))
-          .filter((row) => row.code);
-        savePlaceCoupons(id, next);
-        location.href = `./ficha.html?id=${id}`;
-      });
+      let rows = placeCoupons(id);
+      if (!rows.length) rows = [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+
+      function fieldsetHtml(coupon, i) {
+        return `
+          <fieldset data-index="${i}">
+            <label>Código <input name="code-${i}" value="${coupon.code || ""}" /></label>
+            <label>Tipo
+              <select name="type-${i}">
+                <option value="porcentaje" ${coupon.type === "porcentaje" ? "selected" : ""}>Porcentaje</option>
+                <option value="fijo" ${coupon.type === "fijo" ? "selected" : ""}>Monto fijo</option>
+              </select>
+            </label>
+            <label>Valor <input name="val-${i}" type="number" min="1" value="${coupon.value || 10}" /></label>
+            <label>Servicio
+              <select name="svc-${i}">
+                <option value="">Todos</option>
+                ${services
+                  .map(
+                    (service) =>
+                      `<option value="${service.id}" ${coupon.serviceId === service.id ? "selected" : ""}>${service.name}</option>`,
+                  )
+                  .join("")}
+              </select>
+            </label>
+            <label><input type="checkbox" name="on-${i}" ${coupon.active !== false ? "checked" : ""} /> Activo</label>
+            <button class="btn btn-line" type="button" data-remove="${i}">Quitar</button>
+          </fieldset>`;
+      }
+
+      function readForm(form) {
+        return [...form.querySelectorAll("fieldset")].map((box) => {
+          const i = box.dataset.index;
+          return {
+            code: String(form[`code-${i}`].value || "").trim().toUpperCase(),
+            type: form[`type-${i}`].value,
+            value: Number(form[`val-${i}`].value),
+            serviceId: form[`svc-${i}`].value,
+            active: form[`on-${i}`].checked,
+          };
+        });
+      }
+
+      function paint() {
+        document.getElementById("root").innerHTML = `
+          <h2>Cupones de ${place.name}</h2>
+          <p class="band-lead">Si no hay cupones activos, la ficha no muestra la sección. Oasis de demo: RELAX10 = 10%.</p>
+          <form id="form" class="review-form wide-form">
+            ${rows.map(fieldsetHtml).join("")}
+            <button class="btn btn-enamel" id="add" type="button">Agregar cupón</button>
+            <button class="btn btn-ticket" type="submit">Guardar</button>
+          </form>`;
+        const form = document.getElementById("form");
+        document.getElementById("add").addEventListener("click", () => {
+          rows = readForm(form);
+          rows.push({ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" });
+          paint();
+        });
+        form.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            rows = readForm(form).filter((_, index) => index !== Number(button.dataset.remove));
+            if (!rows.length) rows = [{ code: "", type: "porcentaje", value: 10, active: true, serviceId: "" }];
+            paint();
+          });
+        });
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          savePlaceCoupons(
+            id,
+            readForm(form).filter((row) => row.code),
+          );
+          location.href = `./ficha.html?id=${id}`;
+        });
+      }
+      paint();
     </script>
   </body>
 </html>

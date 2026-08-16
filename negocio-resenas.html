@@ -45,9 +45,11 @@
           ${starsMarkup(live.average, live.count)}
           <p class="band-lead">Las estrellas son el promedio de quienes concretaron el turno. No las editás. Elegís qué textos salen; en la ficha pública no se dice que los elegiste vos.</p>
           <div class="review-admin">
-            ${list
-              .map(
-                (review) => `
+            ${
+              list.length
+                ? list
+                    .map(
+                      (review) => `
               <label class="review-row">
                 <input type="checkbox" data-id="${review.id}" ${review.shownByBusiness ? "checked" : ""} />
                 <span>
@@ -55,8 +57,10 @@
                   <span class="meta">${review.text}</span>
                 </span>
               </label>`,
-              )
-              .join("")}
+                    )
+                    .join("")
+                : "<p class=\"meta\">Todavía no hay textos. Cuando un cliente concrete y califique, aparecen acá para elegir cuáles se leen en la ficha.</p>"
+            }
           </div>
           <p class="meta"><a href="./ficha.html?id=${place.id}">Ver la ficha como la ve el cliente</a></p>
         `;

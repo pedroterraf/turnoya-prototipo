@@ -68,11 +68,11 @@ const REVIEW_SEED = {
 
 function loadReviewBook() {
   const raw = memoryGet("turnoya-reviews");
-  if (!raw) return structuredClone(REVIEW_SEED);
+  if (!raw) return JSON.parse(JSON.stringify(REVIEW_SEED));
   try {
     return JSON.parse(raw);
   } catch {
-    return structuredClone(REVIEW_SEED);
+    return JSON.parse(JSON.stringify(REVIEW_SEED));
   }
 }
 
@@ -81,7 +81,10 @@ function saveReviewBook(book) {
 }
 
 function reviewsFor(placeId) {
-  return loadReviewBook()[placeId] ?? [];
+  const book = loadReviewBook();
+  if (!book || typeof book !== "object") return [];
+  const list = book[placeId];
+  return Array.isArray(list) ? list : [];
 }
 
 function ratingOf(placeId) {
@@ -96,12 +99,14 @@ function publishedQuotes(placeId) {
 }
 
 function reviewAuthor(user) {
-  return `${user.nombre} ${user.apellido.charAt(0)}.`;
+  const last = String(user?.apellido || "?").charAt(0);
+  return `${user?.nombre || "Cliente"} ${last}.`;
 }
 
 function alreadyReviewedTurno(turnoId) {
   return Object.values(loadReviewBook())
     .flat()
+    .filter(Boolean)
     .some((review) => review.turnoId === turnoId);
 }
 

@@ -25,7 +25,9 @@
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
-    <main id="ficha"></main>
+    <main id="ficha">
+      <section class="band"><p class="meta">Cargando el negocio…</p></section>
+    </main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -34,11 +36,11 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const place = lookupPlace(new URLSearchParams(location.search).get("id"));
+      const place =
+        lookupPlace(new URLSearchParams(location.search).get("id")) || lookupPlace("oasis");
       if (!place) {
         document.getElementById("ficha").innerHTML = missingPlaceHtml();
-        throw new Error("missing");
-      }
+      } else {
       const services = placeServices(place);
       const theme = landingTheme(place.id);
       const user = currentUser();
@@ -69,7 +71,7 @@
             <p class="meta">turnoya.com/${place.slug}</p>
             <h1>${place.name}</h1>
             ${starsMarkup(rating.average, rating.count)}
-            <p>${place.service} en ${CITIES[place.city].label}.</p>
+            <p>${place.service} en ${cityLabel(place.city)}.</p>
             ${
               published
                 ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
@@ -212,7 +214,35 @@
           });
         }
       }
-      paint();
+      try {
+        paint();
+      } catch (error) {
+        document.getElementById("ficha").innerHTML = `
+          <section class="store-hero">
+            <div class="store-hero-copy">
+              <p class="meta">turnoya.com/${place.slug}</p>
+              <h1>${place.name}</h1>
+              <p>${place.service} en ${cityLabel(place.city)}.</p>
+              <a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
+            </div>
+          </section>
+          <section class="band">
+            <h2>Servicios</h2>
+            <div class="card-grid">
+              ${placeServices(place)
+                .map((service) => {
+                  const row = normalizeService(service);
+                  return `<article class="service-card"><div>
+                    <strong>${row.name}</strong>
+                    <span class="meta">${row.minutes} min · ${money(row.price)}</span>
+                    <a class="btn btn-ticket" href="./reservar.html?id=${place.id}&service=${row.id}">Elegir horario</a>
+                  </div></article>`;
+                })
+                .join("")}
+            </div>
+          </section>`;
+      }
+      }
     </script>
   </body>
 </html>

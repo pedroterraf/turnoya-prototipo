@@ -254,3 +254,36 @@ function paintFlujoNav() {
 }
 
 paintFlujoNav();
+
+function paintBoNav() {
+  const page = (location.pathname.split("/").pop() || "").toLowerCase();
+  const isBo = (page.startsWith("bo") && page !== "bo-login.html") || page === "negocio-resenas.html";
+  if (!isBo) return;
+  if (document.querySelector("[data-bo-nav]")) return;
+  const id = new URLSearchParams(location.search).get("id") || "oasis";
+  const bar = document.createElement("nav");
+  bar.className = "bo-subnav";
+  bar.setAttribute("data-bo-nav", "");
+  bar.innerHTML = [
+    ["./bo.html", "Panel"],
+    ["./bo-agenda.html", "Agenda"],
+    ["./bo-servicios.html", "Servicios"],
+    ["./bo-cupones.html", "Cupones"],
+    ["./bo-soporte.html", "Soporte"],
+    ["./bo-landing.html", "Landing"],
+    ["./bo-pagos.html", "Pagos"],
+    ["./negocio-resenas.html", "Textos"],
+    ["./ficha.html", "Ver ficha"],
+  ]
+    .map(([href, label]) => {
+      const url = `${href}?id=${id}`;
+      const here = page === href.replace("./", "");
+      return `<a href="${url}"${here ? ' aria-current="page"' : ""}>${label}</a>`;
+    })
+    .join("");
+  const after = document.querySelector("[data-flujo-nav]") || document.querySelector(".topbar");
+  if (after) after.after(bar);
+  else document.body.prepend(bar);
+}
+
+paintBoNav();

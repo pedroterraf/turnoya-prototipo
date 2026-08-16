@@ -38,10 +38,12 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const turno = lastTurno();
+      const user = currentUser();
+      const mine = user ? userTurnos(user.email) : [];
+      const turno = lastTurno() || mine[mine.length - 1] || null;
       document.getElementById("detail").textContent = turno
-        ? `${turno.placeName} · ${turno.serviceName} · ${turno.slot.replace("T", " ")} · seña ${money(turno.senia)}`
-        : "No hay un turno recién confirmado.";
+        ? `${turno.placeName} · ${turno.serviceName} · ${String(turno.slot || "").replace("T", " ")} · seña ${money(turno.senia || 0)}`
+        : "No hay un turno recién confirmado. Reservá desde el mapa.";
     </script>
   </body>
 </html>

@@ -30,6 +30,7 @@
         <label>Zoom <input id="zoom" type="range" min="1" max="3" step="0.05" value="1" /></label>
         <canvas id="canvas" class="banner-canvas"></canvas>
         <p class="meta" id="hint">Color de marca. Subí una foto para recortar.</p>
+        <button class="btn btn-line" id="clear-banner" type="button">Quitar foto</button>
         <button class="btn btn-ticket" type="submit">Guardar landing</button>
       </form>
     </main>
@@ -50,6 +51,7 @@
       const zoom = document.getElementById("zoom");
       let mode = "desktop";
       let image = null;
+      let cleared = false;
       const sizes = { desktop: BANNER_DESKTOP, mobile: BANNER_MOBILE };
       const crop = {
         desktop: { x: 0, y: 0, scale: 1 },
@@ -80,6 +82,7 @@
       document.getElementById("file").addEventListener("change", (event) => {
         const file = event.target.files[0];
         if (!file) return;
+        cleared = false;
         const reader = new FileReader();
         reader.onload = () => {
           image = new Image();
@@ -138,16 +141,44 @@
         },
         { passive: false },
       );
+      if (theme.bannerDesktop || theme.bannerMobile) {
+        image = new Image();
+        image.onload = () => {
+          document.getElementById("hint").textContent = "Banner guardado. Podés recortar de nuevo o quitarlo.";
+          paint();
+        };
+        image.src = theme.bannerDesktop || theme.bannerMobile;
+      }
       paint();
+      document.getElementById("clear-banner").addEventListener("click", () => {
+        cleared = true;
+        image = null;
+        document.getElementById("file").value = "";
+        document.getElementById("hint").textContent = "Sin foto. Queda el color de marca.";
+        paint();
+      });
       form.addEventListener("submit", (event) => {
         event.preventDefault();
-        const desktop = exportMode("desktop");
-        const mobile = exportMode("mobile");
-        saveLandingTheme(id, {
-          primaryHex: form.primary.value,
-          bannerDesktop: image ? desktop : "",
-          bannerMobile: image ? mobile : "",
-        });
+        const prev = landingTheme(id);
+        if (image) {
+          saveLandingTheme(id, {
+            primaryHex: form.primary.value,
+            bannerDesktop: exportMode("desktop"),
+            bannerMobile: exportMode("mobile"),
+          });
+        } else if (cleared) {
+          saveLandingTheme(id, {
+            primaryHex: form.primary.value,
+            bannerDesktop: "",
+            bannerMobile: "",
+          });
+        } else {
+          saveLandingTheme(id, {
+            primaryHex: form.primary.value,
+            bannerDesktop: prev.bannerDesktop || "",
+            bannerMobile: prev.bannerMobile || "",
+          });
+        }
         location.href = `./ficha.html?id=${id}`;
       });
     </script>

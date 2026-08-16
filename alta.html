@@ -42,6 +42,7 @@
             <option value="oficios">Oficios</option>
           </select>
         </label>
+        <label>Servicio que se muestra <input name="servicio" placeholder="Masaje relajante" /></label>
         <label>WhatsApp <input name="whatsapp" required placeholder="351..." /></label>
         <label>CUIT (opcional) <input name="cuit" placeholder="30-12345678-9" /></label>
         <button class="btn btn-ticket" type="submit">Enviar alta</button>
@@ -73,7 +74,7 @@
           name,
           slug,
           category: data.get("rubro"),
-          service: "Consulta",
+          service: String(data.get("servicio") || "").trim() || "Consulta",
           city,
           lat: CITIES[city].lat + 0.004,
           lng: CITIES[city].lng + 0.004,

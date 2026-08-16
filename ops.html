@@ -68,7 +68,7 @@
                       `<article class="agenda-row">
                         <div>
                           <strong>${place.name}</strong>
-                          <p class="meta">${statusLabel(place.status)} · ${CITIES[place.city].label}${place.nota ? ` · ${place.nota}` : ""}</p>
+                          <p class="meta">${statusLabel(place.status)} · ${cityLabel(place.city)}${place.nota ? ` · ${place.nota}` : ""}</p>
                         </div>
                         <a class="btn-line" href="./ops-altas.html">Revisar</a>
                       </article>`,

@@ -129,12 +129,18 @@ function hoursLabel(service) {
   return `${pad(row.hourStart)}:00–${pad(row.hourEnd)}:00`;
 }
 
+function cityLabel(city) {
+  return (typeof CITIES === "object" && CITIES[city]?.label) || city || "";
+}
+
 function placeAddress(place) {
-  return `${CITIES[place.city].label} · turnoya.com/${place.slug}`;
+  const street = String(place.address || "").trim();
+  const city = cityLabel(place.city);
+  return street ? `${street} · ${city}` : `${city} · turnoya.com/${place.slug}`;
 }
 
 function mapsEmbed(place) {
-  const q = encodeURIComponent(`${place.name} ${CITIES[place.city].label}`);
+  const q = encodeURIComponent(`${place.name} ${cityLabel(place.city)}`);
   return `https://maps.google.com/maps?q=${q}&z=15&output=embed`;
 }
 
@@ -784,7 +790,8 @@ function pushPlaceNote(placeId, text) {
 }
 
 function turnoCardHtml(turno) {
-  const when = turno.slot.replace("T", " ");
+  if (!turno?.slot) return "";
+  const when = String(turno.slot).replace("T", " ");
   const policy = placePolicy(turno.placeId);
   const user = typeof currentUser === "function" ? currentUser() : null;
   let actions = `<p class="meta">Cancelado. Horario libre${

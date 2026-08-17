@@ -22,7 +22,7 @@
         <a href="./index.html">Mapa</a>
         <a class="hide-sm" href="./recorrido.html">Guía</a>
         <a class="hide-sm" href="./ops-login.html">Ops</a>
-        <a class="btn btn-ticket" href="#planes">Planes</a>
+        <a class="btn btn-ticket" href="./planes.html">Planes</a>
       </nav>
     </header>
 
@@ -108,7 +108,7 @@
         Anclados a lo que publican Turnito ($0 / $24.500 / $42.000 y 5%–0% de comisión), turnoapp ($14.999),
         Fresha (USD 19,95 + 20% marketplace) y Booksy (USD 29,99 + Boost 30%). Precio de prototipo, agosto 2026.
       </p>
-      <p class="meta">Anual = 10 meses. Destacado suelto: $9.900/mes por ciudad + rubro. Patrocinado: $18.900/mes.</p>
+      <p class="meta">Anual = 10 meses. Destacado suelto: $9.900/mes por ciudad + rubro. Patrocinado: $18.900/mes. <a href="./planes.html">Ver cada plan al detalle</a>.</p>
       <div id="plan-grid" class="plan-grid"></div>
       <div class="compare-wrap">
         <table class="compare">
@@ -221,6 +221,7 @@
             <li>${plan.huecos ? "Huecos del día en el mapa" : "Sin huecos en el mapa"}</li>
             <li>${plan.featured ? "Destacado incluido" : "Pin orgánico"}</li>
           </ul>
+          <a class="btn-line" href="./planes.html?plan=${id}">Qué incluye</a>
           <a class="btn ${id === "barrio" ? "btn-ticket" : "btn-enamel"}" href="./alta.html?plan=${id}">Elegir ${plan.name}</a>
         </article>`;
       }).join("");

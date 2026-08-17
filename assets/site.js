@@ -268,8 +268,14 @@ function paintAppDock() {
 }
 
 fitViewport();
+if (typeof seedListedUsers === "function") seedListedUsers();
+if (typeof runPlatformCron === "function") runPlatformCron();
+if (typeof autoCompletePastTurnos === "function") autoCompletePastTurnos();
 paintClientAccount();
 paintOwnerBell();
 paintDemoFoot();
 paintAppDock();
 bindNotifyLive();
+if (location.hash && document.querySelector(location.hash)) {
+  document.querySelector(location.hash).scrollIntoView({ block: "start" });
+}

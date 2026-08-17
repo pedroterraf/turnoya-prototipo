@@ -177,7 +177,9 @@ function markAllRead(userKey) {
 
 function notificationHref(notification) {
   const meta = notification?.metadata || {};
-  if (meta.type === NotificationMetadataType.TURNO) return "./mi-turno.html";
+  if (meta.type === NotificationMetadataType.TURNO) {
+    return meta.turnoId ? `./mi-turno.html#turno-${meta.turnoId}` : "./mi-turno.html";
+  }
   if (meta.type === NotificationMetadataType.PLACE && meta.placeId) {
     return `./ficha.html?id=${meta.placeId}`;
   }

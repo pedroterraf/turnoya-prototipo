@@ -38,6 +38,7 @@
           <p class="band-lead">Hoy: <strong>${current.name}</strong> · ${planPriceLabel(current)} · ${used} turnos este mes${
             current.bookings ? ` / ${current.bookings}` : ""
           }. Comisión TurnoYa 0%.</p>
+          <p class="meta"><a href="./planes.html">Ver todos los planes al detalle</a></p>
           ${
             need
               ? `<p class="meta">Esa función pide un plan más alto (${need}). Barrio desbloquea espera y huecos. Ciudad suma el pin dorado.</p>`
@@ -52,6 +53,11 @@
                 <h3>${plan.name}</h3>
                 <p class="plan-price">${planPriceLabel(plan)}</p>
                 <p class="meta">${plan.pitch}</p>
+                <ul>${planIncludeRows(plan)
+                  .slice(0, 6)
+                  .map((row) => `<li>${row}</li>`)
+                  .join("")}</ul>
+                <a class="btn-line" href="./planes.html?plan=${plan.id}">Detalle completo</a>
                 <button class="btn ${on ? "btn-line" : "btn-ticket"}" type="button" data-plan="${plan.id}" ${on ? "disabled" : ""}>${
                   on ? "Activo" : `Pasar a ${plan.name}`
                 }</button>

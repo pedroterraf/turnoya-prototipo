@@ -164,7 +164,6 @@ const PLACES = [
 const state = {
   city: "cordoba",
   query: "",
-  category: "todos",
   selectedId: null,
   userLat: null,
   userLng: null,
@@ -210,11 +209,12 @@ function setLocationStatus(text) {
 
 function matchesPlace(place) {
   if (place.city !== state.city) return false;
-  if (state.category !== "todos" && place.category !== state.category) return false;
   const q = state.query.trim().toLowerCase();
   if (!q) return true;
   return [place.name, place.service, place.category].some((value) =>
-    value.toLowerCase().includes(q),
+    String(value || "")
+      .toLowerCase()
+      .includes(q),
   );
 }
 
@@ -296,6 +296,8 @@ function placeView(place) {
     suspended: override.suspended === true,
     status: override.status ?? base.status ?? "live",
     plan: override.plan ?? base.plan ?? (base.featured ? "ciudad" : "calle"),
+    previousPlan: override.previousPlan ?? base.previousPlan ?? "calle",
+    planUntil: override.planUntil ?? base.planUntil ?? 0,
     nota: override.nota ?? base.nota ?? "",
   };
 }
@@ -354,14 +356,12 @@ function nextSlotOf(place) {
   return `${label} ${time}`;
 }
 
-function renderFilters() {
-  const root = document.getElementById("filters");
-  root.innerHTML = CATEGORIES.map(
-    (cat) =>
-      `<button class="chip" type="button" data-category="${cat.id}" aria-pressed="${
-        state.category === cat.id
-      }">${cat.label}</button>`,
-  ).join("");
+function renderHomeTurns() {
+  const root = document.getElementById("home-turns");
+  if (!root || typeof homeTurnsHtml !== "function") return;
+  const html = homeTurnsHtml();
+  root.hidden = !html;
+  root.innerHTML = html;
 }
 
 function renderReco(places) {
@@ -508,7 +508,7 @@ function selectPlace(id) {
 
 function render() {
   const places = filteredPlaces();
-  renderFilters();
+  renderHomeTurns();
   renderReco(places);
   renderResults(places);
   renderMap(places);
@@ -544,6 +544,7 @@ function applyPosition(position, isFirst) {
   setLocationStatus(`En vivo · ${CITIES[cityId].label} · ±${accuracy} m`);
   updateYouOnMap();
   refreshGoCards();
+  renderHomeTurns();
   const movedFar = prevLat == null || distanceKm(prevLat, prevLng, lat, lng) > 0.08;
   const now = Date.now();
   if (isFirst) {
@@ -618,18 +619,23 @@ function boot() {
     state.query = event.target.value;
     render();
   });
-  document.getElementById("filters").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-category]");
-    if (!button) return;
-    state.category = button.dataset.category;
-    render();
-  });
   document.getElementById("search-btn").addEventListener("click", () => {
     document.getElementById("results-count").scrollIntoView({ behavior: "smooth" });
   });
   document.getElementById("reco-track").addEventListener("click", (event) => {
     const button = event.target.closest("[data-id]");
     if (button) location.href = `./ficha.html?id=${button.dataset.id}`;
+  });
+  document.querySelectorAll("[data-reco-dir]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const track = document.getElementById("reco-track");
+      const card = track?.querySelector(".reco-card");
+      if (!track || !card) return;
+      track.scrollBy({
+        left: Number(button.dataset.recoDir) * (card.getBoundingClientRect().width + 10),
+        behavior: "smooth",
+      });
+    });
   });
   document.getElementById("results-list").addEventListener("click", (event) => {
     const button = event.target.closest("[data-id]");

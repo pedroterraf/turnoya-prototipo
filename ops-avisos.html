@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Avisos · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-avisos.html")) throw new Error("redirect");
+      const root = document.getElementById("root");
+      function paint() {
+        const rows = (typeof loadNotifications === "function" ? loadNotifications() : []).slice(0, 30);
+        root.innerHTML = `
+          <h2>Avisos y correos</h2>
+          <p class="band-lead">Inbox del prototipo. El mail es el mismo aviso: no hay SMTP.</p>
+          <form id="send" class="review-form">
+            <label>Para <input name="userKey" required placeholder="pedroterraf@gmail.com" /></label>
+            <label>Título <input name="title" required /></label>
+            <label>Cuerpo <textarea name="body" required></textarea></label>
+            <button class="btn btn-ticket" type="submit">Enviar aviso</button>
+            <p id="send-msg" class="meta"></p>
+          </form>
+          ${
+            rows.length
+              ? rows
+                  .map(
+                    (row) =>
+                      `<article class="agenda-row">
+                        <div>
+                          <strong>${row.title}</strong>
+                          <p class="meta">${row.userKey} · ${row.body}</p>
+                        </div>
+                      </article>`,
+                  )
+                  .join("")
+              : "<p class=\"meta\">Todavía no hay avisos.</p>"
+          }
+        `;
+        document.getElementById("send").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const data = Object.fromEntries(new FormData(event.target));
+          notifyUser(data.userKey, data.title, data.body, { type: NotificationMetadataType.GENERIC });
+          document.getElementById("send-msg").textContent = "Listo. Quedó en Notificaciones.";
+          paint();
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

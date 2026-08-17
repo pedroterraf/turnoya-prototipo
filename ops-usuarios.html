@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Usuarios · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-usuarios.html")) throw new Error("redirect");
+      seedListedUsers();
+      const root = document.getElementById("root");
+      function paint() {
+        const rows = listedUsers();
+        root.innerHTML = `
+          <h2>Usuarios</h2>
+          <p class="band-lead">Clientes, dueños y Ops. El rol de dueño abre lo que permita el plan del local.</p>
+          ${rows
+            .map((user) => {
+              const plan = user.placeId && typeof placePlan === "function" ? placePlan(user.placeId).name : "—";
+              return `<article class="agenda-row">
+                <div>
+                  <strong>${user.nombre || ""} ${user.apellido || ""} · ${user.email}</strong>
+                  <p class="meta">${user.role} · ${user.emailVerified ? "OTP ok" : "Sin OTP"} · ${
+                    user.suspended ? "Suspendido" : "Activo"
+                  } · plan local ${plan}</p>
+                </div>
+                <form class="review-form" data-user="${user.email}">
+                  <label>Rol
+                    <select name="role">
+                      <option value="cliente" ${user.role === "cliente" ? "selected" : ""}>Cliente</option>
+                      <option value="dueno" ${user.role === "dueno" ? "selected" : ""}>Dueño</option>
+                      <option value="ops" ${user.role === "ops" ? "selected" : ""}>Ops</option>
+                    </select>
+                  </label>
+                  <label>Local <input name="placeId" value="${user.placeId || ""}" placeholder="oasis" /></label>
+                  <button class="btn btn-enamel" type="submit">Guardar</button>
+                  <button class="btn btn-ghost" type="button" data-suspend="${user.email}">${
+                    user.suspended ? "Reactivar" : "Suspender"
+                  }</button>
+                </form>
+              </article>`;
+            })
+            .join("")}
+        `;
+        root.querySelectorAll("form[data-user]").forEach((form) => {
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(form));
+            const current = listedUsers().find((row) => row.email === form.dataset.user);
+            upsertListedUser({ ...current, role: data.role, placeId: data.placeId });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-suspend]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const current = listedUsers().find((row) => row.email === button.dataset.suspend);
+            upsertListedUser({ ...current, suspended: !current.suspended });
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

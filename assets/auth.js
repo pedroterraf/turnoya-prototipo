@@ -53,8 +53,98 @@ function currentUser() {
   }
 }
 
+function listedUsers() {
+  try {
+    return JSON.parse(memoryGet("turnoya-users") ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveListedUsers(rows) {
+  memorySet("turnoya-users", JSON.stringify(rows));
+}
+
+function upsertListedUser(user) {
+  if (!user?.email) return;
+  const rows = listedUsers();
+  const key = String(user.email).toLowerCase();
+  const index = rows.findIndex((row) => String(row.email || "").toLowerCase() === key);
+  const next = {
+    email: user.email,
+    nombre: user.nombre || "",
+    apellido: user.apellido || "",
+    role: user.role || (index >= 0 ? rows[index].role : "cliente"),
+    placeId: user.placeId || (index >= 0 ? rows[index].placeId : ""),
+    emailVerified: user.emailVerified === true || (index >= 0 && rows[index].emailVerified),
+    phoneVerified: user.phoneVerified === true,
+    suspended: user.suspended === true,
+    createdAt: index >= 0 ? rows[index].createdAt : user.createdAt || Date.now(),
+  };
+  if (user.role) next.role = user.role;
+  if (user.placeId != null) next.placeId = user.placeId;
+  if (index >= 0) rows[index] = { ...rows[index], ...next };
+  else rows.push(next);
+  saveListedUsers(rows);
+}
+
+function seedListedUsers() {
+  const rows = listedUsers();
+  const seeds = [
+    {
+      email: "pedroterraf@gmail.com",
+      nombre: "Pedro",
+      apellido: "Terraf",
+      role: "cliente",
+      emailVerified: true,
+      phoneVerified: true,
+      createdAt: Date.now() - 20 * 86400000,
+    },
+    {
+      email: "oasis@turnoya.com",
+      nombre: "Oasis",
+      apellido: "Dueño",
+      role: "dueno",
+      placeId: "oasis",
+      emailVerified: true,
+      createdAt: Date.now() - 40 * 86400000,
+    },
+    {
+      email: "ops@turnoya.com",
+      nombre: "Ops",
+      apellido: "TurnoYa",
+      role: "ops",
+      emailVerified: true,
+      createdAt: Date.now() - 60 * 86400000,
+    },
+    {
+      email: "sinotp@correo.com",
+      nombre: "Ana",
+      apellido: "Nueva",
+      role: "cliente",
+      emailVerified: false,
+      createdAt: Date.now() - 10 * 86400000,
+    },
+  ];
+  seeds.forEach((row) => {
+    if (!rows.some((item) => item.email === row.email)) rows.push(row);
+  });
+  saveListedUsers(rows);
+}
+
+function purgeUnverifiedUsers() {
+  const week = 7 * 86400000;
+  const now = Date.now();
+  const rows = listedUsers();
+  const keep = rows.filter((row) => row.emailVerified || now - (row.createdAt || now) <= week);
+  const removed = rows.length - keep.length;
+  saveListedUsers(keep);
+  return removed;
+}
+
 function saveUser(user) {
   memorySet("turnoya-user", JSON.stringify(user));
+  upsertListedUser(user);
 }
 
 function logoutUser() {
@@ -155,8 +245,13 @@ function verifyOtp(code) {
   saveUser({
     email,
     phoneVerified: existing?.phoneVerified ?? false,
+    emailVerified: true,
+    role: existing?.role || "cliente",
     ...(existing ?? {}),
   });
+  if (typeof trackPixel === "function" && existing?.placeId) {
+    trackPixel(existing.placeId, "CompleteRegistration", { email });
+  }
   return true;
 }
 
@@ -258,6 +353,7 @@ function paintBoNav() {
     ["./bo-landing.html", "Landing"],
     ["./bo-pagos.html", "Pagos"],
     ["./bo-plan.html", "Plan"],
+    ["./bo-crm.html", "CRM"],
     ["./negocio-resenas.html", "Textos"],
     ["./ficha.html", "Ver ficha"],
   ]
@@ -272,4 +368,31 @@ function paintBoNav() {
   else document.body.prepend(bar);
 }
 
+function paintOpsNav() {
+  const page = (location.pathname.split("/").pop() || "").toLowerCase();
+  if (!page.startsWith("ops") || page === "ops-login.html") return;
+  if (document.querySelector("[data-ops-nav]")) return;
+  const bar = document.createElement("nav");
+  bar.className = "bo-subnav";
+  bar.setAttribute("data-ops-nav", "");
+  bar.innerHTML = [
+    ["./ops.html", "Panel"],
+    ["./ops-usuarios.html", "Usuarios"],
+    ["./ops-locales.html", "Negocios"],
+    ["./ops-planes.html", "Planes"],
+    ["./ops-avisos.html", "Avisos"],
+    ["./ops-altas.html", "Altas"],
+    ["./ops-dinero.html", "Dinero"],
+  ]
+    .map(([href, label]) => {
+      const here = page === href.replace("./", "");
+      return `<a href="${href}"${here ? ' aria-current="page"' : ""}>${label}</a>`;
+    })
+    .join("");
+  const after = document.querySelector(".topbar");
+  if (after) after.after(bar);
+  else document.body.prepend(bar);
+}
+
 paintBoNav();
+paintOpsNav();

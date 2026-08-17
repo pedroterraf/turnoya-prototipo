@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Planes · Ops</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./ops.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">ops</span></a>
+      <a href="./ops.html">Panel</a>
+    </header>
+    <main class="band" id="root"></main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      if (!requireStaff("./ops-planes.html")) throw new Error("redirect");
+      const root = document.getElementById("root");
+      function untilLabel(value) {
+        if (!value) return "Sin fecha";
+        return new Date(Number(value)).toLocaleDateString("es-AR");
+      }
+      function paint() {
+        const charge = serviceChargeSettings();
+        const cron = lastCronReport();
+        const list = allPlaces().map(placeView);
+        root.innerHTML = `
+          <h2>Planes y cargo</h2>
+          <p class="band-lead">Asigná un plan hasta una fecha. Si vence, baja al anterior. Si renuncia, queda Calle.</p>
+          <p class="meta">Último cron: ${
+            cron.at ? new Date(cron.at).toLocaleString("es-AR") : "nunca"
+          } · ${cron.users} cuentas · ${cron.plans} planes</p>
+          <form id="charge" class="review-form">
+            <label><input type="checkbox" name="on" ${charge.enabled ? "checked" : ""} /> Cargo de servicio mínimo</label>
+            <label>Monto $ <input name="amount" type="number" min="0" value="${charge.amount}" /></label>
+            <button class="btn btn-enamel" type="submit">Guardar cargo</button>
+          </form>
+          <p><button class="btn btn-ghost" type="button" id="cron">Correr cron ahora</button></p>
+          ${list
+            .map((place) => {
+              const plan = catalogPlan(place.plan);
+              return `<article class="agenda-row">
+                <div>
+                  <strong>${place.name}</strong>
+                  <p class="meta">${plan.name} · vence ${untilLabel(place.planUntil)} · anterior ${catalogPlan(
+                    place.previousPlan,
+                  ).name}</p>
+                </div>
+                <form class="review-form" data-place="${place.id}">
+                  <label>Plan
+                    <select name="plan">
+                      ${PLAN_ORDER.map(
+                        (key) =>
+                          `<option value="${key}" ${normalizePlanId(place.plan) === key ? "selected" : ""}>${
+                            PLANS[key].name
+                          }</option>`,
+                      ).join("")}
+                    </select>
+                  </label>
+                  <label>Hasta <input name="until" type="date" value="${
+                    place.planUntil ? new Date(Number(place.planUntil)).toISOString().slice(0, 10) : ""
+                  }" /></label>
+                  <button class="btn btn-ticket" type="submit">Asignar</button>
+                  <button class="btn btn-ghost" type="button" data-renew="${place.id}">Renovar 30 días</button>
+                  <button class="btn btn-line" type="button" data-resign="${place.id}">Renunciar a Calle</button>
+                </form>
+              </article>`;
+            })
+            .join("")}
+        `;
+        document.getElementById("charge").addEventListener("submit", (event) => {
+          event.preventDefault();
+          const data = new FormData(event.target);
+          saveServiceChargeSettings({
+            enabled: data.get("on") === "on",
+            amount: Number(data.get("amount") || 0),
+          });
+          paint();
+        });
+        document.getElementById("cron").addEventListener("click", () => {
+          runPlatformCron();
+          paint();
+        });
+        root.querySelectorAll("form[data-place]").forEach((form) => {
+          form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const data = Object.fromEntries(new FormData(form));
+            const until = data.until ? new Date(`${data.until}T23:59:59`).getTime() : 0;
+            savePlacePlan(form.dataset.place, data.plan, { planUntil: until });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-renew]").forEach((button) => {
+          button.addEventListener("click", () => {
+            const place = placeView(findPlace(button.dataset.renew));
+            savePlacePlan(place.id, place.plan, { planUntil: Date.now() + 30 * 86400000 });
+            paint();
+          });
+        });
+        root.querySelectorAll("[data-resign]").forEach((button) => {
+          button.addEventListener("click", () => {
+            resignPlacePlan(button.dataset.resign);
+            paint();
+          });
+        });
+      }
+      paint();
+    </script>
+  </body>
+</html>

@@ -30,6 +30,8 @@
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const draft = ensureDemoDraft();
@@ -38,13 +40,17 @@
         throw new Error("redirect");
       }
       const senia = draft.senia ?? 0;
-      if (senia <= 0) {
+      const charge = draft.serviceCharge ?? serviceChargeOf();
+      const total = senia + charge;
+      if (total <= 0) {
         location.replace("./pago.html");
         throw new Error("redirect");
       }
-      document.getElementById("title").textContent = `Pagar ${money(senia)}`;
+      document.getElementById("title").textContent = `Pagar ${money(total)}`;
       document.getElementById("detail").textContent =
-        `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}`;
+        `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}${
+          charge ? ` · seña ${money(senia)} + cargo ${money(charge)}` : ""
+        }`;
       document.getElementById("ok").addEventListener("click", () => {
         if (!draftHold()) {
           location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);

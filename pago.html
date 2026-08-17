@@ -37,6 +37,8 @@
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
@@ -46,13 +48,17 @@
         throw new Error("redirect");
       }
       const senia = draft.senia ?? 0;
+      const charge = draft.serviceCharge ?? serviceChargeOf();
+      const total = senia + charge;
       const rule = paymentRule(draft.placeId);
       const pay = document.getElementById("pay");
-      document.getElementById("title").textContent = senia > 0 ? `Pagar ${money(senia)}` : "Sin seña";
+      document.getElementById("title").textContent = total > 0 ? `Pagar ${money(total)}` : "Sin seña";
       document.getElementById("detail").textContent =
-        `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}`;
-      pay.textContent = senia > 0 ? "Ir a Mercado Pago" : "Confirmar turno";
-      const blocked = senia > 0 && !rule.mpConnected;
+        `${draft.placeName} · ${draft.serviceName} · ${draft.slot?.replace("T", " ")}${
+          charge ? ` · seña ${money(senia)} + cargo ${money(charge)}` : ""
+        }`;
+      pay.textContent = total > 0 ? "Ir a Mercado Pago" : "Confirmar turno";
+      const blocked = total > 0 && !rule.mpConnected;
       if (blocked) {
         document.getElementById("mp-note").textContent =
           "El local todavía no conectó Mercado Pago. No se puede cobrar la seña.";
@@ -66,7 +72,7 @@
           location.replace(`./reservar.html?id=${draft.placeId}&service=${draft.serviceId || ""}&expired=1`);
           return;
         }
-        if (senia > 0) {
+        if (total > 0) {
           location.href = "./mp.html";
           return;
         }

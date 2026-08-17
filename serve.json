@@ -10,6 +10,7 @@
     { "source": "/bo", "destination": "/bo.html" },
     { "source": "/bo-agenda", "destination": "/bo-agenda.html" },
     { "source": "/bo-caja", "destination": "/bo-caja.html" },
+    { "source": "/bo-crm", "destination": "/bo-crm.html" },
     { "source": "/bo-cupones", "destination": "/bo-cupones.html" },
     { "source": "/bo-landing", "destination": "/bo-landing.html" },
     { "source": "/bo-login", "destination": "/bo-login.html" },
@@ -27,11 +28,15 @@
     { "source": "/negocios", "destination": "/negocios.html" },
     { "source": "/ops", "destination": "/ops.html" },
     { "source": "/ops-altas", "destination": "/ops-altas.html" },
+    { "source": "/ops-avisos", "destination": "/ops-avisos.html" },
     { "source": "/ops-dinero", "destination": "/ops-dinero.html" },
     { "source": "/ops-locales", "destination": "/ops-locales.html" },
+    { "source": "/ops-planes", "destination": "/ops-planes.html" },
+    { "source": "/ops-usuarios", "destination": "/ops-usuarios.html" },
     { "source": "/ops-login", "destination": "/ops-login.html" },
     { "source": "/pago", "destination": "/pago.html" },
     { "source": "/perfil", "destination": "/perfil.html" },
+    { "source": "/planes", "destination": "/planes.html" },
     { "source": "/recorrido", "destination": "/recorrido.html" },
     { "source": "/reservar", "destination": "/reservar.html" }
   ]

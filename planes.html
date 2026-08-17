@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Planes · TurnoYa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./negocios.html">
+        <span class="brand-mark">TurnoYa</span>
+        <span class="brand-aside">planes</span>
+      </a>
+      <nav class="topbar-nav">
+        <a href="./negocios.html">Negocios</a>
+        <a class="btn btn-ticket" href="./alta.html">Empezar el alta</a>
+      </nav>
+    </header>
+    <main class="band plan-page" id="root"></main>
+    <footer class="demo-foot" data-demo-foot></footer>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
+    <script>
+      const picked = new URLSearchParams(location.search).get("plan");
+      const jump = document.getElementById("root");
+      const matrix = planMatrixRows();
+      jump.innerHTML = `
+        <p class="meta">Precios en pesos · agosto 2026 · prototipo</p>
+        <h1>Los cuatro planes, sin letra chica</h1>
+        <p class="band-lead">TurnoYa no se queda comisión en ninguno. La seña va a tu Mercado Pago. Anual = 10 meses. Ops aprueba el alta antes de publicar el pin.</p>
+        <nav class="plan-jump">
+          ${PLAN_ORDER.map((id) => `<a href="#plan-${id}">${PLANS[id].name}</a>`).join("")}
+          <a href="#extras">Extras</a>
+          <a href="#cuadro">Cuadro</a>
+        </nav>
+        ${PLAN_ORDER.map((id) => {
+          const plan = PLANS[id];
+          const hot = id === "barrio";
+          return `<article class="plan-sheet${hot ? " is-hot" : ""}" id="plan-${id}">
+            <p class="meta">${plan.tag}</p>
+            <h2>${plan.name}</h2>
+            <p class="plan-price">${planPriceLabel(plan)}</p>
+            <p class="meta">${plan.yearly ? `Anual ${money(plan.yearly)} · 10 meses` : "Sin cargo mensual"}</p>
+            <p class="band-lead"><strong>Para quién.</strong> ${plan.audience}</p>
+            <p>${plan.detail}</p>
+            <h3 class="ficha-sub">Números</h3>
+            <dl class="plan-dl">
+              ${planLimitRows(plan)
+                .map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`)
+                .join("")}
+            </dl>
+            <h3 class="ficha-sub">Incluye</h3>
+            <ul class="plan-list is-yes">
+              ${planIncludeRows(plan)
+                .map((row) => `<li>${row}</li>`)
+                .join("")}
+            </ul>
+            <h3 class="ficha-sub">No incluye</h3>
+            <ul class="plan-list is-no">
+              ${planMissingRows(plan)
+                .map((row) => `<li>${row}</li>`)
+                .join("")}
+            </ul>
+            <a class="btn ${hot ? "btn-ticket" : "btn-enamel"}" href="./alta.html?plan=${id}">Elegir ${plan.name}</a>
+          </article>`;
+        }).join("")}
+        <section id="extras">
+          <h2>Extras de visibilidad</h2>
+          <p class="band-lead">Se etiquetan. El cliente sabe quién pagó por estar arriba. No cambian las estrellas.</p>
+          ${Object.values(PLAN_ADDONS)
+            .map(
+              (addon) => `<article class="plan-sheet">
+                <h3>${addon.name}</h3>
+                <p class="plan-price">${money(addon.price)} / mes</p>
+                <p>${addon.detail}</p>
+              </article>`,
+            )
+            .join("")}
+        </section>
+        <section id="cuadro">
+          <h2>Cuadro lado a lado</h2>
+          <p class="band-lead">Lo mismo, en una grilla. Deslizá de costado en el celular.</p>
+          <div class="compare-wrap">
+            <table class="compare">
+              <thead>
+                <tr>
+                  <th></th>
+                  ${PLAN_ORDER.map((id) => `<th>${PLANS[id].name}</th>`).join("")}
+                </tr>
+              </thead>
+              <tbody>
+                ${matrix
+                  .map(
+                    ([label, read]) =>
+                      `<tr><td>${label}</td>${PLAN_ORDER.map((id) => `<td>${read(PLANS[id])}</td>`).join("")}</tr>`,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section>
+          <h2>Cómo se cobra y se reserva</h2>
+          <ul class="plan-list">
+            <li>Seña default $3.000 (piso Mercado Pago $10). El local puede cambiar mínimo, porcentaje, pago entero o sin seña.</li>
+            <li>El horario se retiene 15 minutos. Si no pagan, se libera solo.</li>
+            <li>Arrepentimiento: 10 días si el servicio no se prestó (Ley 24.240). Después rige la política del local (default 48 h).</li>
+            <li>Reprogramar lo define el local: o el cliente cambia el horario sin cargo extra, o no se puede. El dueño siempre puede mover un turno desde la agenda.</li>
+            <li>TurnoYa no cobra comisión sobre la seña ni sobre el servicio.</li>
+            <li>El pin no se publica hasta que Ops aprueba el alta. Mientras tanto el dueño arma el backoffice.</li>
+          </ul>
+          <p><a class="btn btn-ticket" href="./alta.html">Empezar el alta</a></p>
+        </section>
+      `;
+      if (picked && document.getElementById(`plan-${picked}`)) {
+        document.getElementById(`plan-${picked}`).scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    </script>
+  </body>
+</html>

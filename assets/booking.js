@@ -841,11 +841,13 @@ function confirmDraft() {
   const price = Number(draft.price || 0);
   const senia = Number(draft.senia || 0);
   const cobrado = draft.pagado ? senia : 0;
+  const charge = Number(draft.serviceCharge ?? (typeof serviceChargeOf === "function" ? serviceChargeOf() : 0));
   const turno = {
     id: `ty-${Date.now()}`,
     ...draft,
     price,
     senia,
+    serviceCharge: charge,
     cobrado,
     pagoEstado: senia <= 0 ? (cobrado ? "completo" : "sin_pago") : senia >= price ? "completo" : "senia",
     createdAt: Date.now(),
@@ -872,6 +874,10 @@ function confirmDraft() {
     turno.placeId,
     `Nuevo turno: ${turno.nombre || ""} ${turno.apellido || ""} · ${turno.serviceName} · ${turno.slot.replace("T", " ")}.`,
   );
+  if (typeof trackPixel === "function") {
+    trackPixel(turno.placeId, "Schedule", { turnoId: turno.id });
+    if (turno.pagado) trackPixel(turno.placeId, "Purchase", { turnoId: turno.id, value: senia });
+  }
   return turno;
 }
 
@@ -885,6 +891,131 @@ function lastTurno() {
 
 function userTurnos(email) {
   return bookedSlots().filter((row) => row.email === email);
+}
+
+function countdownLabel(slot) {
+  const start = slotStart(slot).getTime();
+  const diff = start - Date.now();
+  if (diff <= 0) return "Es ahora";
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  if (days) return `Faltan ${days} d ${hours} h`;
+  if (hours) return `Faltan ${hours} h ${mins} min`;
+  return `Faltan ${mins} min`;
+}
+
+function etaTripleHtml(place) {
+  if (!place) return "";
+  const origin =
+    typeof state === "object" && state.userLat != null
+      ? { lat: state.userLat, lng: state.userLng }
+      : null;
+  const km = origin
+    ? distanceKm(origin.lat, origin.lng, place.lat, place.lng)
+    : Number(place.km || 0);
+  if (!origin) {
+    return `<p class="meta">Activá la ubicación para ver a pie, auto y colectivo.</p>`;
+  }
+  return `<p class="meta">${km.toFixed(1)} km · ${etaMinutes(km, "walking")} min a pie · ${etaMinutes(
+    km,
+    "driving",
+  )} min en auto · ${etaMinutes(km, "transit")} min en colectivo</p>`;
+}
+
+function homeTurnsHtml() {
+  const user = typeof currentUser === "function" ? currentUser() : null;
+  if (!user?.email || typeof bookedSlots !== "function") return "";
+  const rows = bookedSlots()
+    .filter((row) => row.email === user.email && row.slot)
+    .sort((a, b) => String(a.slot).localeCompare(String(b.slot)));
+  const pending = rows.filter(
+    (row) => row.estado === "confirmado" && Date.now() < slotStart(row.slot).getTime(),
+  );
+  const recent = rows
+    .filter((row) => row.estado === "concretado" || Date.now() >= slotStart(row.slot).getTime())
+    .filter((row) => row.estado !== "cancelado")
+    .slice(-3)
+    .reverse();
+  if (!pending.length && !recent.length) return "";
+  const pendingHtml = pending
+    .map((turno) => {
+      const place = typeof lookupPlace === "function" ? lookupPlace(turno.placeId) : null;
+      return `<article class="home-turn">
+        <p class="meta">Pendiente</p>
+        <strong>${turno.placeName}</strong>
+        <p class="meta">${turno.serviceName} · ${String(turno.slot).replace("T", " ")}</p>
+        <p class="meta">${countdownLabel(turno.slot)}</p>
+        ${place ? etaTripleHtml(place) : ""}
+        <a class="btn btn-enamel" href="./ficha.html?id=${turno.placeId}">Ver negocio</a>
+        ${
+          place
+            ? `<a class="btn-line" target="_blank" rel="noreferrer" href="${googleDirectionsUrl(
+                place,
+                typeof state === "object" && state.userLat != null
+                  ? { lat: state.userLat, lng: state.userLng }
+                  : null,
+                travelMode(),
+              )}">Cómo llegar</a>`
+            : ""
+        }
+      </article>`;
+    })
+    .join("");
+  const recentHtml = recent
+    .map((turno) => {
+      const review =
+        typeof canReviewTurno === "function" && canReviewTurno(turno, user)
+          ? `<a class="btn-line" href="./mi-turno.html#turno-${turno.id}">Calificar</a>`
+          : "";
+      return `<article class="home-turn">
+        <p class="meta">Último</p>
+        <strong>Fuiste a ${turno.placeName}</strong>
+        <p class="meta">Hiciste ${turno.serviceName} · ${String(turno.slot).replace("T", " ")}</p>
+        <a class="btn btn-ticket" href="./reservar.html?id=${turno.placeId}&service=${
+          turno.serviceId || ""
+        }">Reservar de nuevo</a>
+        ${review}
+      </article>`;
+    })
+    .join("");
+  return `${pending.length ? `<h2>Tus próximos turnos</h2>${pendingHtml}` : ""}${
+    recent.length ? `<h2>Tus últimos turnos</h2>${recentHtml}` : ""
+  }`;
+}
+
+function slotEndTime(turno) {
+  return slotStart(turno.slot).getTime() + (Number(turno.minutes) || 60) * 60000;
+}
+
+function autoCompletePastTurnos() {
+  bookedSlots().forEach((turno) => {
+    if (turno.estado !== "confirmado" || !turno.slot) return;
+    if (Date.now() < slotEndTime(turno)) return;
+    patchTurno(turno.id, { estado: "concretado" });
+    notifyTurnoChange(turno.id, "concretado");
+  });
+}
+
+function serviceChargeSettings() {
+  try {
+    return (
+      JSON.parse(memoryGet("turnoya-service-charge") ?? "null") || { enabled: true, amount: 200 }
+    );
+  } catch {
+    return { enabled: true, amount: 200 };
+  }
+}
+
+function saveServiceChargeSettings(data) {
+  memorySet("turnoya-service-charge", JSON.stringify(data));
+}
+
+function serviceChargeOf() {
+  const settings = serviceChargeSettings();
+  if (!settings.enabled) return 0;
+  const amount = Number(settings.amount);
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
 }
 
 function placeTurnos(placeId) {
@@ -940,6 +1071,26 @@ function seedPlaceAgenda(placeId) {
       dni: "30111222",
       createdAt: Date.now(),
       estado: "confirmado",
+    },
+    {
+      id: `ty-seed-${placeId}-past`,
+      placeId,
+      placeName: place.name,
+      slug: place.slug,
+      serviceId: `${placeId}-main`,
+      serviceName: place.service,
+      minutes: 60,
+      price: 9000,
+      senia: 3000,
+      cobrado: 3000,
+      pagoEstado: "senia",
+      slot: slotKey(new Date(Date.now() - 2 * 86400000), 11, 0),
+      email: "pedroterraf@gmail.com",
+      nombre: "Pedro",
+      apellido: "Terraf",
+      dni: "30111222",
+      createdAt: Date.now() - 2 * 86400000,
+      estado: "concretado",
     },
     {
       id: `ty-seed-${placeId}-2`,
@@ -1031,10 +1182,13 @@ function notifyTurnoChange(id, estado) {
   if (estado === "concretado") {
     notifyUser(
       turno.email,
-      "Ya podés calificar",
-      `El local confirmó tu visita en ${turno.placeName}. Ya podés calificar.`,
+      `Calificá tu visita en ${turno.placeName}`,
+      `El turno de ${turno.serviceName} ya terminó. Contá cómo te fue.`,
       meta,
     );
+    if (typeof trackPixel === "function") {
+      trackPixel(turno.placeId, "Purchase", { turnoId: turno.id });
+    }
   }
   if (estado === "no_show") {
     notifyUser(turno.email, "No te presentaste", `Marcaron que no fuiste a ${turno.placeName}.`, meta);
@@ -1286,7 +1440,7 @@ function turnoCardHtml(turno) {
   } else if (turno.estado === "confirmado") {
     actions = `${reprogramLink(turno)}<p class="meta">El local confirma cuando vas. Todavía no se puede calificar.</p>`;
   }
-  return `<article class="quote" data-turno="${turno.id}">
+  return `<article class="quote" id="turno-${turno.id}" data-turno="${turno.id}">
     <strong>${turno.placeName}</strong>
     <p class="meta">${turno.serviceName} · ${when} · ${estadoLabel(turno.estado)}</p>
     ${turnoGoLinks(turno)}

@@ -88,7 +88,7 @@ function reviewsFor(placeId) {
 }
 
 function ratingOf(placeId) {
-  const list = reviewsFor(placeId).filter((review) => review.turnoId);
+  const list = reviewsFor(placeId).filter((review) => Number(review.stars) > 0);
   if (!list.length) return { average: 0, count: 0 };
   const sum = list.reduce((acc, review) => acc + review.stars, 0);
   return { average: Math.round((sum / list.length) * 10) / 10, count: list.length };

@@ -161,18 +161,23 @@ const PLACES = [
   },
 ];
 
+const GEO_OPTIONS = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
+const GEO_ACCURACY_GOOD_M = 80;
+
 const state = {
   city: "cordoba",
   query: "",
   selectedId: null,
   userLat: null,
   userLng: null,
+  userAccuracy: null,
   followUser: false,
 };
 
 let map;
 let markers = [];
 let youMarker = null;
+let youCircle = null;
 let watchId = null;
 let lastListRender = 0;
 let placeMap = null;
@@ -427,16 +432,30 @@ function currentOrigin() {
 
 function updateYouOnMap() {
   if (!map || state.userLat == null) return;
+  const here = [state.userLat, state.userLng];
   if (!youMarker) {
-    youMarker = L.marker([state.userLat, state.userLng], {
+    youMarker = L.marker(here, {
       icon: youIcon(),
       zIndexOffset: 800,
     }).addTo(map);
   } else {
-    youMarker.setLatLng([state.userLat, state.userLng]);
+    youMarker.setLatLng(here);
+  }
+  const radius = Math.max(Number(state.userAccuracy) || 0, 16);
+  if (!youCircle) {
+    youCircle = L.circle(here, {
+      radius,
+      color: "#0b3d2e",
+      weight: 1,
+      fillColor: "#f2d54a",
+      fillOpacity: 0.12,
+    }).addTo(map);
+  } else {
+    youCircle.setLatLng(here);
+    youCircle.setRadius(radius);
   }
   if (state.followUser) {
-    map.panTo([state.userLat, state.userLng]);
+    map.panTo(here);
   }
 }
 
@@ -535,12 +554,20 @@ function syncFollowButton() {
 function applyPosition(position, isFirst) {
   const lat = position.coords.latitude;
   const lng = position.coords.longitude;
+  const accuracy = Math.round(position.coords.accuracy || 0);
   const prevLat = state.userLat;
   const prevLng = state.userLng;
+  const prevAccuracy = state.userAccuracy;
+  const worse =
+    prevLat != null &&
+    prevAccuracy != null &&
+    accuracy > prevAccuracy &&
+    (accuracy > GEO_ACCURACY_GOOD_M || accuracy > prevAccuracy * 1.4);
+  if (worse) return;
   state.userLat = lat;
   state.userLng = lng;
+  state.userAccuracy = accuracy;
   const cityId = nearestCity(lat, lng);
-  const accuracy = Math.round(position.coords.accuracy || 0);
   setLocationStatus(`En vivo · ${CITIES[cityId].label} · ±${accuracy} m`);
   updateYouOnMap();
   refreshGoCards();
@@ -549,7 +576,7 @@ function applyPosition(position, isFirst) {
   const now = Date.now();
   if (isFirst) {
     lastListRender = now;
-    if (map) map.setView([lat, lng], 15);
+    if (map) map.setView([lat, lng], accuracy > 400 ? 14 : 16);
     applyCity(cityId, false);
     return;
   }
@@ -566,20 +593,27 @@ function requestLocation() {
   }
 
   setLocationStatus("Pedimos tu ubicación para marcarte en vivo.");
+  if (watchId != null) {
+    navigator.geolocation.clearWatch(watchId);
+    watchId = null;
+  }
   navigator.geolocation.getCurrentPosition(
     (position) => {
       applyPosition(position, true);
-      if (watchId != null) navigator.geolocation.clearWatch(watchId);
       watchId = navigator.geolocation.watchPosition(
         (next) => applyPosition(next, false),
-        () => {},
-        { enableHighAccuracy: true, maximumAge: 2000, timeout: 12000 },
+        () => {
+          if (state.userLat == null) {
+            setLocationStatus("No pudimos usar tu ubicación. Elegí la ciudad a mano.");
+          }
+        },
+        GEO_OPTIONS,
       );
     },
     () => {
       setLocationStatus("No pudimos usar tu ubicación. Elegí la ciudad a mano.");
     },
-    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+    GEO_OPTIONS,
   );
 }
 
@@ -604,15 +638,17 @@ function boot() {
   const follow = document.getElementById("follow-me");
   if (follow) {
     follow.addEventListener("click", () => {
-      if (state.userLat == null) {
-        requestLocation();
-        state.followUser = true;
+      if (state.followUser) {
+        state.followUser = false;
         syncFollowButton();
         return;
       }
-      state.followUser = !state.followUser;
+      state.followUser = true;
       syncFollowButton();
-      if (state.followUser) map.setView([state.userLat, state.userLng], 16);
+      requestLocation();
+      if (state.userLat != null) {
+        map.setView([state.userLat, state.userLng], 16);
+      }
     });
   }
   document.getElementById("query").addEventListener("input", (event) => {

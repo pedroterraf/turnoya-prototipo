@@ -86,7 +86,8 @@ img {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 40;
+  z-index: 1200;
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2132,7 +2133,7 @@ img {
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
-  z-index: 40;
+  z-index: 1300;
   width: min(320px, calc(100vw - 28px));
   padding: 8px;
   background: var(--chalk);
@@ -2961,6 +2962,10 @@ img {
     gap: 8px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .topbar-nav:has(.nav-bell-wrap.is-open) {
+    overflow: visible;
   }
 
   .topbar-nav .hide-sm {

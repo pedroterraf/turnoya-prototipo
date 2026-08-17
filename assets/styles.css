@@ -290,6 +290,7 @@ img {
 }
 
 .ticket {
+  --notch: 9px;
   position: relative;
   margin: 18px 16px 8px;
   padding: 16px 16px 14px;
@@ -306,26 +307,18 @@ img {
   background-size: 100% 10px;
   background-repeat: no-repeat;
   background-position: top;
-}
-
-.ticket::before,
-.ticket::after {
-  content: "";
-  position: absolute;
-  top: 54%;
-  width: 18px;
-  height: 18px;
-  background: var(--chalk);
-  border-radius: 50%;
-  transform: translateY(-50%);
-}
-
-.ticket::before {
-  left: -9px;
-}
-
-.ticket::after {
-  right: -9px;
+  -webkit-mask-image:
+    radial-gradient(circle at 0 54%, transparent var(--notch), #000 calc(var(--notch) + 0.6px)),
+    radial-gradient(circle at 100% 54%, transparent var(--notch), #000 calc(var(--notch) + 0.6px));
+  -webkit-mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-composite: source-in;
+  mask-image:
+    radial-gradient(circle at 0 54%, transparent var(--notch), #000 calc(var(--notch) + 0.6px)),
+    radial-gradient(circle at 100% 54%, transparent var(--notch), #000 calc(var(--notch) + 0.6px));
+  mask-size: 100% 100%;
+  mask-repeat: no-repeat;
+  mask-composite: intersect;
 }
 
 .ticket h1 {
@@ -796,6 +789,69 @@ img {
   color: var(--ink-soft);
   font-style: normal;
   font-size: 0.78rem;
+}
+
+[data-review-comment] {
+  display: grid;
+  gap: 12px;
+}
+
+.star-picker-row {
+  display: flex;
+  gap: 4px;
+}
+
+.star-pick {
+  position: relative;
+  width: 36px;
+  height: 36px;
+}
+
+.star-pick-glyph {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: var(--line);
+  font-size: 1.7rem;
+  line-height: 36px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.star-pick[data-fill="full"] .star-pick-glyph {
+  color: #c49212;
+}
+
+.star-pick[data-fill="half"] .star-pick-glyph {
+  background: linear-gradient(90deg, #c49212 50%, var(--line) 50%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.star-pick-half {
+  position: absolute;
+  top: 0;
+  width: 50%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  z-index: 1;
+}
+
+.star-pick-half:first-child {
+  left: 0;
+}
+
+.star-pick-half:nth-child(2) {
+  right: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .star-pick:hover .star-pick-glyph {
+    transform: scale(1.08);
+  }
 }
 
 .quote {

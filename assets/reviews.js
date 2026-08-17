@@ -150,6 +150,69 @@ function reviewsHref(placeId) {
   return `./ficha.html?id=${placeId}#resenas`;
 }
 
+const STAR_MIN = 1;
+const STAR_MAX = 5;
+const STAR_STEP = 0.5;
+
+function clampStarValue(value) {
+  const raw = Math.round(Number(value) / STAR_STEP) * STAR_STEP;
+  if (!Number.isFinite(raw)) return 0;
+  return Math.min(STAR_MAX, Math.max(STAR_MIN, raw));
+}
+
+function starFillOf(index, value) {
+  if (value >= index) return "full";
+  if (value >= index - STAR_STEP) return "half";
+  return "empty";
+}
+
+function starValueLabel(value) {
+  if (!value) return "Elegí de 1 a 5";
+  const label = Number.isInteger(value) ? String(value) : String(value).replace(".", ",");
+  return value === 1 ? "1 estrella" : `${label} estrellas`;
+}
+
+function starPickerHtml() {
+  const stars = Array.from({ length: STAR_MAX }, (_, i) => {
+    const index = i + 1;
+    const left = clampStarValue(index - STAR_STEP);
+    const right = index;
+    return `<span class="star-pick" data-star="${index}" data-fill="empty">
+      <button class="star-pick-half" type="button" data-stars="${left}" aria-label="${starValueLabel(left)}"></button>
+      <button class="star-pick-half" type="button" data-stars="${right}" aria-label="${starValueLabel(right)}"></button>
+      <span class="star-pick-glyph" aria-hidden="true">★</span>
+    </span>`;
+  }).join("");
+  return `<div class="star-picker" data-star-picker>
+    <p class="meta" data-star-label>${starValueLabel(0)}</p>
+    <div class="star-picker-row" role="radiogroup" aria-label="Estrellas">${stars}</div>
+    <input type="hidden" name="stars" value="" />
+  </div>`;
+}
+
+function paintStarPicker(root, value) {
+  const score = value ? clampStarValue(value) : 0;
+  root.querySelectorAll(".star-pick").forEach((node) => {
+    node.dataset.fill = starFillOf(Number(node.dataset.star), score);
+  });
+  const label = root.querySelector("[data-star-label]");
+  if (label) label.textContent = starValueLabel(score);
+  const input = root.querySelector('input[name="stars"]');
+  if (input) input.value = score || "";
+}
+
+function bindStarPicker(form) {
+  const root = form.querySelector("[data-star-picker]");
+  const comment = form.querySelector("[data-review-comment]");
+  if (!root) return;
+  root.querySelectorAll("[data-stars]").forEach((button) => {
+    button.addEventListener("click", () => {
+      paintStarPicker(root, button.dataset.stars);
+      if (comment) comment.hidden = false;
+    });
+  });
+}
+
 function starsMarkup(average, count, placeId) {
   const full = Math.round(average);
   const glyphs = Array.from({ length: 5 }, (_, i) => (i < full ? "★" : "☆")).join("");

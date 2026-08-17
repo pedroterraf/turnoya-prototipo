@@ -1416,17 +1416,11 @@ function turnoCardHtml(turno) {
   if (turno.estado === "concretado") {
     actions = canReviewTurno(turno, user)
       ? `<form class="review-form" data-review="${turno.id}">
-          <label>Estrellas
-            <select name="stars">
-              <option value="5">5</option>
-              <option value="4">4</option>
-              <option value="3">3</option>
-              <option value="2">2</option>
-              <option value="1">1</option>
-            </select>
-          </label>
-          <label>Comentario <input name="text" required maxlength="160" /></label>
-          <button class="btn btn-ticket" type="submit">Calificar</button>
+          ${starPickerHtml()}
+          <div data-review-comment hidden>
+            <label>Comentario <input name="text" required maxlength="160" /></label>
+            <button class="btn btn-ticket" type="submit">Calificar</button>
+          </div>
         </form>`
       : `<p class="meta">Turno concretado.${alreadyReviewedTurno(turno.id) ? " Ya calificaste." : ""}</p>`;
   } else if (turno.estado === "no_show") {
@@ -1456,12 +1450,15 @@ function bindTurnoActions(root, onDone) {
     });
   });
   root.querySelectorAll("[data-review]").forEach((form) => {
+    bindStarPicker(form);
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const user = currentUser();
       const turno = bookedSlots().find((row) => row.id === form.dataset.review);
       const data = new FormData(form);
-      if (addTurnoReview(turno, user, Number(data.get("stars")), data.get("text"))) {
+      const stars = clampStarValue(data.get("stars"));
+      if (!Number(data.get("stars")) || stars < STAR_MIN) return;
+      if (addTurnoReview(turno, user, stars, data.get("text"))) {
         onDone();
       }
     });

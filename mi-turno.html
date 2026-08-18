@@ -45,9 +45,8 @@
         }
         root.innerHTML = `<h2>Tus turnos</h2>
           ${moved ? "<p class=\"meta\">Horario actualizado. El local y vos reciben el aviso.</p>" : ""}
-          <p class="band-lead">Todos los negocios. En la ficha de cada local ves solo los de ese lugar.</p>${list
-            .map(turnoCardHtml)
-            .join("")}`;
+          <p class="band-lead">Todos los negocios. En la ficha de cada local ves solo los de ese lugar.</p>
+          <div class="turno-list">${list.map(turnoCardHtml).join("")}</div>`;
         bindTurnoActions(root, paint);
         if (location.hash) {
           const card = document.querySelector(location.hash);

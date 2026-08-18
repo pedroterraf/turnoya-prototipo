@@ -58,6 +58,9 @@
           charge ? ` · seña ${money(senia)} + cargo ${money(charge)}` : ""
         }`;
       pay.textContent = total > 0 ? "Ir a Mercado Pago" : "Confirmar turno";
+      if (total > 0 && typeof trackPixel === "function") {
+        trackPixel(draft.placeId, "AddPaymentInfo", { value: total });
+      }
       const blocked = total > 0 && !rule.mpConnected;
       if (blocked) {
         document.getElementById("mp-note").textContent =

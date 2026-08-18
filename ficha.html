@@ -178,7 +178,7 @@
             <p class="band-lead">Escribinos por el canal que el local habilitó.</p>
             ${
               support.whatsappEnabled
-                ? `<a class="btn btn-ticket" href="${whatsappHref(
+                ? `<a class="btn btn-ticket" data-pixel-contact href="${whatsappHref(
                     support.whatsapp,
                     `Hola, consulto por ${place.name}`,
                   )}" target="_blank" rel="noreferrer">WhatsApp del local</a>`
@@ -242,12 +242,18 @@
             }
           });
         });
+        document.querySelectorAll("[data-pixel-contact]").forEach((link) => {
+          link.addEventListener("click", () => {
+            if (typeof trackPixel === "function") trackPixel(place.id, "Contact");
+          });
+        });
         const supportForm = document.getElementById("support-form");
         if (supportForm) {
           supportForm.addEventListener("submit", (event) => {
             event.preventDefault();
             const data = Object.fromEntries(new FormData(supportForm));
             saveInquiry(place.id, data);
+            if (typeof trackPixel === "function") trackPixel(place.id, "Lead");
             document.getElementById("support-msg").textContent =
               "Listo. El local te responde por el canal que tenga activo.";
             supportForm.reset();
@@ -256,6 +262,7 @@
       }
       try {
         paint();
+        if (typeof trackPixel === "function") trackPixel(place.id, "ViewContent", { slug: place.slug });
         if (location.hash === "#resenas") {
           document.getElementById("resenas")?.scrollIntoView({ behavior: "smooth", block: "start" });
         }

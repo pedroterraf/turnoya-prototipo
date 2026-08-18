@@ -87,16 +87,27 @@ function placePixel(placeId) {
     return (
       JSON.parse(memoryGet(`turnoya-pixel-${placeId}`) ?? "null") || {
         pixelId: "",
+        capiToken: "",
         enabled: false,
       }
     );
   } catch {
-    return { pixelId: "", enabled: false };
+    return { pixelId: "", capiToken: "", enabled: false };
   }
 }
 
 function savePlacePixel(placeId, data) {
-  memorySet(`turnoya-pixel-${placeId}`, JSON.stringify(data));
+  const current = placePixel(placeId);
+  memorySet(
+    `turnoya-pixel-${placeId}`,
+    JSON.stringify({
+      pixelId: "",
+      capiToken: "",
+      enabled: false,
+      ...current,
+      ...data,
+    }),
+  );
 }
 
 function pixelLog(placeId) {
@@ -125,6 +136,25 @@ function trackPixel(placeId, eventName, payload) {
   return pushPixelEvent(placeId, eventName, payload);
 }
 
+const PIXEL_FUNNEL = [
+  { event: "ViewContent", when: "cuando abren la ficha del local" },
+  { event: "Search", when: "cuando buscan un servicio en el mapa" },
+  { event: "InitiateCheckout", when: "cuando eligen horario y pasan a confirmar" },
+  { event: "AddPaymentInfo", when: "cuando entran a pagar la seña" },
+  { event: "Schedule", when: "cuando el turno queda confirmado" },
+  { event: "Purchase", when: "cuando pagan la seña o se concreta la visita" },
+  { event: "Contact", when: "cuando tocan WhatsApp del local" },
+  { event: "Lead", when: "cuando envían una consulta por mail" },
+  { event: "CompleteRegistration", when: "cuando verifican el mail" },
+  { event: "Rate", when: "cuando dejan una reseña" },
+];
+
+function pixelFunnelListHtml() {
+  return `<ul class="setup-events">${PIXEL_FUNNEL.map(
+    (row) => `<li><strong>${row.event}</strong> · ${row.when}</li>`,
+  ).join("")}</ul>`;
+}
+
 function placeCrmNotes(placeId) {
   try {
     return JSON.parse(memoryGet(`turnoya-crm-${placeId}`) ?? "{}");
@@ -139,6 +169,41 @@ function saveCrmNote(placeId, email, patch) {
   memorySet(`turnoya-crm-${placeId}`, JSON.stringify(book));
 }
 
+const CRM_STATUS = {
+  CONTACTED: "CONTACTED",
+  FIRST_VISIT: "FIRST_VISIT",
+  ACTIVE: "ACTIVE",
+  LOST: "LOST",
+};
+
+const CRM_STATUS_ORDER = [
+  CRM_STATUS.CONTACTED,
+  CRM_STATUS.FIRST_VISIT,
+  CRM_STATUS.ACTIVE,
+  CRM_STATUS.LOST,
+];
+
+const CRM_STATUS_LABELS = {
+  CONTACTED: "Nuevo",
+  FIRST_VISIT: "Primera visita",
+  ACTIVE: "Recurrente",
+  LOST: "Perdido",
+};
+
+const CRM_STATUS_MOVES = {
+  CONTACTED: [CRM_STATUS.FIRST_VISIT, CRM_STATUS.LOST],
+  FIRST_VISIT: [CRM_STATUS.ACTIVE, CRM_STATUS.LOST],
+  ACTIVE: [CRM_STATUS.LOST],
+  LOST: [CRM_STATUS.CONTACTED],
+};
+
+function autoCrmStatus(row) {
+  if (row.visits >= 2) return CRM_STATUS.ACTIVE;
+  if (row.visits === 1) return CRM_STATUS.FIRST_VISIT;
+  if (row.noShows > 0 && row.visits === 0) return CRM_STATUS.LOST;
+  return CRM_STATUS.CONTACTED;
+}
+
 function placeCrmRows(placeId) {
   const notes = placeCrmNotes(placeId);
   const groups = {};
@@ -149,6 +214,7 @@ function placeCrmRows(placeId) {
       groups[key] = {
         email: turno.email,
         nombre: `${turno.nombre || ""} ${turno.apellido || ""}`.trim() || turno.email,
+        phone: turno.telefono || "",
         visits: 0,
         noShows: 0,
         spent: 0,
@@ -162,6 +228,7 @@ function placeCrmRows(placeId) {
     if (turno.estado === "concretado") row.visits += 1;
     if (turno.estado === "no_show") row.noShows += 1;
     row.spent += Number(turno.cobrado || turno.senia || 0);
+    if (turno.telefono) row.phone = turno.telefono;
     if (!row.lastSlot || String(turno.slot) > row.lastSlot) {
       row.lastSlot = turno.slot;
       row.lastService = turno.serviceName;
@@ -169,12 +236,40 @@ function placeCrmRows(placeId) {
     }
   });
   return Object.values(groups)
-    .map((row) => ({
-      ...row,
-      note: notes[row.email]?.note || "",
-      tag: notes[row.email]?.tag || "",
-    }))
+    .map((row) => {
+      const extra = notes[row.email] || {};
+      return {
+        ...row,
+        note: extra.note || "",
+        tag: extra.tag || "",
+        status: extra.status || autoCrmStatus(row),
+      };
+    })
     .sort((a, b) => String(b.lastSlot).localeCompare(String(a.lastSlot)));
+}
+
+function placeCrmSummary(placeId) {
+  const rows = placeCrmRows(placeId);
+  const turnos = placeTurnos(placeId);
+  const done = turnos.filter((row) => row.estado === "concretado").length;
+  const reserved = turnos.filter((row) => row.estado !== "cancelado").length;
+  const spent = rows.reduce((sum, row) => sum + row.spent, 0);
+  return {
+    contacts: rows.length,
+    newContacts: rows.filter((row) => row.status === CRM_STATUS.CONTACTED).length,
+    firstVisit: rows.filter((row) => row.status === CRM_STATUS.FIRST_VISIT).length,
+    recurring: rows.filter((row) => row.status === CRM_STATUS.ACTIVE).length,
+    lost: rows.filter((row) => row.status === CRM_STATUS.LOST).length,
+    visits: rows.reduce((sum, row) => sum + row.visits, 0),
+    noShows: rows.reduce((sum, row) => sum + row.noShows, 0),
+    spent,
+    ticket: done ? spent / done : 0,
+    conversion: reserved ? Math.round((done / reserved) * 100) : 0,
+  };
+}
+
+function placePublicUrl(placeId) {
+  return `${location.origin}${location.pathname.replace(/[^/]+$/, "")}ficha.html?id=${placeId}`;
 }
 
 function statusLabel(status) {

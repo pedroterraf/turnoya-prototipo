@@ -796,6 +796,28 @@ img {
   gap: 12px;
 }
 
+[data-review-comment][hidden] {
+  display: none;
+}
+
+.turno-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.turno-list .quote {
+  margin: 0;
+}
+
+.star-picker.is-locked {
+  pointer-events: none;
+}
+
+.review-locked-text {
+  margin: 8px 0 0;
+}
+
 .star-picker-row {
   display: flex;
   gap: 4px;
@@ -1364,7 +1386,7 @@ img {
   gap: 6px;
 }
 
-.review-form input,
+.review-form input:not([type="checkbox"]):not([type="radio"]),
 .review-form select,
 .review-form textarea {
   width: 100%;
@@ -1618,6 +1640,229 @@ img {
   font-family: var(--display);
   font-size: 1.8rem;
   letter-spacing: -0.04em;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 20px 0 8px;
+}
+
+.stat-chart {
+  padding: 16px;
+  background: var(--chalk);
+  border: 1px solid var(--line);
+}
+
+.stat-bars {
+  display: grid;
+  gap: 10px;
+}
+
+.stat-bar {
+  display: grid;
+  grid-template-columns: 92px 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.stat-bar-label,
+.stat-bar-value {
+  font-size: 0.82rem;
+}
+
+.stat-bar-value {
+  font-family: var(--display);
+  min-width: 4ch;
+  text-align: right;
+}
+
+.stat-bar-track {
+  display: block;
+  height: 8px;
+  background: var(--field);
+}
+
+.stat-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--enamel);
+}
+
+.stat-spark {
+  display: block;
+  width: 100%;
+  height: 76px;
+  color: var(--enamel);
+}
+
+.stat-big {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 2.2rem;
+  letter-spacing: -0.04em;
+}
+
+.crm-board {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.crm-col {
+  padding: 12px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  min-height: 160px;
+}
+
+.crm-col-title {
+  margin: 0 0 10px;
+  font-family: var(--display);
+  font-size: 1rem;
+}
+
+.crm-col-title em {
+  font-style: normal;
+  color: var(--ink-soft);
+}
+
+.crm-card {
+  margin: 0 0 10px;
+  padding: 10px;
+  background: var(--chalk);
+}
+
+.crm-card.is-on {
+  outline: 2px solid var(--enamel);
+}
+
+.crm-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.crm-setup {
+  margin-top: 28px;
+}
+
+.crm-setup .meta,
+.setup-step .meta,
+.setup-note {
+  overflow-wrap: anywhere;
+}
+
+.pixel-form {
+  display: grid;
+  gap: 14px;
+  max-width: 420px;
+  margin-top: 12px;
+}
+
+.pixel-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.pixel-form input[type="text"],
+.pixel-form input[type="password"],
+.pixel-form input:not([type="checkbox"]) {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+}
+
+.pixel-switch {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  grid-template-columns: none;
+}
+
+.pixel-switch input {
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--enamel);
+}
+
+.setup-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+
+.setup-step {
+  padding: 16px;
+  background: var(--chalk);
+  border: 1px solid var(--line);
+}
+
+.setup-step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.setup-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  background: var(--enamel);
+  color: var(--chalk);
+  font-weight: 650;
+}
+
+.setup-events {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.copy-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.copy-field code {
+  flex: 1 1 220px;
+  padding: 8px 10px;
+  background: var(--field);
+  overflow-wrap: anywhere;
+}
+
+.setup-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 0.86rem;
+}
+
+.setup-note.is-ok {
+  background: var(--brass-soft);
+}
+
+.setup-note.is-warn {
+  background: #f4e4d2;
+}
+
+@media (max-width: 900px) {
+  .crm-board {
+    grid-template-columns: 1fr;
+  }
 }
 
 .ops-feed {
@@ -2224,6 +2469,7 @@ img {
   display: block;
   padding: 10px 12px;
   border-radius: var(--radius);
+  border-bottom: 1px solid var(--line);
   color: var(--ink);
   text-decoration: none;
   transition:

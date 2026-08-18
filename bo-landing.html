@@ -33,6 +33,25 @@
         <button class="btn btn-line" id="clear-banner" type="button">Quitar foto</button>
         <button class="btn btn-ticket" type="submit">Guardar landing</button>
       </form>
+      <section class="crm-setup" id="meta-setup">
+        <h3 class="ficha-sub">Cómo medir esta landing con Meta</h3>
+        <p class="band-lead">Igual que en Fortuna: el anuncio apunta a tu ficha. El Pixel se carga en el CRM. Acá no se pega el script real.</p>
+        <ol class="setup-steps">
+          <li class="setup-step">
+            <div class="setup-step-head"><span class="setup-badge">1</span><strong>Pegá esta URL en el anuncio</strong></div>
+            <p class="meta">Es el único link que va en Meta. El cliente cae a tu ficha pública.</p>
+            <div class="copy-field">
+              <code id="ficha-url"></code>
+              <button class="btn btn-ghost" type="button" id="copy-ficha">Copiar</button>
+            </div>
+          </li>
+          <li class="setup-step">
+            <div class="setup-step-head"><span class="setup-badge">2</span><strong>Cargá el Pixel en el CRM</strong></div>
+            <p class="meta">Pixel ID y token CAPI se guardan por local. Embudo: ViewContent → InitiateCheckout → Schedule → Purchase, más Contact, Lead y Rate.</p>
+            <a class="btn btn-enamel" id="go-crm" href="./bo-crm.html">Abrir CRM y Pixel</a>
+          </li>
+        </ol>
+      </section>
     </main>
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
@@ -40,6 +59,7 @@
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
@@ -51,6 +71,18 @@
         );
       }
       document.getElementById("back").href = `./bo.html?id=${id}`;
+      document.getElementById("go-crm").href = `./bo-crm.html?id=${id}`;
+      const fichaUrl = placePublicUrl(id);
+      document.getElementById("ficha-url").textContent = fichaUrl;
+      document.getElementById("copy-ficha").addEventListener("click", async () => {
+        const button = document.getElementById("copy-ficha");
+        try {
+          await navigator.clipboard.writeText(fichaUrl);
+          button.textContent = "Copiado";
+        } catch {
+          button.textContent = "No se pudo copiar";
+        }
+      });
       const theme = landingTheme(id);
       const form = document.getElementById("form");
       if (theme.primaryHex) form.primary.value = theme.primaryHex;

@@ -657,6 +657,11 @@ function boot() {
   });
   document.getElementById("search-btn").addEventListener("click", () => {
     document.getElementById("results-count").scrollIntoView({ behavior: "smooth" });
+    const query = state.query.trim();
+    const first = filteredPlaces()[0];
+    if (query && first && typeof trackPixel === "function") {
+      trackPixel(first.id, "Search", { query });
+    }
   });
   document.getElementById("reco-track").addEventListener("click", (event) => {
     const button = event.target.closest("[data-id]");

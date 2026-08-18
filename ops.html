@@ -36,6 +36,7 @@
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
+    <script src="./assets/charts.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const staff = requireStaff("./ops.html");
@@ -84,6 +85,7 @@
           <div class="ops-stat"><b>${money(sum("reembolso"))}</b><span class="meta">A devolver</span></div>
         </div>
         <p class="meta">Cron: ${cron.at ? new Date(cron.at).toLocaleString("es-AR") : "nunca"} · ${cron.users} cuentas · ${cron.plans} planes</p>
+        ${platformChartBlocks()}
         <section class="ops-feed">
           <h3 class="ficha-sub">Cola de altas</h3>
           ${

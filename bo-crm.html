@@ -23,102 +23,13 @@
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
+    <script src="./assets/crm.js"></script>
     <script src="./assets/auth.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       requireOwner(id, `./bo-crm.html?id=${id}`);
       document.getElementById("back").href = `./bo.html?id=${id}`;
-      const root = document.getElementById("root");
-      const open = new URLSearchParams(location.search).get("mail");
-      function paint() {
-        const place = findPlace(id);
-        const pixel = placePixel(id);
-        const events = pixelLog(id);
-        const rows = placeCrmRows(id);
-        const selected = rows.find((row) => row.email === open);
-        root.innerHTML = `
-          <h2>CRM de ${place.name}</h2>
-          <p class="band-lead">Clientes que reservaron acá. El Pixel es un log: no se pega el script de Meta.</p>
-          <form id="pixel" class="review-form">
-            <label><input type="checkbox" name="on" ${pixel.enabled ? "checked" : ""} /> Pixel activo</label>
-            <label>Pixel ID <input name="pixelId" value="${pixel.pixelId || ""}" placeholder="1234567890" /></label>
-            <button class="btn btn-enamel" type="submit">Guardar Pixel</button>
-          </form>
-          <h3 class="ficha-sub">Eventos que se habrían disparado</h3>
-          ${
-            events.length
-              ? events
-                  .slice(0, 8)
-                  .map(
-                    (row) =>
-                      `<p class="meta">${row.event} · ${new Date(row.at).toLocaleString("es-AR")} · ${
-                        row.pixelId
-                      }</p>`,
-                  )
-                  .join("")
-              : "<p class=\"meta\">Todavía no hay eventos. Se disparan al reservar, pagar o concretar.</p>"
-          }
-          <h3 class="ficha-sub">Clientes</h3>
-          ${
-            rows.length
-              ? rows
-                  .map(
-                    (row) => `<article class="agenda-row">
-                      <div>
-                        <strong>${row.nombre}</strong>
-                        <p class="meta">${row.email} · ${row.visits} visitas · ${row.noShows} no-show · ${money(
-                          row.spent,
-                        )} · ${row.lastService || "—"} ${row.tag ? ` · ${row.tag}` : ""}</p>
-                        ${row.note ? `<p class="meta">${row.note}</p>` : ""}
-                      </div>
-                      <a class="btn-line" href="./bo-crm.html?id=${id}&mail=${encodeURIComponent(row.email)}">Ver</a>
-                    </article>`,
-                  )
-                  .join("")
-              : "<p class=\"meta\">Todavía no hay clientes.</p>"
-          }
-          ${
-            selected
-              ? `<section class="bo-panel">
-                  <h3 class="ficha-sub">${selected.nombre}</h3>
-                  <p class="meta">${selected.email}</p>
-                  <form id="note" class="review-form">
-                    <label>Tag <input name="tag" value="${selected.tag}" placeholder="VIP" /></label>
-                    <label>Nota <input name="note" value="${selected.note}" /></label>
-                    <button class="btn btn-ticket" type="submit">Guardar ficha</button>
-                  </form>
-                  ${selected.turnos
-                    .map(
-                      (turno) =>
-                        `<p class="meta">${turno.slot.replace("T", " ")} · ${turno.serviceName} · ${estadoLabel(
-                          turno.estado,
-                        )}</p>`,
-                    )
-                    .join("")}
-                </section>`
-              : ""
-          }
-        `;
-        document.getElementById("pixel").addEventListener("submit", (event) => {
-          event.preventDefault();
-          const data = new FormData(event.target);
-          savePlacePixel(id, {
-            enabled: data.get("on") === "on",
-            pixelId: String(data.get("pixelId") || "").trim(),
-          });
-          paint();
-        });
-        const note = document.getElementById("note");
-        if (note) {
-          note.addEventListener("submit", (event) => {
-            event.preventDefault();
-            const data = Object.fromEntries(new FormData(note));
-            saveCrmNote(id, selected.email, { tag: data.tag, note: data.note });
-            paint();
-          });
-        }
-      }
-      paint();
+      paintCrmPage(document.getElementById("root"), id);
     </script>
   </body>
 </html>

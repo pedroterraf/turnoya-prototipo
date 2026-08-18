@@ -890,7 +890,9 @@ function lastTurno() {
 }
 
 function userTurnos(email) {
-  return bookedSlots().filter((row) => row.email === email);
+  return bookedSlots()
+    .filter((row) => row.email === email && row.slot)
+    .sort((a, b) => String(b.slot).localeCompare(String(a.slot)));
 }
 
 function countdownLabel(slot) {
@@ -1047,11 +1049,11 @@ function nextOpenDay(placeId) {
 }
 
 function seedPlaceAgenda(placeId) {
-  if (placeTurnos(placeId).length) return;
   const place = findPlace(placeId);
   const day = nextOpenDay(placeId);
   const rows = bookedSlots();
-  rows.push(
+  const have = new Set(rows.map((row) => row.id));
+  const seeds = [
     {
       id: `ty-seed-${placeId}-1`,
       placeId,
@@ -1112,14 +1114,38 @@ function seedPlaceAgenda(placeId) {
       createdAt: Date.now(),
       estado: "confirmado",
     },
-  );
-  saveBooked(rows);
-  notifyUser(
-    "pedroterraf@gmail.com",
-    "Turno confirmado",
-    `Turno confirmado en ${place.name}: ${place.service} · ${slotKey(day, 10, 0).replace("T", " ")}. Seña ${money(3000)}.`,
-    { type: NotificationMetadataType.TURNO, turnoId: `ty-seed-${placeId}-1`, placeId },
-  );
+    {
+      id: `ty-seed-${placeId}-older`,
+      placeId,
+      placeName: place.name,
+      slug: place.slug,
+      serviceId: `${placeId}-main`,
+      serviceName: place.service,
+      minutes: 60,
+      price: 9000,
+      senia: 3000,
+      cobrado: 3000,
+      pagoEstado: "senia",
+      slot: slotKey(new Date(Date.now() - 9 * 86400000), 15, 0),
+      email: "pedroterraf@gmail.com",
+      nombre: "Pedro",
+      apellido: "Terraf",
+      dni: "30111222",
+      createdAt: Date.now() - 9 * 86400000,
+      estado: "concretado",
+    },
+  ];
+  const fresh = seeds.filter((row) => !have.has(row.id));
+  if (!fresh.length) return;
+  saveBooked([...rows, ...fresh]);
+  if (fresh.some((row) => row.id === `ty-seed-${placeId}-1`)) {
+    notifyUser(
+      "pedroterraf@gmail.com",
+      "Turno confirmado",
+      `Turno confirmado en ${place.name}: ${place.service} · ${slotKey(day, 10, 0).replace("T", " ")}. Seña ${money(3000)}.`,
+      { type: NotificationMetadataType.TURNO, turnoId: `ty-seed-${placeId}-1`, placeId },
+    );
+  }
 }
 
 function freeSlots(placeId, service, exceptId, from) {
@@ -1414,15 +1440,18 @@ function turnoCardHtml(turno) {
     turno.motivo === "arrepentimiento" ? " y seña a reintegrar por Mercado Pago." : "."
   }</p>`;
   if (turno.estado === "concretado") {
-    actions = canReviewTurno(turno, user)
-      ? `<form class="review-form" data-review="${turno.id}">
+    const review = typeof reviewForTurno === "function" ? reviewForTurno(turno.id) : null;
+    actions = review
+      ? lockedReviewHtml(review)
+      : canReviewTurno(turno, user)
+        ? `<form class="review-form" data-review="${turno.id}">
           ${starPickerHtml()}
           <div data-review-comment hidden>
             <label>Comentario <input name="text" required maxlength="160" /></label>
             <button class="btn btn-ticket" type="submit">Calificar</button>
           </div>
         </form>`
-      : `<p class="meta">Turno concretado.${alreadyReviewedTurno(turno.id) ? " Ya calificaste." : ""}</p>`;
+        : `<p class="meta">Turno concretado.</p>`;
   } else if (turno.estado === "no_show") {
     actions = `<p class="meta">No te presentaste. El horario se consumió.</p>`;
   } else if (turno.estado === "confirmado" && canRepent(turno)) {

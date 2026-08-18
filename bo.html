@@ -55,6 +55,7 @@
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/accounts.js"></script>
+    <script src="./assets/charts.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
@@ -90,6 +91,7 @@
             <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Olvidaron cobrar</span></div>
             <div class="ops-stat"><b>${metrics.facturas}</b><span class="meta">Facturas ARCA</span></div>
           </div>
+          ${placeChartBlocks(id)}
           <div class="bo-actions">
             <a class="btn btn-ticket" href="./bo-agenda.html?id=${id}">Crear turno ahora</a>
             <a class="btn btn-enamel" href="./bo-caja.html?id=${id}">Abrir caja</a>

@@ -21,6 +21,15 @@ const REVIEW_SEED = {
     { id: "o2", author: "Diego R.", stars: 4, text: "Muy bien, un poco de espera en recepción.", shownByBusiness: false },
     { id: "o3", author: "Ana P.", stars: 5, text: "Salí otra. Ya saqué el próximo turno.", shownByBusiness: true },
     { id: "o4", author: "Marcos T.", stars: 3, text: "Bien el servicio, el estacionamiento es un lío.", shownByBusiness: false },
+    {
+      id: "o-pedro",
+      turnoId: "ty-seed-oasis-older",
+      email: "pedroterraf@gmail.com",
+      author: "Pedro T.",
+      stars: 4.5,
+      text: "Muy bien el masaje. Vuelvo.",
+      shownByBusiness: true,
+    },
   ],
   norte: [
     { id: "n1", author: "Sofía G.", stars: 5, text: "La kinesióloga explicó todo. Volví a caminar al toque.", shownByBusiness: true },
@@ -67,12 +76,18 @@ const REVIEW_SEED = {
 };
 
 function loadReviewBook() {
+  const seed = JSON.parse(JSON.stringify(REVIEW_SEED));
   const raw = memoryGet("turnoya-reviews");
-  if (!raw) return JSON.parse(JSON.stringify(REVIEW_SEED));
+  if (!raw) return seed;
   try {
-    return JSON.parse(raw);
+    const stored = JSON.parse(raw);
+    Object.keys(seed).forEach((placeId) => {
+      const have = new Set((stored[placeId] || []).map((row) => row.id));
+      stored[placeId] = [...(stored[placeId] || []), ...seed[placeId].filter((row) => !have.has(row.id))];
+    });
+    return stored;
   } catch {
-    return JSON.parse(JSON.stringify(REVIEW_SEED));
+    return seed;
   }
 }
 
@@ -103,11 +118,39 @@ function reviewAuthor(user) {
   return `${user?.nombre || "Cliente"} ${last}.`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function reviewForTurno(turnoId) {
+  return (
+    Object.values(loadReviewBook())
+      .flat()
+      .filter(Boolean)
+      .find((review) => review.turnoId === turnoId) || null
+  );
+}
+
 function alreadyReviewedTurno(turnoId) {
-  return Object.values(loadReviewBook())
-    .flat()
-    .filter(Boolean)
-    .some((review) => review.turnoId === turnoId);
+  return Boolean(reviewForTurno(turnoId));
+}
+
+function lockedReviewHtml(review) {
+  const stars = Array.from({ length: STAR_MAX }, (_, i) => {
+    const index = i + 1;
+    return `<span class="star-pick" data-fill="${starFillOf(index, review.stars)}">
+      <span class="star-pick-glyph" aria-hidden="true">★</span>
+    </span>`;
+  }).join("");
+  return `<div class="star-picker is-locked">
+    <p class="meta">${starValueLabel(review.stars)} · ya calificaste</p>
+    <div class="star-picker-row" aria-hidden="true">${stars}</div>
+    ${review.text ? `<p class="review-locked-text">${escapeHtml(review.text)}</p>` : ""}
+  </div>`;
 }
 
 function canReviewTurno(turno, user) {
@@ -135,6 +178,9 @@ function addTurnoReview(turno, user, stars, text) {
   });
   book[turno.placeId] = list;
   saveReviewBook(book);
+  if (typeof trackPixel === "function") {
+    trackPixel(turno.placeId, "Rate", { turnoId: turno.id, stars });
+  }
   return true;
 }
 

@@ -95,6 +95,9 @@
         });
         holdSlot(readDraft());
         ensureDemoUser();
+        if (typeof trackPixel === "function") {
+          trackPixel(place.id, "InitiateCheckout", { serviceId: service.id, slot: key });
+        }
         location.href = `./datos.html?id=${place.id}`;
       }
 

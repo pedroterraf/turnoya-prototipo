@@ -16,5 +16,5 @@ function memoryRemove(key) {
 }
 
 if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  import("./assets/motion.js");
+  import("./motion.js");
 }

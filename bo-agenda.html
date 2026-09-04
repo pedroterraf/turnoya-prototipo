@@ -4,13 +4,13 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Agenda · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=agenda-v3" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span><span class="brand-aside">agenda</span></a>
       <nav class="topbar-nav">
@@ -19,6 +19,7 @@
       </nav>
     </header>
     <main class="band" id="root"></main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -29,6 +30,7 @@
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       const owner = requireOwner(id, `./bo-agenda.html?id=${id}`);
@@ -38,15 +40,21 @@
         logoutOwner();
         location.href = `./bo-login.html?id=${id}`;
       });
+
       seedPlaceAgenda(id);
       const place = findPlace(id);
       const root = document.getElementById("root");
       const year = new Date().getFullYear();
+      let activeTab = "calendar"; // "calendar" | "turnos" | "feriados"
       let week = 0;
-      let openId = null;
+      let openReprogId = null;
       let invoiceId = null;
       let walkMsg = "";
       let importMsg = "";
+      let isWalkModalOpen = false;
+      let turnosSearch = "";
+      let turnosFilter = "all";
+
       const services = placeServices(place);
 
       function serviceOf(turno) {
@@ -64,20 +72,18 @@
         return from;
       }
 
-      function hoursLine() {
+      function hoursSummary() {
         return [1, 2, 3, 4, 5, 6, 0]
           .map((d) => {
             const labels = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
             const config = dayConfig(id, d);
-            return config.open
-              ? `${labels[d]} ${pad(config.start)}–${pad(config.end)}`
-              : `${labels[d]} cerrado`;
+            return config.open ? `${labels[d]} ${pad(config.start)}–${pad(config.end)}` : `${labels[d]} cerrado`;
           })
           .join(" · ");
       }
 
       async function importHolidays() {
-        importMsg = "Importando…";
+        importMsg = "Importando feriados oficiales…";
         paint();
         const rows = await fetchArgentinaHolidays(year);
         if (!rows.length) {
@@ -86,267 +92,487 @@
           return;
         }
         mergeImportedHolidays(id, rows);
-        importMsg = `Listos ${rows.length} feriados de ${year} (ArgentinaDatos). Dejá los que cierran el local; sacá los que abrís igual.`;
+        importMsg = `Se importaron ${rows.length} feriados de ${year}.`;
         paint();
       }
 
       function paint() {
         const days = weekDays(weekFrom());
-        const list = placeTurnos(id);
+        const turnosList = placeTurnos(id);
         const holidays = placeHolidays(id);
         const range = placeHourRange(id);
+        const waitlist = waitlistRows(id);
+
+        const filteredTurnos = turnosList.filter((t) => {
+          if (turnosFilter !== "all" && t.estado !== turnosFilter) return false;
+          if (turnosSearch) {
+            const q = turnosSearch.toLowerCase();
+            const clientMatch = `${t.nombre || ""} ${t.apellido || ""}`.toLowerCase().includes(q);
+            const svcMatch = String(t.serviceName || "").toLowerCase().includes(q);
+            const slotMatch = String(t.slot || "").toLowerCase().includes(q);
+            if (!clientMatch && !svcMatch && !slotMatch) return false;
+          }
+          return true;
+        });
+
         root.innerHTML = `
-          <p class="meta">${owner.email} · ${place.name}</p>
-          <h2>Agenda</h2>
-          <p class="band-lead">Clickeá un hueco o un turno que se pisa para asignar otro arriba. Los que no se pisan tapan el horario.</p>
-          <p class="meta">${hoursLine()} · <a href="./bo-pagos.html?id=${id}">Editar horarios</a> · <a href="./bo-caja.html?id=${id}">Caja y ARCA</a></p>
-          <form id="walk" class="review-form wide-form">
-            <p class="ficha-sub">Turno de mostrador</p>
-            <label>Servicio
-              <select name="serviceId">
-                ${services.map((row) => `<option value="${row.id}">${row.name} · ${row.minutes} min</option>`).join("")}
-              </select>
-            </label>
-            <label>Horario <input name="when" type="datetime-local" /></label>
-            <label>Nombre <input name="nombre" placeholder="Ana" /></label>
-            <label>Apellido <input name="apellido" placeholder="López" /></label>
-            <label>Celular <input name="celular" placeholder="351..." /></label>
-            <label>Cobro
-              <select name="pago">
-                <option value="senia">Seña / mínimo</option>
-                <option value="completo">Pagó todo</option>
-                <option value="sin_pago">Todavía no cobré</option>
-              </select>
-            </label>
-            <button class="btn btn-ticket" type="submit">Crear turno ahora</button>
-            <p class="meta">${walkMsg}</p>
-          </form>
-          <nav class="week-nav">
+          <div class="agenda-shell">
+            <div class="agenda-header">
+              <div class="agenda-header-info">
+                <h2>Agenda · ${place.name}</h2>
+                <p class="meta" style="margin: 0;">
+                  ${hoursSummary()} · <a href="./bo-pagos.html?id=${id}">Editar horarios</a> · <a href="./bo-caja.html?id=${id}">Caja y ARCA</a>
+                </p>
+              </div>
+              <div class="agenda-header-actions">
+                <button class="btn btn-ticket" type="button" id="btn-open-walk">
+                  + Turno de mostrador
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabs de navegación -->
+            <div class="agenda-tabs-bar">
+              <div class="agenda-tabs">
+                <button class="agenda-tab-btn ${activeTab === "calendar" ? "is-active" : ""}" type="button" data-tab="calendar">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  <span>Calendario semanal</span>
+                </button>
+                <button class="agenda-tab-btn ${activeTab === "turnos" ? "is-active" : ""}" type="button" data-tab="turnos">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span>Lista de turnos</span>
+                  <span class="agenda-tab-badge">${turnosList.length}</span>
+                </button>
+                <button class="agenda-tab-btn ${activeTab === "feriados" ? "is-active" : ""}" type="button" data-tab="feriados">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                  <span>Feriados (${holidays.length})</span>
+                </button>
+              </div>
+
+              ${
+                waitlist.length
+                  ? `<div class="meta" style="font-size:0.8rem; background:#fffbeb; border:1px solid #fef08a; padding:4px 10px; border-radius:999px; color:#92400e;">
+                      Lista espera: <strong>${waitlist.length}</strong>
+                    </div>`
+                  : ""
+              }
+            </div>
+
+            <!-- CONTENIDO TAB 1: CALENDARIO SEMANAL -->
+            <div id="tab-calendar" style="display: ${activeTab === "calendar" ? "block" : "none"};">
+              <nav class="week-nav">
+                ${
+                  week > 0
+                    ? `<button class="week-nav-btn" type="button" data-week="${week - 1}">← Anterior</button>`
+                    : `<span class="week-nav-btn is-off">← Anterior</span>`
+                }
+                <p class="week-nav-label" style="font-weight:700;">
+                  ${days[0].toLocaleDateString("es-AR", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                </p>
+                ${
+                  week < 8
+                    ? `<button class="week-nav-btn" type="button" data-week="${week + 1}">Siguiente →</button>`
+                    : `<span class="week-nav-btn is-off">Siguiente →</span>`
+                }
+              </nav>
+
+              <div class="cal-wrap">
+                ${renderTimeGrid({ place, days, hourRange: range, view: "owner" })}
+              </div>
+
+              <div class="tg-legend">
+                <span><i class="is-owner"></i> Turno (exclusivo)</span>
+                <span><i class="is-buffer"></i> Margen</span>
+                <span><i class="is-owner-overlap"></i> Se pisa (click para agregar)</span>
+                <span><i class="is-hold"></i> Hold 15 min</span>
+                <span><i class="is-holiday"></i> Feriado cerrado</span>
+                <span><i class="is-off"></i> Cerrado</span>
+              </div>
+            </div>
+
+            <!-- CONTENIDO TAB 2: LISTA DE TURNOS -->
+            <div id="tab-turnos" style="display: ${activeTab === "turnos" ? "block" : "none"};">
+              <div class="agenda-turnos-toolbar">
+                <div class="caja-search-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="search-turnos" placeholder="Buscar por cliente o servicio..." value="${turnosSearch}" />
+                </div>
+                <div class="caja-tabs-filter">
+                  <button class="caja-tab-btn ${turnosFilter === "all" ? "is-active" : ""}" data-tfilter="all" type="button">Todos</button>
+                  <button class="caja-tab-btn ${turnosFilter === "confirmado" ? "is-active" : ""}" data-tfilter="confirmado" type="button">Confirmados</button>
+                  <button class="caja-tab-btn ${turnosFilter === "concretado" ? "is-active" : ""}" data-tfilter="concretado" type="button">Concretados</button>
+                  <button class="caja-tab-btn ${turnosFilter === "no_show" ? "is-active" : ""}" data-tfilter="no_show" type="button">No vino</button>
+                  <button class="caja-tab-btn ${turnosFilter === "cancelado" ? "is-active" : ""}" data-tfilter="cancelado" type="button">Cancelados</button>
+                </div>
+              </div>
+
+              ${
+                filteredTurnos.length
+                  ? filteredTurnos
+                      .map((turno) => {
+                        const slots = openReprogId === turno.id ? freeSlots(id, serviceOf(turno), turno.id) : [];
+                        const inv = invoiceOfTurno(id, turno.id);
+                        return `
+                          <article class="agenda-card" id="turno-${turno.id}">
+                            <div class="agenda-card-top">
+                              <span class="agenda-card-slot">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                ${turno.slot.replace("T", " ")} hs
+                              </span>
+                              <span class="caja-badge is-${turno.estado}">
+                                ${estadoLabel(turno.estado)} ${turno.origen === "mostrador" ? "· Mostrador" : ""}
+                              </span>
+                            </div>
+
+                            <h4 class="agenda-card-title">${turno.nombre} ${turno.apellido} · <span style="font-weight:500; color:var(--ink-soft);">${turno.serviceName}</span></h4>
+
+                            <div class="agenda-card-details">
+                              <span><strong>Cobro:</strong> ${pagoLabel(turno)}</span>
+                              <span><strong>Teléfono:</strong> ${turno.celular || "Sin celular"}</span>
+                              <span><strong>Email:</strong> ${turno.email || "—"}</span>
+                              ${inv ? `<span><strong style="color:var(--enamel);">Factura ${inv.letter}:</strong> CAE ${inv.cae}</span>` : ""}
+                            </div>
+
+                            <div class="agenda-card-actions">
+                              ${
+                                turno.estado === "confirmado"
+                                  ? `<button class="btn btn-ticket" type="button" data-estado="concretado" data-id="${turno.id}">✓ Concretó</button>
+                                     <button class="btn btn-enamel" type="button" data-estado="no_show" data-id="${turno.id}">No vino</button>
+                                     <button class="btn btn-ghost" type="button" data-estado="cancelado" data-id="${turno.id}" style="color:var(--danger);">Cancelar</button>
+                                     <button class="btn btn-ghost" type="button" data-reprog="${turno.id}">Reprogramar</button>`
+                                  : ""
+                              }
+                              ${
+                                turno.estado !== "cancelado" && turnoSaldo(turno) > 0
+                                  ? `<button class="btn btn-ticket" type="button" data-charge="completo" data-id="${turno.id}">Cobrar resto (${money(turnoSaldo(turno))})</button>
+                                     <button class="btn btn-ghost" type="button" data-charge="olvidado" data-id="${turno.id}">Se olvidó de cobrar</button>`
+                                  : ""
+                              }
+                            </div>
+
+                            ${
+                              invoiceId === turno.id
+                                ? `<form class="review-form" data-factura="${turno.id}" style="margin-top:16px; padding:16px; background:#f8faf9; border-radius:8px; border:1px solid #e2ece6;">
+                                    <h5 style="margin:0 0 10px;">Emitir factura ARCA para ${turno.nombre}</h5>
+                                    <label>Para
+                                      <select name="destinatario">
+                                        <option value="cf">Consumidor final (Factura B o C)</option>
+                                        <option value="cuit">Responsable inscripto con CUIT (Factura A)</option>
+                                      </select>
+                                    </label>
+                                    <label>Nombre o Razón social <input name="nombre" value="${turno.nombre || ""} ${turno.apellido || ""}" /></label>
+                                    <label>DNI / Documento <input name="doc" value="${turno.dni || ""}" /></label>
+                                    <label>CUIT <input name="cuit" placeholder="20-12345678-3" /></label>
+                                    <label>Importe ($) <input name="amount" type="number" value="${turnoCobrado(turno) || turno.price || 0}" /></label>
+                                    <div style="display:flex; gap:8px; margin-top:8px;">
+                                      <button class="btn btn-ticket" type="submit">Emitir factura ahora</button>
+                                      <button class="btn btn-ghost" type="button" id="cancel-invoice">Cancelar</button>
+                                    </div>
+                                  </form>`
+                                : ""
+                            }
+
+                            ${
+                              slots.length
+                                ? `<div class="reprog-list" style="margin-top:14px; padding:12px; background:#f8faf9; border-radius:8px;">
+                                    <strong style="font-size:0.85rem; display:block; margin-bottom:8px;">Elegí un nuevo horario libre:</strong>
+                                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                                      ${slots.map((s) => `<button class="chip" type="button" data-move="${turno.id}" data-slot="${s}">${s.replace("T", " ")}</button>`).join("")}
+                                    </div>
+                                  </div>`
+                                : openReprogId === turno.id
+                                  ? `<p class="meta" style="margin-top:10px;">No hay otros horarios libres disponibles en esta semana.</p>`
+                                  : ""
+                            }
+                          </article>
+                        `;
+                      })
+                      .join("")
+                  : `<p class="meta" style="text-align:center; padding:36px; background:#fafbfa; border:1px dashed var(--line); border-radius:10px;">
+                      No se encontraron turnos con los filtros actuales.
+                    </p>`
+              }
+            </div>
+
+            <!-- CONTENIDO TAB 3: FERIADOS -->
+            <div id="tab-feriados" style="display: ${activeTab === "feriados" ? "block" : "none"};">
+              <div class="caja-panel" style="margin-bottom:0;">
+                <div class="caja-panel-head">
+                  <div>
+                    <h3>Feriados argentinos ${year}</h3>
+                    <p class="meta" style="margin:4px 0 0;">Configurá los feriados en los que el local permanecerá cerrado o abrirá normalmente.</p>
+                  </div>
+                  <button class="btn btn-ticket" type="button" id="import-h">
+                    Importar feriados oficiales ${year}
+                  </button>
+                </div>
+                ${importMsg ? `<p class="meta" style="color:var(--enamel); font-weight:600; margin-bottom:14px;">${importMsg}</p>` : ""}
+
+                ${
+                  holidays.length
+                    ? `<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:12px;">
+                        ${holidays
+                          .map(
+                            (h) => `
+                              <div style="border:1px solid var(--line); padding:14px; border-radius:8px; display:flex; flex-direction:column; justify-content:space-between; background:${h.active !== false ? "#fff" : "#fafafa"};">
+                                <div>
+                                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                                    <strong>${h.date}</strong>
+                                    <span class="caja-badge" style="background:${h.active !== false ? "#fee2e2" : "#f3f4f6"}; color:${h.active !== false ? "#991b1b" : "#6b7280"};">
+                                      ${h.active !== false ? "Cerrado" : "Abierto"}
+                                    </span>
+                                  </div>
+                                  <p class="meta" style="margin:0 0 10px;">${h.name} · ${h.tipo || "feriado"}</p>
+                                </div>
+                                <div style="display:flex; gap:8px;">
+                                  <button class="btn ${h.active !== false ? "btn-enamel" : "btn-ticket"}" style="flex:1; font-size:0.8rem; min-height:32px; padding:4px 8px;" type="button" data-keep="${h.id}">
+                                    ${h.active !== false ? "Abrir ese día" : "Cerrar local"}
+                                  </button>
+                                  <button class="btn btn-ghost" style="font-size:0.8rem; min-height:32px; padding:4px 8px;" type="button" data-drop="${h.id}">
+                                    Sacar
+                                  </button>
+                                </div>
+                              </div>
+                            `,
+                          )
+                          .join("")}
+                      </div>`
+                    : `<p class="meta" style="text-align:center; padding:28px; background:#fafbfa; border:1px dashed var(--line); border-radius:8px;">
+                        Todavía no importaste feriados. Hacé click en el botón de arriba para sincronizar el calendario oficial argentino.
+                      </p>`
+                }
+              </div>
+            </div>
+
+            <!-- MODAL: TURNO DE MOSTRADOR -->
             ${
-              week > 0
-                ? `<button class="week-nav-btn" type="button" data-week="${week - 1}">Anterior</button>`
-                : `<span class="week-nav-btn is-off">Anterior</span>`
-            }
-            <p class="week-nav-label">${days[0].toLocaleDateString("es-AR", {
-              day: "numeric",
-              month: "short",
-            })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</p>
-            ${
-              week < 8
-                ? `<button class="week-nav-btn" type="button" data-week="${week + 1}">Siguiente</button>`
-                : `<span class="week-nav-btn is-off">Siguiente</span>`
-            }
-          </nav>
-          <div class="cal-wrap">
-            ${renderTimeGrid({ place, days, hourRange: range, view: "owner" })}
-          </div>
-          <div class="tg-legend">
-            <span><i class="is-owner"></i> Turno · no se pisa</span>
-            <span><i class="is-buffer"></i> Margen</span>
-            <span><i class="is-owner-overlap"></i> Se pisa · clickeá para asignar arriba</span>
-            <span><i class="is-hold"></i> Hold 15 min</span>
-            <span><i class="is-holiday"></i> Feriado (cerrado)</span>
-            <span><i class="is-off"></i> Fuera de horario</span>
-          </div>
-          <section class="holiday-box">
-            <h3 class="ficha-sub">Feriados</h3>
-            <p class="meta">Fuente: <a href="https://argentinadatos.com/docs/operations/get-feriados">ArgentinaDatos · feriados ${year}</a>. Si la API no responde, usamos el listado 2026 cacheado.</p>
-            <button class="btn btn-ticket" type="button" id="import-h">Importar feriados argentinos ${year}</button>
-            <p class="meta" id="import-msg">${importMsg}</p>
-            ${
-              holidays.length
-                ? holidays
-                    .map(
-                      (row) => `<article class="agenda-row">
-                        <div>
-                          <strong>${row.date}</strong>
-                          <p class="meta">${row.name} · ${row.tipo || "feriado"}</p>
+              isWalkModalOpen
+                ? `
+                <div class="agenda-modal-backdrop" id="walk-backdrop">
+                  <div class="agenda-modal">
+                    <div class="agenda-modal-head">
+                      <h3>Nuevo turno de mostrador</h3>
+                      <button class="agenda-modal-close" type="button" id="close-walk">✕</button>
+                    </div>
+                    <div class="agenda-modal-body">
+                      <p class="meta" style="margin:0 0 16px;">Cargá un cliente atendido personalmente o por llamada para bloquear el horario en la agenda.</p>
+                      
+                      <form id="walk-form" class="review-form">
+                        <label>Servicio *
+                          <select name="serviceId">
+                            ${services.map((row) => `<option value="${row.id}">${row.name} · ${row.minutes} min · $${row.price}</option>`).join("")}
+                          </select>
+                        </label>
+
+                        <label>Fecha y horario *
+                          <input name="when" type="datetime-local" id="walk-when" required />
+                        </label>
+
+                        <div class="grid-2col">
+                          <label>Nombre del cliente *
+                            <input name="nombre" placeholder="Ej. Ana" required autocomplete="off" />
+                          </label>
+                          <label>Apellido
+                            <input name="apellido" placeholder="Ej. López" autocomplete="off" />
+                          </label>
                         </div>
-                        <div class="agenda-actions">
-                          <button class="btn ${row.active !== false ? "btn-enamel" : "btn-ticket"}" type="button" data-keep="${row.id}">${
-                            row.active !== false ? "Abrir ese día" : "Dejar (cierra)"
-                          }</button>
-                          <button class="btn btn-ghost" type="button" data-drop="${row.id}">Sacar</button>
+
+                        <div class="grid-2col">
+                          <label>Celular (WhatsApp)
+                            <input name="celular" placeholder="Ej. 351..." autocomplete="off" />
+                          </label>
+                          <label>Condición de cobro
+                            <select name="pago">
+                              <option value="senia">Cobró seña mínima</option>
+                              <option value="completo">Pagó total</option>
+                              <option value="sin_pago">Aún no pagó</option>
+                            </select>
+                          </label>
                         </div>
-                      </article>`,
-                    )
-                    .join("")
-                : "<p class=\"meta\">Todavía no importaste feriados. El local sigue el horario de lunes a viernes.</p>"
+
+                        ${walkMsg ? `<p class="meta" style="color:var(--enamel); font-weight:700; margin-top:8px;">${walkMsg}</p>` : ""}
+
+                        <div style="display:flex; gap:10px; margin-top:20px;">
+                          <button class="btn btn-ticket" type="submit" style="flex:1;">
+                            Confirmar y agendar turno
+                          </button>
+                          <button class="btn btn-ghost" type="button" id="btn-cancel-walk">
+                            Cancelar
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              `
+                : ""
             }
-          </section>
-          <h3 class="ficha-sub">Turnos</h3>
-          ${
-            waitlistRows(id).length
-              ? `<p class="meta">Lista de espera: ${waitlistRows(id)
-                  .map((row) => row.nombre || row.email)
-                  .join(" · ")}</p>`
-              : ""
-          }
-          ${
-            list.length
-              ? list
-                  .map((turno) => {
-                    const slots = openId === turno.id ? freeSlots(id, serviceOf(turno), turno.id) : [];
-                    return `<article class="agenda-row${openId === turno.id ? " is-open" : ""}" id="turno-${turno.id}">
-                      <div>
-                        <strong>${turno.slot.replace("T", " ")}</strong>
-                        <p class="meta">${turno.nombre} ${turno.apellido} · ${turno.serviceName} · ${pagoLabel(turno)}</p>
-                        <p class="meta">${clientTrust(turno.email).label} · ${estadoLabel(turno.estado)}${turno.origen === "mostrador" ? " · mostrador" : ""}</p>
-                        ${
-                          invoiceOfTurno(id, turno.id)
-                            ? `<p class="meta">Factura ${invoiceOfTurno(id, turno.id).letter} · CAE ${invoiceOfTurno(id, turno.id).cae}</p>`
-                            : ""
-                        }
-                      </div>
-                      <div class="agenda-actions">
-                        ${
-                          turno.estado === "confirmado"
-                            ? `<button class="btn btn-ticket" type="button" data-estado="concretado" data-id="${turno.id}">Concretó</button>
-                               <button class="btn btn-enamel" type="button" data-estado="no_show" data-id="${turno.id}">No vino</button>
-                               <button class="btn btn-ghost" type="button" data-estado="cancelado" data-id="${turno.id}">Cancelar</button>
-                               <button class="btn btn-ghost" type="button" data-reprog="${turno.id}">Reprogramar</button>`
-                            : ""
-                        }
-                        ${
-                          turno.estado !== "cancelado" && turnoSaldo(turno) > 0
-                            ? `<button class="btn btn-ticket" type="button" data-charge="completo" data-id="${turno.id}">Cobraron el resto</button>
-                               <button class="btn btn-ghost" type="button" data-charge="olvidado" data-id="${turno.id}">Se olvidaron de cobrar</button>`
-                            : ""
-                        }
-                        ${
-                          turno.estado !== "cancelado"
-                            ? `<button class="btn btn-enamel" type="button" data-invoice="${turno.id}">Facturar ARCA</button>`
-                            : ""
-                        }
-                        ${
-                          invoiceId === turno.id
-                            ? `<form class="review-form" data-factura="${turno.id}">
-                                <label>Para
-                                  <select name="destinatario">
-                                    <option value="cf">Consumidor final</option>
-                                    <option value="cuit">CUIT / persona</option>
-                                  </select>
-                                </label>
-                                <label>Nombre o razón social <input name="nombre" value="${turno.nombre || ""} ${turno.apellido || ""}" /></label>
-                                <label>DNI (CF) <input name="doc" value="${turno.dni || ""}" /></label>
-                                <label>CUIT <input name="cuit" placeholder="20-12345678-3" /></label>
-                                <label>Importe <input name="amount" type="number" value="${turnoCobrado(turno) || turno.price || 0}" /></label>
-                                <button class="btn btn-ticket" type="submit">Emitir</button>
-                              </form>`
-                            : ""
-                        }
-                        ${
-                          slots.length
-                            ? `<div class="reprog-list">${slots
-                                .map(
-                                  (slot) =>
-                                    `<button class="chip" type="button" data-move="${turno.id}" data-slot="${slot}">${slot.replace("T", " ")}</button>`,
-                                )
-                                .join("")}</div>`
-                            : openId === turno.id
-                              ? `<p class="meta">No hay otro horario libre en estos 7 días.</p>`
-                              : ""
-                        }
-                      </div>
-                    </article>`;
-                  })
-                  .join("")
-              : "<p class=\"meta\">No hay turnos. Cuando un cliente reserve, aparecen acá.</p>"
-          }
+          </div>
         `;
-        bindTimeGrid(root, {
-          place,
-          hourRange: range,
-          days,
-          view: "owner",
-          getService: () =>
-            services.find((row) => row.id === document.querySelector("#walk [name='serviceId']")?.value) ||
-            services[0],
-          onPick: (key) => {
-            const when = document.querySelector("#walk [name='when']");
-            const hint = document.querySelector("#walk .meta");
-            if (when) when.value = key;
-            if (hint) hint.textContent = `Horario ${key.replace("T", " ")}. Completá el cliente y creá el turno.`;
-          },
-          onBlocked: (text) => {
-            const hint = document.querySelector("#walk .meta");
-            if (hint) hint.textContent = text;
-          },
-          onEvent: (eventId) => {
-            const node = document.getElementById(`turno-${eventId}`);
-            if (node) node.scrollIntoView({ behavior: "smooth", block: "center" });
-          },
-        });
-        const walk = document.getElementById("walk");
-        const now = new Date();
-        const snap = now.getMinutes() < 30 ? 0 : 30;
-        walk.when.value = `${dayKey(now)}T${pad(now.getHours())}:${pad(snap)}`;
-        walk.addEventListener("submit", (event) => {
-          event.preventDefault();
-          const data = Object.fromEntries(new FormData(walk));
-          const raw = String(data.when || "");
-          const [date, time] = raw.split("T");
-          if (!date || !time) {
-            walkMsg = "Elegí fecha y hora.";
+
+        // Interacción de Grilla Semanal
+        if (activeTab === "calendar") {
+          bindTimeGrid(root, {
+            place,
+            hourRange: range,
+            days,
+            view: "owner",
+            getService: () => services[0],
+            onPick: (key) => {
+              isWalkModalOpen = true;
+              paint();
+              const whenInput = document.getElementById("walk-when");
+              if (whenInput) whenInput.value = key;
+            },
+            onBlocked: (text) => {
+              alert(text);
+            },
+            onEvent: (eventId) => {
+              activeTab = "turnos";
+              paint();
+              setTimeout(() => {
+                const node = document.getElementById(`turno-${eventId}`);
+                if (node) {
+                  node.scrollIntoView({ behavior: "smooth", block: "center" });
+                  node.style.borderColor = "var(--enamel)";
+                }
+              }, 60);
+            },
+          });
+        }
+
+        // Eventos de Pestañas
+        root.querySelectorAll("[data-tab]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activeTab = btn.dataset.tab;
             paint();
-            return;
-          }
-          const [hour, minute] = time.split(":").map(Number);
-          const slot = slotKey(new Date(`${date}T00:00:00`), hour, minute < 30 ? 0 : 30);
-          const created = createWalkIn(place, { ...data, slot });
-          walkMsg = created
-            ? `Turno creado · ${created.slot.replace("T", " ")}. Ya está en la grilla.`
-            : "Ese horario no entra: feriado, cerrado o ocupado.";
+          });
+        });
+
+        // Eventos de Semana
+        root.querySelectorAll("[data-week]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            week = Number(btn.dataset.week);
+            paint();
+          });
+        });
+
+        // Modal de Mostrador
+        const btnOpenWalk = document.getElementById("btn-open-walk");
+        if (btnOpenWalk) {
+          btnOpenWalk.addEventListener("click", () => {
+            isWalkModalOpen = true;
+            walkMsg = "";
+            paint();
+            const now = new Date();
+            const snap = now.getMinutes() < 30 ? 0 : 30;
+            const whenInput = document.getElementById("walk-when");
+            if (whenInput) {
+              whenInput.value = `${dayKey(now)}T${pad(now.getHours())}:${pad(snap)}`;
+            }
+          });
+        }
+
+        const closeWalk = () => {
+          isWalkModalOpen = false;
           paint();
-        });
-        document.getElementById("import-h").addEventListener("click", importHolidays);
-        root.querySelectorAll("[data-week]").forEach((button) => {
-          button.addEventListener("click", () => {
-            week = Number(button.dataset.week);
-            paint();
+        };
+
+        const btnCloseWalk = document.getElementById("close-walk");
+        if (btnCloseWalk) btnCloseWalk.addEventListener("click", closeWalk);
+        const btnCancelWalk = document.getElementById("btn-cancel-walk");
+        if (btnCancelWalk) btnCancelWalk.addEventListener("click", closeWalk);
+
+        const walkBackdrop = document.getElementById("walk-backdrop");
+        if (walkBackdrop) {
+          walkBackdrop.addEventListener("click", (e) => {
+            if (e.target === walkBackdrop) closeWalk();
           });
-        });
-        root.querySelectorAll("[data-keep]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const row = holidays.find((item) => item.id === button.dataset.keep);
-            setHolidayActive(id, button.dataset.keep, row?.active === false);
-            paint();
+        }
+
+        const walkForm = document.getElementById("walk-form");
+        if (walkForm) {
+          walkForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(walkForm));
+            const raw = String(data.when || "");
+            const [date, time] = raw.split("T");
+            if (!date || !time) {
+              walkMsg = "Elegí fecha y hora.";
+              paint();
+              return;
+            }
+            const [hour, minute] = time.split(":").map(Number);
+            const slot = slotKey(new Date(`${date}T00:00:00`), hour, minute < 30 ? 0 : 30);
+            const created = createWalkIn(place, { ...data, slot });
+            if (created) {
+              isWalkModalOpen = false;
+              walkMsg = "";
+              paint();
+            } else {
+              walkMsg = "Ese horario no está disponible: feriado, cerrado o superposición.";
+              paint();
+            }
           });
-        });
-        root.querySelectorAll("[data-drop]").forEach((button) => {
-          button.addEventListener("click", () => {
-            removeHoliday(id, button.dataset.drop);
-            paint();
-          });
-        });
-        root.querySelectorAll("[data-estado]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const estado = button.dataset.estado;
-            patchTurno(button.dataset.id, {
+        }
+
+        // Acciones en Turnos
+        root.querySelectorAll("[data-estado]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const estado = btn.dataset.estado;
+            patchTurno(btn.dataset.id, {
               estado,
               motivo: estado === "cancelado" ? "local" : estado,
             });
-            notifyTurnoChange(button.dataset.id, estado);
+            notifyTurnoChange(btn.dataset.id, estado);
             paint();
           });
         });
-        root.querySelectorAll("[data-charge]").forEach((button) => {
-          button.addEventListener("click", () => {
-            markTurnoCharge(button.dataset.id, button.dataset.charge);
+
+        root.querySelectorAll("[data-charge]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            markTurnoCharge(btn.dataset.id, btn.dataset.charge);
             paint();
           });
         });
-        root.querySelectorAll("[data-invoice]").forEach((button) => {
-          button.addEventListener("click", () => {
-            invoiceId = button.dataset.invoice;
+
+        root.querySelectorAll("[data-reprog]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            openReprogId = openReprogId === btn.dataset.reprog ? null : btn.dataset.reprog;
             paint();
           });
         });
+
+        root.querySelectorAll("[data-move]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const turnoId = btn.dataset.move;
+            const newSlot = btn.dataset.slot;
+            patchTurno(turnoId, { slot: newSlot });
+            openReprogId = null;
+            paint();
+          });
+        });
+
+        root.querySelectorAll("[data-invoice]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            invoiceId = invoiceId === btn.dataset.invoice ? null : btn.dataset.invoice;
+            paint();
+          });
+        });
+
+        const cancelInvoice = document.getElementById("cancel-invoice");
+        if (cancelInvoice) {
+          cancelInvoice.addEventListener("click", () => {
+            invoiceId = null;
+            paint();
+          });
+        }
+
         root.querySelectorAll("[data-factura]").forEach((form) => {
-          form.addEventListener("submit", (event) => {
-            event.preventDefault();
+          form.addEventListener("submit", (e) => {
+            e.preventDefault();
             if (!placeArca(id).connected) {
-              walkMsg = "Conectá ARCA en Caja antes de facturar.";
+              alert("Primero conectá ARCA en la sección de Caja antes de emitir facturas.");
               invoiceId = null;
               paint();
               return;
@@ -358,20 +584,52 @@
             paint();
           });
         });
-        root.querySelectorAll("[data-reprog]").forEach((button) => {
-          button.addEventListener("click", () => {
-            openId = button.dataset.reprog;
+
+        // Buscador y Filtros de Turnos
+        const searchInput = document.getElementById("search-turnos");
+        if (searchInput) {
+          searchInput.addEventListener("input", (e) => {
+            turnosSearch = e.target.value;
+            paint();
+            const reInput = document.getElementById("search-turnos");
+            if (reInput) {
+              reInput.focus();
+              reInput.setSelectionRange(reInput.value.length, reInput.value.length);
+            }
+          });
+        }
+
+        root.querySelectorAll("[data-tfilter]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            turnosFilter = btn.dataset.tfilter;
             paint();
           });
         });
-        root.querySelectorAll("[data-move]").forEach((button) => {
-          button.addEventListener("click", () => {
-            reprogramTurno(button.dataset.move, button.dataset.slot, true);
-            openId = null;
+
+        // Feriados
+        const btnImportH = document.getElementById("import-h");
+        if (btnImportH) btnImportH.addEventListener("click", importHolidays);
+
+        root.querySelectorAll("[data-keep]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const row = holidays.find((item) => item.id === btn.dataset.keep);
+            setHolidayActive(id, btn.dataset.keep, row?.active === false);
             paint();
           });
         });
+
+        root.querySelectorAll("[data-drop]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            removeHoliday(id, btn.dataset.drop);
+            paint();
+          });
+        });
+
+        if (typeof initCustomSelects === "function") {
+          initCustomSelects();
+        }
       }
+
       paint();
     </script>
   </body>

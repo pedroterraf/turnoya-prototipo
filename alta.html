@@ -21,7 +21,7 @@
       <div class="auth-card wide">
       <p class="meta">Alta del negocio</p>
       <h1>Tu local en el mapa</h1>
-      <p class="band-lead">Ops revisa el alta. Mientras tanto podés armar el backoffice; el pin no se publica hasta que aprueben.</p>
+      <p class="band-lead" id="intro-lead">Administración revisa el alta. Mientras tanto podés armar el backoffice; el pin no se publica hasta que aprueben.</p>
       <form id="form" class="review-form">
         <label>Nombre del negocio <input name="nombre" required placeholder="Oasis MultiSpa" /></label>
         <label>Ciudad
@@ -106,14 +106,21 @@
         saveExtraPlace(place);
         savePaymentRule(place.id, { ...paymentRule(place.id), mpConnected: false });
         rememberOwned(place.id);
+        event.target.reset();
         event.target.hidden = true;
+        event.target.style.display = "none";
+        const introLead = document.getElementById("intro-lead");
+        if (introLead) introLead.hidden = true;
         const done = document.getElementById("done");
         done.hidden = false;
+        done.style.display = "block";
         done.innerHTML = `
           <h2>Alta enviada</h2>
-          <p class="band-lead">turnoya.com/${place.slug} queda en revisión. No aparece en el mapa hasta que Ops apruebe.</p>
-          <a class="btn btn-enamel" href="./bo-login.html?id=${place.id}">Armar el backoffice</a>
-          <a class="btn btn-ghost" href="./ops-login.html?next=${encodeURIComponent(`./ops-altas.html`)}">Ver la cola de Ops</a>
+          <p class="band-lead">turnoya.com/${place.slug} queda en revisión. No aparece en el mapa hasta que Administración apruebe.</p>
+          <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
+            <a class="btn btn-enamel" href="./bo-login.html?id=${place.id}">Armar el backoffice</a>
+            <a class="btn btn-ghost" href="./ops-login.html?next=${encodeURIComponent(`./ops-altas.html`)}">Ver la cola de administración</a>
+          </div>
         `;
       });
     </script>

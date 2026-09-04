@@ -31,6 +31,7 @@
           <div class="otp" role="group" aria-label="Código de 6 dígitos"></div>
           <input type="hidden" name="code" />
           <button class="btn btn-ticket" type="submit">Verificar</button>
+          <button class="btn-link" id="change-email" type="button" style="background:none;border:none;color:var(--enamel);text-decoration:underline;cursor:pointer;font-size:0.85rem;padding:6px 0;text-align:left;">← Cambiar email</button>
           <p id="otp-msg" class="meta"></p>
         </form>
       </div>
@@ -59,6 +60,11 @@
         document.getElementById("otp-form").hidden = false;
         document.getElementById("otp-hint").textContent = `Código enviado a ${email}. Pegalo o escribilo.`;
         otp.focus();
+      });
+      document.getElementById("change-email")?.addEventListener("click", () => {
+        document.getElementById("otp-form").hidden = true;
+        document.getElementById("email-form").hidden = false;
+        document.getElementById("email-form").querySelector("input[name='email']")?.focus();
       });
       document.getElementById("skip").addEventListener("click", () => {
         ensureDemoUser();

@@ -3,56 +3,182 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Pagos · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>Pagos y Horarios · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=pagos-v4" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
       <a id="back" href="./bo.html">Volver</a>
     </header>
-    <main class="band narrow">
-      <h2>Pagos, días y cancelación</h2>
-      <p class="band-lead">Default: seña mínima $3000 (piso Mercado Pago $10). El horario se retiene 15 minutos; si no pagan, se libera.</p>
-      <form id="form" class="review-form">
-        <div class="mp-box">
-          <label><input type="checkbox" name="mp" /> Mercado Pago conectado</label>
-          <p class="meta">Si no está conectado y hay seña, el cliente no puede pagar. Sin seña, confirma igual.</p>
+
+    <main class="band">
+      <div class="pagos-shell">
+        <div class="bo-head" style="margin-bottom: 24px;">
+          <div>
+            <h2>Pagos, Señas y Horarios</h2>
+            <p class="band-lead">Configurá las condiciones para que tus clientes reserven: seña previa, datos bancarios para transferencia, políticas de cancelación y tus horarios de atención semanal.</p>
+          </div>
         </div>
-        <label>Cómo se reserva
-          <select name="mode">
-            <option value="minimo">Mínimo (default)</option>
-            <option value="porcentaje">Porcentaje del precio</option>
-            <option value="entero">Pago entero</option>
-            <option value="ninguno">Sin pago</option>
-          </select>
-        </label>
-        <label class="pay-minimo">Mínimo en pesos <input name="minimo" type="number" min="10" value="3000" /></label>
-        <label class="pay-pct">Porcentaje <input name="porcentaje" type="number" min="1" max="100" value="30" /></label>
-        <label class="pay-pct">Piso $ <input name="piso" type="number" min="10" value="10" /></label>
-        <label class="pay-pct">Techo $ (0 = sin techo) <input name="techo" type="number" min="0" value="0" /></label>
-        <label>Días de arrepentimiento (Ley 24.240) <input name="arrep" type="number" min="1" value="10" /></label>
-        <label>Horas antes para cancelar (política del local) <input name="horas" type="number" min="0" value="48" /></label>
-        <label>Reprogramar
-          <select name="reprog">
-            <option value="yes">Sí · el cliente cambia el horario, sin cobro extra</option>
-            <option value="no">No · no se puede reprogramar</option>
-          </select>
-        </label>
-        <p class="meta">Si está en sí, el cliente ve Reprogramar en sus turnos y no paga de nuevo. Vos siempre podés mover un turno desde la agenda.</p>
-        <label>Margen entre turnos que no se pisan (minutos)
-          <input name="gap" type="number" min="0" step="1" value="5" />
-        </label>
-        <p class="meta">Solo entre turnos que no se pisan. 0 = uno puede empezar cuando termina el otro. 5, 15 o los minutos que quieras.</p>
-        <p class="meta">Días y horario de apertura. Se ven en la agenda. Los feriados se importan allá, no acá.</p>
-        <div class="day-grid" id="days"></div>
-        <button class="btn btn-ticket" type="submit">Guardar</button>
-      </form>
+
+        <form id="form">
+          <div class="pagos-grid-2col">
+            <!-- Card 1: Mercado Pago y Cobro Online -->
+            <div class="caja-panel" style="margin-bottom: 0;">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                  Mercado Pago del negocio
+                </h3>
+                <label class="switch-wrap" for="mp-toggle">
+                  <input class="switch-input" type="checkbox" id="mp-toggle" name="mp" />
+                  <span class="switch-slider"></span>
+                  <span class="switch-status-pill is-on" id="mp-pill">Conectado</span>
+                </label>
+              </div>
+
+              <div class="caja-callout">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div>
+                  El dinero entra de forma directa en tu cuenta de Mercado Pago (comisión TurnoYa 0%). El turno retiene el horario por 15 minutos mientras el cliente abona.
+                </div>
+              </div>
+
+              <div class="arca-field-group" style="margin-bottom: 14px;">
+                <label for="mode-select">Modalidad de cobro al reservar</label>
+                <select name="mode" id="mode-select">
+                  <option value="minimo">Monto fijo de seña (Recomendado)</option>
+                  <option value="porcentaje">Porcentaje del valor del servicio</option>
+                  <option value="entero">Pago completo del total</option>
+                  <option value="ninguno">Sin seña obligatoria (reserva gratis)</option>
+                </select>
+              </div>
+
+              <div class="pay-minimo arca-field-group" style="margin-bottom: 14px;">
+                <label>Monto mínimo de seña en pesos ($)</label>
+                <input name="minimo" type="number" min="10" step="100" value="3000" />
+              </div>
+
+              <div class="pay-pct" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 14px;">
+                <div class="arca-field-group">
+                  <label>Porcentaje de seña (%)</label>
+                  <input name="porcentaje" type="number" min="1" max="100" value="30" />
+                </div>
+                <div class="grid-2col">
+                  <div class="arca-field-group">
+                    <label>Piso mínimo ($)</label>
+                    <input name="piso" type="number" min="10" value="10" />
+                  </div>
+                  <div class="arca-field-group">
+                    <label>Techo máximo ($ · 0 = sin tope)</label>
+                    <input name="techo" type="number" min="0" value="0" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Transferencia Bancaria Directa -->
+            <div class="caja-panel" style="margin-bottom: 0;">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><path d="M3 21h18"/><path d="M3 10h18"/><path d="M5 6l7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v4"/><path d="M12 14v4"/><path d="M16 14v4"/></svg>
+                  Transferencia bancaria ("Ya pagué")
+                </h3>
+              </div>
+
+              <p class="meta" style="margin: 0 0 16px;">
+                Tus datos para clientes que prefieren transferir por CBU/CVU o Alias. El cliente avisa que pagó y vos lo confirmás en la agenda.
+              </p>
+
+              <div class="arca-form-grid">
+                <div class="arca-field-group">
+                  <label>Alias CBU / CVU</label>
+                  <input name="alias" placeholder="Ej. oasis.multispa" autocomplete="off" />
+                </div>
+                <div class="arca-field-group">
+                  <label>CVU / CBU (22 dígitos)</label>
+                  <input name="cvu" placeholder="00000031000..." autocomplete="off" />
+                </div>
+                <div class="arca-field-group">
+                  <label>Nombre del Titular</label>
+                  <input name="titular" placeholder="Como figura en la cuenta" autocomplete="off" />
+                </div>
+                <div class="arca-field-group">
+                  <label>Banco o Billetera</label>
+                  <input name="banco" placeholder="Ej. Mercado Pago, Santander..." autocomplete="off" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="pagos-grid-2col">
+            <!-- Card 3: Políticas de Cancelación y Reprogramación -->
+            <div class="caja-panel" style="margin-bottom: 0;">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Cancelación y Reprogramación
+                </h3>
+              </div>
+
+              <div class="arca-field-group" style="margin-bottom: 14px;">
+                <label>Permitir al cliente reprogramar su turno</label>
+                <select name="reprog">
+                  <option value="yes">Sí · El cliente puede cambiar su horario sin costo adicional</option>
+                  <option value="no">No · No permitir reprogramación autónoma</option>
+                </select>
+              </div>
+
+              <div class="grid-2col" style="margin-bottom: 14px;">
+                <div class="arca-field-group">
+                  <label>Anticipación para cancelar (horas)</label>
+                  <input name="horas" type="number" min="0" value="48" />
+                </div>
+                <div class="arca-field-group">
+                  <label>Arrepentimiento Ley 24.240 (días)</label>
+                  <input name="arrep" type="number" min="1" value="10" />
+                </div>
+              </div>
+
+              <div class="arca-field-group">
+                <label>Margen entre turnos exclusivos (minutos de respiro)</label>
+                <input name="gap" type="number" min="0" step="5" value="5" />
+                <span class="meta" style="font-size:0.78rem; margin-top:2px;">Tiempo de preparación o limpieza antes del siguiente cliente.</span>
+              </div>
+            </div>
+
+            <!-- Card 4: Días y Horarios de Atención -->
+            <div class="caja-panel" style="margin-bottom: 0;">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  Horarios de atención semanal
+                </h3>
+              </div>
+
+              <p class="meta" style="margin: 0 0 12px;">Determiná qué días abrís y en qué franja horaria se pueden reservar turnos.</p>
+
+              <div id="days" style="border:1px solid var(--line); border-radius:10px; overflow:hidden;"></div>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px; margin-top:28px;">
+            <button class="btn btn-ticket" type="submit" style="min-height:44px; padding:0 28px; font-size:1rem;">
+              Guardar configuración de pagos y horarios
+            </button>
+            <span class="arca-save-msg" id="save-msg">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Cambios guardados con éxito</span>
+            </span>
+          </div>
+        </form>
+      </div>
     </main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -60,45 +186,77 @@
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       if (!requireOwner(id, `./bo-pagos.html?id=${id}`)) throw new Error("redirect");
       document.getElementById("back").href = `./bo.html?id=${id}`;
+
       const rule = paymentRule(id);
       const policy = placePolicy(id);
       const form = document.getElementById("form");
       const labels = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
       form.mode.value = rule.mode;
       form.minimo.value = rule.minimo ?? 3000;
       form.porcentaje.value = rule.porcentaje ?? 30;
       form.piso.value = rule.piso ?? 10;
       form.techo.value = rule.techo ?? 0;
-      form.mp.checked = rule.mpConnected !== false;
+
+      const mpToggle = document.getElementById("mp-toggle");
+      const mpPill = document.getElementById("mp-pill");
+      mpToggle.checked = rule.mpConnected !== false;
+      mpPill.textContent = mpToggle.checked ? "Conectado" : "Desconectado";
+      mpPill.className = `switch-status-pill ${mpToggle.checked ? "is-on" : "is-off"}`;
+
+      mpToggle.addEventListener("change", () => {
+        mpPill.textContent = mpToggle.checked ? "Conectado" : "Desconectado";
+        mpPill.className = `switch-status-pill ${mpToggle.checked ? "is-on" : "is-off"}`;
+      });
+
+      form.alias.value = rule.alias || "";
+      form.cvu.value = rule.cvu || "";
+      form.titular.value = rule.titular || "";
+      form.banco.value = rule.banco || "";
       form.arrep.value = policy.arrepentimientoDias;
       form.horas.value = policy.horasAntesCancelacion;
       form.gap.value = exclusiveGapMinutes(id);
       form.reprog.value = placeAllowsReprogram(id) ? "yes" : "no";
+
       document.getElementById("days").innerHTML = [1, 2, 3, 4, 5, 6, 0]
         .map((d) => {
           const config = dayConfig(id, d);
-          return `<div class="day-row">
-            <label><input type="checkbox" name="d${d}" ${config.open ? "checked" : ""} /> ${labels[d]}</label>
-            <label>Desde <input name="s${d}" type="number" min="0" max="23" value="${config.start}" /></label>
-            <label>Hasta <input name="e${d}" type="number" min="0" max="23" value="${config.end}" /></label>
-          </div>`;
+          return `
+            <div class="day-row-modern">
+              <label class="day-row-label">
+                <input type="checkbox" name="d${d}" ${config.open ? "checked" : ""} style="width:16px; height:16px;" />
+                <span>${labels[d]}</span>
+              </label>
+              <div class="day-row-hours">
+                <span>De</span>
+                <input name="s${d}" type="number" min="0" max="23" value="${config.start}" />
+                <span>a</span>
+                <input name="e${d}" type="number" min="0" max="23" value="${config.end}" />
+                <span>hs</span>
+              </div>
+            </div>
+          `;
         })
         .join("");
+
       function syncMode() {
         const mode = form.mode.value;
         document.querySelectorAll(".pay-minimo").forEach((node) => {
-          node.hidden = mode !== "minimo";
+          node.style.display = mode === "minimo" ? "flex" : "none";
         });
         document.querySelectorAll(".pay-pct").forEach((node) => {
-          node.hidden = mode !== "porcentaje";
+          node.style.display = mode === "porcentaje" ? "flex" : "none";
         });
       }
+
       form.mode.addEventListener("change", syncMode);
       syncMode();
+
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         savePaymentRule(id, {
@@ -107,23 +265,36 @@
           porcentaje: Number(form.porcentaje.value),
           piso: Number(form.piso.value),
           techo: Number(form.techo.value),
-          mpConnected: form.mp.checked,
+          mpConnected: mpToggle.checked,
+          alias: form.alias.value.trim(),
+          cvu: form.cvu.value.trim(),
+          titular: form.titular.value.trim(),
+          banco: form.banco.value.trim(),
         });
         savePlacePolicy(id, {
           arrepentimientoDias: Number(form.arrep.value),
           horasAntesCancelacion: Number(form.horas.value),
-          exclusiveGapMinutes: Math.max(0, Number(form.gap.value) || 0),
           allowReprogram: form.reprog.value === "yes",
         });
-        const next = {};
+        saveExclusiveGapMinutes(id, Number(form.gap.value));
         [0, 1, 2, 3, 4, 5, 6].forEach((d) => {
-          next[d] = form[`d${d}`].checked
-            ? { open: true, start: Number(form[`s${d}`].value), end: Number(form[`e${d}`].value) }
-            : false;
+          saveDayConfig(id, d, {
+            open: Boolean(form[`d${d}`]?.checked),
+            start: Number(form[`s${d}`]?.value ?? 9),
+            end: Number(form[`e${d}`]?.value ?? 19),
+          });
         });
-        saveWorkingDays(id, next);
-        location.href = `./bo.html?id=${id}`;
+
+        const msg = document.getElementById("save-msg");
+        msg.classList.add("is-visible");
+        setTimeout(() => {
+          msg.classList.remove("is-visible");
+        }, 3200);
       });
+
+      if (typeof initCustomSelects === "function") {
+        initCustomSelects();
+      }
     </script>
   </body>
 </html>

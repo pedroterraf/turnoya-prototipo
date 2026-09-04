@@ -3,19 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CRM · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>CRM y Píxel · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=crm-v4" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750;800&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
       <a id="back" href="./bo.html">Volver</a>
     </header>
-    <main class="band" id="root"></main>
+
+    <main class="band" id="root">
+      <div class="caja-shell">
+        <div class="deferred-banner" data-mvp="deferred">
+          <span class="deferred-icon" aria-hidden="true">⏳</span>
+          <div>
+            <h4>Funcionalidad diferida (Post-MVP)</h4>
+            <p>Esta pantalla de CRM y embudo Meta está maquetada como referencia a futuro. Para el piloto MVP queda fuera del alcance y no se conecta a backend.</p>
+          </div>
+        </div>
+      </div>
+      <div id="crm-body"></div>
+    </main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -25,11 +38,12 @@
     <script src="./assets/platform.js"></script>
     <script src="./assets/crm.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       requireOwner(id, `./bo-crm.html?id=${id}`);
       document.getElementById("back").href = `./bo.html?id=${id}`;
-      paintCrmPage(document.getElementById("root"), id);
+      paintCrmPage(document.getElementById("crm-body"), id);
     </script>
   </body>
 </html>

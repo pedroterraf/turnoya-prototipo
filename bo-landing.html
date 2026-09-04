@@ -3,56 +3,122 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Landing · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>Landing y Ficha · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=landing-banner-v7" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
       <a id="back" href="./bo.html">Volver</a>
     </header>
+
     <main class="band">
-      <h2>Landing del local</h2>
-      <p class="band-lead">No se publica el archivo suelto. Recortás en canvas: desktop 1440×480, mobile 1080×720, JPEG 86%. Arrastrá para encuadrar; la rueda o el slider hacen zoom. Sin foto, queda el color de marca.</p>
-      <form id="form" class="review-form">
-        <label>Color principal <input name="primary" type="color" value="#0b3d2e" /></label>
-        <label>Imagen
-          <input id="file" type="file" accept="image/*" />
-        </label>
-        <div class="banner-tools">
-          <button class="chip" type="button" data-size="desktop" aria-pressed="true">Desktop 1440×480</button>
-          <button class="chip" type="button" data-size="mobile">Mobile 1080×720</button>
+      <div class="landing-shell">
+        <div class="bo-head" style="margin-bottom: 24px;">
+          <div>
+            <h2>Diseño de Ficha y Banner</h2>
+            <p class="band-lead">Personalizá la identidad visual de tu local: color de marca y foto de portada. Podés arrastrar sobre el canvas para encuadrar y ajustar el zoom antes de guardar.</p>
+          </div>
+          <a class="btn btn-ghost" id="view-live" href="./ficha.html" target="_blank" style="white-space:nowrap;">
+            Ver ficha pública ↗
+          </a>
         </div>
-        <label>Zoom <input id="zoom" type="range" min="1" max="3" step="0.05" value="1" /></label>
-        <canvas id="canvas" class="banner-canvas"></canvas>
-        <p class="meta" id="hint">Color de marca. Subí una foto para recortar.</p>
-        <button class="btn btn-line" id="clear-banner" type="button">Quitar foto</button>
-        <button class="btn btn-ticket" type="submit">Guardar landing</button>
-      </form>
-      <section class="crm-setup" id="meta-setup">
-        <h3 class="ficha-sub">Cómo medir esta landing con Meta</h3>
-        <p class="band-lead">Igual que en Fortuna: el anuncio apunta a tu ficha. El Pixel se carga en el CRM. Acá no se pega el script real.</p>
-        <ol class="setup-steps">
-          <li class="setup-step">
-            <div class="setup-step-head"><span class="setup-badge">1</span><strong>Pegá esta URL en el anuncio</strong></div>
-            <p class="meta">Es el único link que va en Meta. El cliente cae a tu ficha pública.</p>
-            <div class="copy-field">
-              <code id="ficha-url"></code>
-              <button class="btn btn-ghost" type="button" id="copy-ficha">Copiar</button>
+
+        <form id="form">
+          <div class="landing-grid">
+            <!-- Columna izquierda: Editor de Banner y Canvas -->
+            <div class="landing-canvas-card">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 style="margin:0; font-size:1.15rem; font-weight:750;">Foto de portada (Banner)</h3>
+                <div class="banner-tools">
+                  <button class="chip" type="button" data-size="desktop" aria-pressed="true">Desktop 1440×480</button>
+                  <button class="chip" type="button" data-size="mobile">Mobile 1080×720</button>
+                </div>
+              </div>
+
+              <div class="landing-canvas-container">
+                <canvas id="canvas" class="banner-canvas"></canvas>
+              </div>
+
+              <p class="meta" id="hint" style="margin:8px 0 14px;">Color de marca. Subí una foto para recortar y encuadrar.</p>
+
+              <div class="landing-controls-row">
+                <label class="custom-file-btn" for="file">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <span>Subir foto</span>
+                  <input id="file" type="file" accept="image/*" style="display:none;" />
+                </label>
+
+                <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:240px;">
+                  <span class="meta" style="font-size:0.78rem; font-weight:700;">Zoom</span>
+                  <input id="zoom" type="range" min="1" max="3" step="0.05" value="1" style="flex:1;" />
+                </div>
+
+                <button class="btn btn-ghost" id="clear-banner" type="button" style="color:var(--danger); font-size:0.84rem;">
+                  Quitar foto
+                </button>
+              </div>
+
+              <div style="margin-top:24px; padding-top:18px; border-top:1px solid #f1f5f2; display:flex; gap:12px; align-items:center;">
+                <button class="btn btn-ticket" type="submit" style="min-height:42px; padding:0 24px; font-size:0.95rem;">
+                  Guardar landing y portada
+                </button>
+              </div>
             </div>
-          </li>
-          <li class="setup-step">
-            <div class="setup-step-head"><span class="setup-badge">2</span><strong>Cargá el Pixel en el CRM</strong></div>
-            <p class="meta">Pixel ID y token CAPI se guardan por local. Embudo: ViewContent → InitiateCheckout → Schedule → Purchase, más Contact, Lead y Rate.</p>
-            <a class="btn btn-enamel" id="go-crm" href="./bo-crm.html">Abrir CRM y Pixel</a>
-          </li>
-        </ol>
-      </section>
+
+            <!-- Columna derecha: Identidad de Marca y Medición -->
+            <div style="display:flex; flex-direction:column; gap:20px;">
+              <div class="landing-canvas-card">
+                <h3 style="margin:0 0 8px; font-size:1.1rem; font-weight:750;">Color o banner del inicio</h3>
+                <p class="meta" style="margin:0 0 14px;">
+                  Esto es lo que se ve arriba en la ficha pública. Podés usar solo un color de marca, o subir una foto de portada (banner). Si hay foto, el color se usa en botones y detalles.
+                </p>
+                <label class="color-input-badge">
+                  <input name="primary" type="color" value="#0b3d2e" id="color-picker" />
+                  <span id="color-hex">#0b3d2e</span>
+                </label>
+                <div class="landing-color-swatches" id="color-swatches">
+                  <button class="landing-color-swatch" type="button" data-color="#0b3d2e" style="background:#0b3d2e" title="Verde esmalte"></button>
+                  <button class="landing-color-swatch" type="button" data-color="#1d4e89" style="background:#1d4e89" title="Azul"></button>
+                  <button class="landing-color-swatch" type="button" data-color="#7a2e1f" style="background:#7a2e1f" title="Terracota"></button>
+                  <button class="landing-color-swatch" type="button" data-color="#3b2f63" style="background:#3b2f63" title="Violeta"></button>
+                  <button class="landing-color-swatch" type="button" data-color="#0f766e" style="background:#0f766e" title="Teal"></button>
+                  <button class="landing-color-swatch" type="button" data-color="#1f2937" style="background:#1f2937" title="Grafito"></button>
+                </div>
+                <div class="landing-hero-preview" id="hero-preview" style="--brand:#0b3d2e; background:#0b3d2e;">
+                  <div class="landing-hero-preview-media" id="hero-preview-media" hidden></div>
+                  <div class="landing-hero-preview-scrim" aria-hidden="true"></div>
+                  <div class="landing-hero-preview-copy">
+                    <span class="meta" style="color:var(--ticket); font-weight:700;">Vista previa del inicio</span>
+                    <strong id="hero-preview-name">Tu local</strong>
+                    <span class="meta" style="color:rgba(255,255,255,0.85);" id="hero-preview-hint">Color de marca · sin foto</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="landing-canvas-card">
+                <h3 style="margin:0 0 10px; font-size:1.1rem; font-weight:750;">Tu link para anuncios (Meta Ads)</h3>
+                <p class="meta" style="margin:0 0 14px;">El link oficial que ingresás en tus campañas de Instagram / Facebook para que los clientes aterricen directamente en tu agenda:</p>
+                
+                <div class="copy-field" style="margin-bottom:14px;">
+                  <code id="ficha-url" style="font-size:0.82rem; overflow:hidden; text-overflow:ellipsis;"></code>
+                  <button class="btn btn-ghost" type="button" id="copy-ficha">Copiar</button>
+                </div>
+
+                <a class="btn btn-enamel" id="go-crm" href="./bo-crm.html" style="width:100%; justify-content:center; font-size:0.88rem;">
+                  Configurar Pixel de Meta en CRM →
+                </a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
     </main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -61,17 +127,14 @@
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       if (!requireOwner(id, `./bo-landing.html?id=${id}`)) throw new Error("redirect");
-      if (!planAllows(id, "banner")) {
-        document.querySelector(".band-lead").insertAdjacentHTML(
-          "afterend",
-          `<p class="meta">La foto del banner pide Barrio o más. El color sí se guarda en Calle. <a href="${planUpgradeHref(id, "banner")}">Ver planes</a></p>`,
-        );
-      }
       document.getElementById("back").href = `./bo.html?id=${id}`;
       document.getElementById("go-crm").href = `./bo-crm.html?id=${id}`;
+      document.getElementById("view-live").href = `./ficha.html?id=${id}`;
+
       const fichaUrl = placePublicUrl(id);
       document.getElementById("ficha-url").textContent = fichaUrl;
       document.getElementById("copy-ficha").addEventListener("click", async () => {
@@ -79,24 +142,73 @@
         try {
           await navigator.clipboard.writeText(fichaUrl);
           button.textContent = "Copiado";
+          setTimeout(() => { button.textContent = "Copiar"; }, 2000);
         } catch {
           button.textContent = "No se pudo copiar";
         }
       });
+
       const theme = landingTheme(id);
       const form = document.getElementById("form");
-      if (theme.primaryHex) form.primary.value = theme.primaryHex;
-      const canvas = document.getElementById("canvas");
-      const ctx = canvas.getContext("2d");
-      const zoom = document.getElementById("zoom");
-      let mode = "desktop";
+      const colorHex = document.getElementById("color-hex");
+      const place = findPlace(id);
+      const heroPreview = document.getElementById("hero-preview");
+      const heroPreviewMedia = document.getElementById("hero-preview-media");
+      const heroPreviewHint = document.getElementById("hero-preview-hint");
+      const heroPreviewName = document.getElementById("hero-preview-name");
+      if (heroPreviewName && place) heroPreviewName.textContent = place.name;
+
       let image = null;
       let cleared = false;
+      let mode = "desktop";
       const sizes = { desktop: BANNER_DESKTOP, mobile: BANNER_MOBILE };
       const crop = {
         desktop: { x: 0, y: 0, scale: 1 },
         mobile: { x: 0, y: 0, scale: 1 },
       };
+
+      function syncHeroPreview(color) {
+        if (!heroPreview) return;
+        heroPreview.style.setProperty("--brand", color);
+        heroPreview.style.background = color;
+        if (image && !cleared) {
+          heroPreviewMedia.hidden = false;
+          heroPreviewMedia.style.backgroundImage = `url('${image.src}')`;
+          heroPreviewHint.textContent = "Banner con foto de portada";
+        } else {
+          heroPreviewMedia.hidden = true;
+          heroPreviewMedia.style.backgroundImage = "";
+          heroPreviewHint.textContent = "Solo color de marca · sin foto";
+        }
+        document.querySelectorAll(".landing-color-swatch").forEach((swatch) => {
+          swatch.classList.toggle("is-active", swatch.dataset.color.toLowerCase() === String(color).toLowerCase());
+        });
+      }
+
+      if (theme.primaryHex) {
+        form.primary.value = theme.primaryHex;
+        colorHex.textContent = theme.primaryHex;
+      }
+      syncHeroPreview(form.primary.value);
+
+      form.primary.addEventListener("input", (e) => {
+        colorHex.textContent = e.target.value.toUpperCase();
+        syncHeroPreview(e.target.value);
+        paint();
+      });
+
+      document.querySelectorAll(".landing-color-swatch").forEach((swatch) => {
+        swatch.addEventListener("click", () => {
+          form.primary.value = swatch.dataset.color;
+          colorHex.textContent = swatch.dataset.color.toUpperCase();
+          syncHeroPreview(swatch.dataset.color);
+          paint();
+        });
+      });
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const zoom = document.getElementById("zoom");
 
       function paint() {
         const size = sizes[mode];
@@ -105,11 +217,13 @@
         canvas.height = size.h;
         ctx.fillStyle = form.primary.value;
         ctx.fillRect(0, 0, size.w, size.h);
-        if (!image) return;
-        const cover = Math.max(size.w / image.width, size.h / image.height) * frame.scale;
-        const w = image.width * cover;
-        const h = image.height * cover;
-        ctx.drawImage(image, frame.x + (size.w - w) / 2, frame.y + (size.h - h) / 2, w, h);
+        if (image) {
+          const cover = Math.max(size.w / image.width, size.h / image.height) * frame.scale;
+          const w = image.width * cover;
+          const h = image.height * cover;
+          ctx.drawImage(image, frame.x + (size.w - w) / 2, frame.y + (size.h - h) / 2, w, h);
+        }
+        syncHeroPreview(form.primary.value);
       }
 
       function exportMode(nextMode) {
@@ -120,10 +234,6 @@
       }
 
       document.getElementById("file").addEventListener("change", (event) => {
-        if (!planAllows(id, "banner")) {
-          location.href = planUpgradeHref(id, "banner");
-          return;
-        }
         const file = event.target.files[0];
         if (!file) return;
         cleared = false;
@@ -131,13 +241,14 @@
         reader.onload = () => {
           image = new Image();
           image.onload = () => {
-            document.getElementById("hint").textContent = "Arrastrá para encuadrar. El archivo original no se publica.";
+            document.getElementById("hint").textContent = "Arrastrá sobre la imagen para encuadrar. Se guardará con calidad web optimizada.";
             paint();
           };
           image.src = reader.result;
         };
         reader.readAsDataURL(file);
       });
+
       document.querySelectorAll("[data-size]").forEach((button) => {
         button.addEventListener("click", () => {
           mode = button.dataset.size;
@@ -148,11 +259,12 @@
           paint();
         });
       });
+
       zoom.addEventListener("input", () => {
         crop[mode].scale = Number(zoom.value);
         paint();
       });
-      form.primary.addEventListener("input", paint);
+
       let dragging = false;
       let lastX = 0;
       let lastY = 0;
@@ -185,22 +297,25 @@
         },
         { passive: false },
       );
+
       if (theme.bannerDesktop || theme.bannerMobile) {
         image = new Image();
         image.onload = () => {
-          document.getElementById("hint").textContent = "Banner guardado. Podés recortar de nuevo o quitarlo.";
+          document.getElementById("hint").textContent = "Banner cargado. Podés volver a recortarlo o quitarlo.";
           paint();
         };
         image.src = theme.bannerDesktop || theme.bannerMobile;
       }
       paint();
+
       document.getElementById("clear-banner").addEventListener("click", () => {
         cleared = true;
         image = null;
         document.getElementById("file").value = "";
-        document.getElementById("hint").textContent = "Sin foto. Queda el color de marca.";
+        document.getElementById("hint").textContent = "Sin foto. Queda el color de marca seleccionado.";
         paint();
       });
+
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         const prev = landingTheme(id);

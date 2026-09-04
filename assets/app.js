@@ -623,10 +623,13 @@ function boot() {
     [city.lat, city.lng],
     13,
   );
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
+    attribution: "&copy; OpenStreetMap",
   }).addTo(map);
-  L.control.zoom({ position: "topright" }).addTo(map);
+  L.control.zoom({
+    position: window.matchMedia("(max-width: 900px)").matches ? "topleft" : "topright",
+  }).addTo(map);
   requestAnimationFrame(() => map.invalidateSize());
 
   document.getElementById("city").value = state.city;
@@ -688,8 +691,83 @@ function boot() {
     }
   });
 
+  bindRail();
   render();
   requestLocation();
+}
+
+function bindRail() {
+  const host = document.body;
+  const market = document.getElementById("market");
+  const rail = document.getElementById("rail");
+  const toggle = document.getElementById("rail-toggle");
+  const label = document.getElementById("rail-toggle-label");
+  const body = document.getElementById("rail-body");
+  if (!market || !rail || !toggle) return;
+
+  const compact = window.matchMedia("(max-width: 900px)");
+  if (compact.matches) {
+    host.classList.remove("is-rail-open");
+    market.classList.remove("is-rail-open");
+  }
+
+  function isRailOpen() {
+    return host.classList.contains("is-rail-open");
+  }
+
+  function setRailOpen(open) {
+    host.classList.toggle("is-rail-open", open);
+    market.classList.toggle("is-rail-open", open);
+  }
+
+  function syncRail() {
+    const open = isRailOpen();
+    toggle.setAttribute("aria-expanded", String(open));
+    if (label) {
+      if (compact.matches) {
+        label.textContent = open ? "Ver mapa" : "Ver lista";
+      } else {
+        label.textContent = open ? "Ocultar lista" : "Ver lista";
+      }
+    }
+    if (body) {
+      body.setAttribute("aria-hidden", String(!(open || !compact.matches)));
+    }
+    if (map) {
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        if (compact.matches && open) {
+          map.setView(map.getCenter());
+        }
+      });
+    }
+  }
+
+  toggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setRailOpen(!isRailOpen());
+    syncRail();
+  });
+
+  rail.addEventListener("transitionend", (event) => {
+    if ((event.propertyName === "width" || event.propertyName === "height") && map) {
+      map.invalidateSize();
+    }
+  });
+
+  document.querySelector(".map-wrap")?.addEventListener("pointerdown", () => {
+    if (!compact.matches) return;
+    if (!isRailOpen()) return;
+    setRailOpen(false);
+    syncRail();
+  });
+
+  compact.addEventListener("change", () => {
+    if (!compact.matches) return;
+    setRailOpen(false);
+    syncRail();
+  });
+  syncRail();
 }
 
 function startMarket() {
@@ -713,10 +791,13 @@ function startPlaceGuide(place) {
     [place.lat, place.lng],
     16,
   );
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
+    attribution: "&copy; OpenStreetMap",
   }).addTo(placeMap);
-  L.control.zoom({ position: "topright" }).addTo(placeMap);
+  L.control.zoom({
+    position: window.matchMedia("(max-width: 900px)").matches ? "topleft" : "topright",
+  }).addTo(placeMap);
   L.marker([place.lat, place.lng], { icon: pinIcon(place) }).addTo(placeMap);
   bindGoCard(document.getElementById("place-go") || document, place);
   requestAnimationFrame(() => placeMap.invalidateSize());

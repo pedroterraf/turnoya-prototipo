@@ -7,14 +7,103 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
     />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="icon" href="./assets/favicon.svg?v=ty4" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty4" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty4" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ficha-marquee-fill" />
+    <style>
+      .ficha-hero-bleed { position: relative; overflow: hidden; }
+      .ficha-hero-bleed .reviews-marquee {
+        position: absolute;
+        top: 10px;
+        left: 0;
+        right: 0;
+        z-index: 4;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .ficha-hero-bleed .reviews-marquee-viewport {
+        overflow: hidden;
+        pointer-events: auto;
+      }
+      .ficha-hero-bleed .reviews-marquee-viewport.is-scrolling {
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+      }
+      .ficha-hero-bleed .reviews-marquee-track {
+        display: flex;
+        flex-wrap: nowrap;
+        width: max-content;
+        gap: 10px;
+        padding: 0;
+        animation: none;
+      }
+      .ficha-hero-bleed .reviews-marquee-viewport.is-static .reviews-marquee-track {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px 12px;
+        padding: 0 12px;
+      }
+      .ficha-hero-bleed .reviews-marquee-track.is-scrolling {
+        animation: reviews-marquee-scroll-inline linear infinite;
+        will-change: transform;
+      }
+      .ficha-hero-bleed .reviews-marquee-track.is-paused {
+        animation-play-state: paused;
+      }
+      @keyframes reviews-marquee-scroll-inline {
+        from { transform: translateX(0); }
+        to { transform: translateX(-50%); }
+      }
+      .ficha-hero-bleed .reviews-marquee-card {
+        flex: 0 0 auto;
+        width: min(190px, 58vw);
+        padding: 8px 10px;
+        border: 1px solid rgba(255,255,255,.32);
+        border-radius: 10px;
+        background: rgba(255,255,255,.92);
+        box-shadow: 0 6px 16px rgba(0,0,0,.18);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+      .ficha-hero-bleed .reviews-marquee-card .stars-row {
+        color: #eab308;
+        font-size: .68rem;
+        letter-spacing: .03em;
+        margin-bottom: 3px;
+        line-height: 1;
+      }
+      .ficha-hero-bleed .reviews-marquee-card blockquote {
+        margin: 0 0 3px;
+        font-style: italic;
+        font-size: .72rem;
+        line-height: 1.3;
+        color: #14201b;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .ficha-hero-bleed .reviews-marquee-card cite {
+        font-size: .64rem;
+        font-weight: 700;
+        font-style: normal;
+        color: #6b7280;
+      }
+      .ficha-hero-bleed:has(.reviews-marquee) .ficha-hero-bleed-inner {
+        padding-top: clamp(72px, 11vw, 96px);
+      }
+    </style>
   </head>
   <body class="sell">
     <header class="topbar">
@@ -29,14 +118,17 @@
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
+
     <main id="ficha">
       <section class="band"><p class="meta">Cargando el negocio…</p></section>
     </main>
+
     <footer class="demo-foot" data-demo-foot></footer>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
-    <script src="./assets/reviews.js"></script>
+    <script src="./assets/reviews.js?v=reviews-carousel-v2"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
@@ -49,249 +141,404 @@
       if (!place) {
         document.getElementById("ficha").innerHTML = missingPlaceHtml();
       } else {
-      const services = placeServices(place);
-      const theme = landingTheme(place.id);
-      const user = currentUser();
-      document.title = `${place.name} · TurnoYa`;
-      document.getElementById("brand-aside").textContent = place.slug;
-      document.getElementById("bo-link").href = `./bo.html?id=${place.id}`;
-      if (theme.primaryHex) {
-        document.documentElement.style.setProperty("--enamel", theme.primaryHex);
-      }
-      const banner =
-        (window.matchMedia("(max-width: 720px)").matches
-          ? theme.bannerMobile || theme.bannerDesktop
-          : theme.bannerDesktop || theme.bannerMobile) || "";
-
-      function mineHere() {
-        return user ? userTurnos(user.email).filter((row) => row.placeId === place.id) : [];
-      }
-
-      function paint() {
-        const mine = mineHere();
-        const rating = ratingOf(place.id);
-        const view = placeView(place);
-        const published = view.status === "live" && !view.suspended;
-        document.getElementById("ficha").innerHTML = `
-        <section class="store-hero${banner ? " has-banner" : ""}" style="${banner ? `background-image:url('${banner}')` : ""}">
-          <div class="store-hero-copy">
-            <p class="meta">turnoya.com/${place.slug}</p>
-            <h1>${place.name}</h1>
-            ${starsMarkup(rating.average, rating.count, place.id)}
-            <p>${place.service} en ${cityLabel(place.city)}.</p>
-            ${
-              published
-                ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
-                   <button class="btn btn-line" type="button" id="share">Compartir</button>
-                   ${
-                     todayHuecos(place.id).length
-                       ? `<p class="meta">Hoy hay hueco: ${todayHuecos(place.id)
-                           .slice(0, 3)
-                           .map((slot) => slot.slice(11))
-                           .join(" · ")}</p>`
-                       : ""
-                   }`
-                : `<p class="meta">Este local no está publicado en el mapa.${view.suspended ? " Está suspendido." : " El alta sigue en revisión."}</p>`
-            }
-          </div>
-        </section>
-        ${
-          user
-            ? `<section class="band" id="mis-turnos-local">
-                <h2>Tus turnos acá</h2>
-                ${
-                  mine.length
-                    ? mine.map(turnoCardHtml).join("") +
-                      `<a class="btn-line" href="./mi-turno.html">Ver todos tus turnos</a>`
-                    : `<p class="meta">Todavía no reservaste en este local.</p>`
-                }
-              </section>`
-            : `<section class="band"><p class="meta"><a href="./login.html?next=${encodeURIComponent(location.href)}">Entrá</a> para ver tus turnos de este negocio.</p></section>`
+        const services = placeServices(place);
+        const theme = landingTheme(place.id);
+        const user = currentUser();
+        document.title = `${place.name} · TurnoYa`;
+        document.getElementById("brand-aside").textContent = place.slug;
+        const boLink = document.getElementById("bo-link");
+        if (boLink) {
+          const ownerMail = typeof placeOwnerEmail === "function" ? placeOwnerEmail(place.id) : "";
+          const isOwner =
+            user && ownerMail && String(user.email || "").toLowerCase() === String(ownerMail).toLowerCase();
+          if (isOwner) {
+            boLink.href = `./bo.html?id=${place.id}`;
+          } else {
+            boLink.hidden = true;
+          }
         }
-        <section class="band">
-          <h2>Servicios</h2>
-          <div class="card-grid">
-            ${services
-              .map((service) => {
-                const row = normalizeService(service);
-                return `
-              <article class="service-card">
-                <img src="${row.image}" alt="${row.name}" />
-                <div>
-                  <strong>${row.name}</strong>
-                  <span class="meta">${row.minutes} min · ${hoursLabel(row)} · ${capacityLabel(row)}</span>
-                  ${row.description ? `<p class="meta">${row.description}</p>` : ""}
-                  ${
-                    row.includes.length
-                      ? `<ul class="include-list">${row.includes.map((item) => `<li>${item}</li>`).join("")}</ul>`
-                      : ""
-                  }
-                  <span class="price">${money(row.price)}</span>
+        const brandColor = theme.primaryHex || "#0b3d2e";
+        document.documentElement.style.setProperty("--enamel", brandColor);
+        document.documentElement.style.setProperty("--brand", brandColor);
+        const banner =
+          (window.matchMedia("(max-width: 720px)").matches
+            ? theme.bannerMobile || theme.bannerDesktop
+            : theme.bannerDesktop || theme.bannerMobile) || "";
+
+        function mineHere() {
+          return user ? userTurnos(user.email).filter((row) => row.placeId === place.id) : [];
+        }
+
+        function bindReviewsMarquee() {
+          const track = document.querySelector("[data-reviews-track]");
+          if (!track) return;
+          const viewport = track.closest(".reviews-marquee-viewport");
+          if (!viewport) return;
+          const fillSlackPx = 8;
+          const maxFillCopies = 16;
+          const pixelsPerSecond = 42;
+
+          function appendClones(nodes) {
+            nodes.forEach((node) => {
+              const clone = node.cloneNode(true);
+              clone.setAttribute("aria-hidden", "true");
+              track.appendChild(clone);
+            });
+          }
+
+          const sync = () => {
+            track.querySelectorAll('[aria-hidden="true"]').forEach((node) => node.remove());
+            const originals = Array.from(track.children);
+            if (!originals.length) return;
+
+            track.classList.remove("is-scrolling", "is-paused");
+            viewport.classList.remove("is-static", "is-scrolling");
+            track.style.animationDuration = "";
+
+            const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            if (reduceMotion) {
+              viewport.classList.add("is-static");
+              return;
+            }
+
+            let fillGuard = 0;
+            while (track.scrollWidth < viewport.clientWidth + fillSlackPx && fillGuard < maxFillCopies) {
+              appendClones(originals);
+              fillGuard += 1;
+            }
+
+            if (track.scrollWidth < viewport.clientWidth + fillSlackPx) {
+              track.querySelectorAll('[aria-hidden="true"]').forEach((node) => node.remove());
+              viewport.classList.add("is-static");
+              return;
+            }
+
+            appendClones(Array.from(track.children));
+            track.classList.add("is-scrolling");
+            viewport.classList.add("is-scrolling");
+            const loopDistance = track.scrollWidth / 2;
+            track.style.animationDuration = `${Math.max(16, loopDistance / pixelsPerSecond)}s`;
+          };
+
+          requestAnimationFrame(() => requestAnimationFrame(sync));
+
+          if (!viewport.dataset.pauseBound) {
+            viewport.dataset.pauseBound = "1";
+            viewport.addEventListener("mouseenter", () => {
+              if (track.classList.contains("is-scrolling")) track.classList.add("is-paused");
+            });
+            viewport.addEventListener("mouseleave", () => {
+              track.classList.remove("is-paused");
+            });
+          }
+
+          if (!document.documentElement.dataset.reviewsMarqueeBound) {
+            document.documentElement.dataset.reviewsMarqueeBound = "1";
+            document.addEventListener(
+              "pointerdown",
+              (event) => {
+                const activeTrack = document.querySelector("[data-reviews-track]");
+                const activeViewport = activeTrack?.closest(".reviews-marquee-viewport");
+                if (!activeTrack || !activeViewport || !activeTrack.classList.contains("is-scrolling")) {
+                  return;
+                }
+                activeTrack.classList.toggle("is-paused", activeViewport.contains(event.target));
+              },
+              true,
+            );
+            window.addEventListener("resize", () => {
+              if (document.querySelector("[data-reviews-track]")) bindReviewsMarquee();
+            });
+          }
+        }
+
+        function paint() {
+          const mine = mineHere();
+          const rating = ratingOf(place.id);
+          const view = placeView(place);
+          const published = view.status === "live" && !view.suspended;
+          const reviewQuotes =
+            typeof publishedQuotes === "function"
+              ? publishedQuotes(place.id)
+              : reviewsFor(place.id).filter((row) => row.text && row.shownByBusiness);
+          const reviewsOverlay = reviewQuotes.length
+            ? `
+              <div class="reviews-marquee" id="resenas" aria-label="Opiniones de clientes">
+                <div class="reviews-marquee-viewport">
+                  <div class="reviews-marquee-track" data-reviews-track>
+                    ${reviewQuotes
+                      .map(
+                        (row) => `
+                          <article class="reviews-marquee-card">
+                            <div class="stars-row">${"★".repeat(row.stars)}${"☆".repeat(5 - row.stars)}</div>
+                            <blockquote>“${row.text}”</blockquote>
+                            <cite>— ${row.author}</cite>
+                          </article>
+                        `,
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              </div>
+            `
+            : "";
+
+          document.getElementById("ficha").innerHTML = `
+            <section class="ficha-hero-bleed${banner ? " has-banner" : " is-color-only"}" style="--brand:${brandColor}; background-color:${brandColor};" aria-label="Portada del negocio">
+              ${
+                banner
+                  ? `<div class="ficha-hero-bleed-media" style="background-image:url('${banner}')"></div>`
+                  : ""
+              }
+              <div class="ficha-hero-bleed-scrim" aria-hidden="true"></div>
+              ${reviewsOverlay}
+              <div class="ficha-hero-bleed-inner">
+                <div class="ficha-hero-panel">
+                  <span class="ficha-hero-badge">turnoya.com/${place.slug}</span>
+                  <h1 class="ficha-hero-title">${place.name}</h1>
+                  <div style="margin-bottom:10px;">
+                    ${starsMarkup(rating.average, rating.count, place.id)}
+                  </div>
+                  <p class="ficha-hero-meta">
+                    ${place.service} en ${cityLabel(place.city)}.
+                  </p>
                   ${
                     published
-                      ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}&service=${row.id}">Elegir horario</a>`
-                      : ""
+                      ? `<div class="ficha-hero-actions">
+                          <a class="btn btn-ticket" href="./reservar.html?id=${place.id}">
+                            Reservar turno
+                          </a>
+                          <button class="ficha-share-btn" type="button" id="share" aria-label="Compartir ficha">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                            <span data-share-label>Compartir</span>
+                          </button>
+                        </div>
+                        ${
+                          todayHuecos(place.id).length
+                            ? `<p class="meta" style="color:var(--ticket); margin-top:14px; font-weight:600;">
+                                ⚡ Huecos disponibles hoy: ${todayHuecos(place.id)
+                                  .slice(0, 3)
+                                  .map((slot) => slot.slice(11))
+                                  .join(" · ")}
+                              </p>`
+                            : ""
+                        }`
+                      : `<p class="meta" style="color:#fde68a; margin:0;">Este local no está publicado en el mapa.${view.suspended ? " Está suspendido." : " El alta sigue en revisión."}</p>`
                   }
                 </div>
-              </article>`;
-              })
-              .join("")}
-          </div>
-        </section>
-        <section class="band" id="place-go">
-          <h2>Cómo llegar</h2>
-          <p class="band-lead">Te marcamos en vivo. Google abre la ruta con tráfico real.</p>
-          <div id="place-map" class="place-map" role="img" aria-label="Mapa del local y tu ubicación"></div>
-          ${directionsPanelHtml(place)}
-        </section>
-        ${(() => {
-          const live = publicPlaceCoupons(place.id);
-          if (!live.length) return "";
-          return `<section class="band" id="cupones">
-            <h2>Cupones disponibles</h2>
-            <p class="band-lead">Copiá el código y cargalo cuando reserves. Se descuenta en el pago.</p>
-            <div class="coupon-list">
-              ${live
-                .map((coupon) => {
-                  const off =
-                    coupon.type === "fijo" ? `${money(coupon.value)} off` : `${coupon.value}% off`;
-                  const service = coupon.serviceId
-                    ? services.find((row) => row.id === coupon.serviceId)
-                    : null;
-                  const scope = service ? service.name : "Todos los servicios";
-                  return `<article class="coupon-card">
-                    <p class="coupon-off">${off}</p>
-                    <strong class="coupon-code">${coupon.code}</strong>
-                    <p class="meta">${scope}</p>
-                    <button class="btn btn-enamel" type="button" data-copy-coupon="${coupon.code}">Copiar código</button>
-                  </article>`;
-                })
-                .join("")}
-            </div>
-          </section>`;
-        })()}
-        ${(() => {
-          const support = placeSupport(place);
-          if (!support.whatsappEnabled && !support.emailEnabled) return "";
-          return `<section class="band" id="soporte">
-            <h2>Soporte</h2>
-            <p class="band-lead">Escribinos por el canal que el local habilitó.</p>
-            ${
-              support.whatsappEnabled
-                ? `<a class="btn btn-ticket" data-pixel-contact href="${whatsappHref(
-                    support.whatsapp,
-                    `Hola, consulto por ${place.name}`,
-                  )}" target="_blank" rel="noreferrer">WhatsApp del local</a>`
-                : ""
-            }
-            ${
-              support.emailEnabled
-                ? `<form id="support-form" class="review-form">
-                    <label>Nombre <input name="nombre" required value="${user?.nombre || ""}" /></label>
-                    <label>Email <input name="email" type="email" required value="${user?.email || ""}" /></label>
-                    <label>Celular <input name="celular" value="${user?.celular || ""}" /></label>
-                    <label>Mensaje <textarea name="mensaje" required></textarea></label>
-                    <button class="btn btn-enamel" type="submit">Enviar consulta</button>
-                    <p id="support-msg" class="meta"></p>
-                  </form>`
-                : ""
-            }
-          </section>`;
-        })()}
-        <section class="band" id="resenas">
-          <h2>Reseñas</h2>
-          ${
-            reviewsFor(place.id).filter((row) => row.text).length
-              ? reviewsFor(place.id)
-                  .filter((row) => row.text)
-                  .map(
-                    (row) =>
-                      `<blockquote class="quote">“${row.text}”<cite>${row.author} · ${"★".repeat(row.stars)}${"☆".repeat(5 - row.stars)}</cite></blockquote>`,
-                  )
-                  .join("")
-              : "<p class=\"meta\">Todavía no hay reseñas.</p>"
-          }
-        </section>
-      `;
-        bindTurnoActions(document.getElementById("ficha"), paint);
-        startPlaceGuide(place);
-        const share = document.getElementById("share");
-        if (share) {
-          share.addEventListener("click", async () => {
-            const url = location.href;
-            try {
-              if (navigator.share) {
-                await navigator.share({ title: place.name, url });
-                return;
+              </div>
+            </section>
+
+            <div class="ficha-public-shell">
+              ${
+                user
+                  ? `<section class="band" id="mis-turnos-local" style="padding-top:0;">
+                      <h2 class="ficha-section-title">Tus turnos en este local</h2>
+                      ${
+                        mine.length
+                          ? mine.map(turnoCardHtml).join("") +
+                            `<div style="margin-top:12px;"><a class="btn-line" href="./mi-turno.html">Ver todos tus turnos</a></div>`
+                          : `<p class="meta">Todavía no reservaste turnos en este negocio.</p>`
+                      }
+                    </section>`
+                  : ""
               }
-              await navigator.clipboard.writeText(url);
-              share.textContent = "Enlace copiado";
-            } catch {
-              /* ignore */
-            }
-          });
-        }
-        document.querySelectorAll("[data-copy-coupon]").forEach((button) => {
-          button.addEventListener("click", async () => {
-            const code = button.dataset.copyCoupon;
-            try {
-              await navigator.clipboard.writeText(code);
-              button.textContent = "Código copiado";
-            } catch {
-              button.textContent = code;
-            }
-          });
-        });
-        document.querySelectorAll("[data-pixel-contact]").forEach((link) => {
-          link.addEventListener("click", () => {
-            if (typeof trackPixel === "function") trackPixel(place.id, "Contact");
-          });
-        });
-        const supportForm = document.getElementById("support-form");
-        if (supportForm) {
-          supportForm.addEventListener("submit", (event) => {
-            event.preventDefault();
-            const data = Object.fromEntries(new FormData(supportForm));
-            saveInquiry(place.id, data);
-            if (typeof trackPixel === "function") trackPixel(place.id, "Lead");
-            document.getElementById("support-msg").textContent =
-              "Listo. El local te responde por el canal que tenga activo.";
-            supportForm.reset();
-          });
-        }
-      }
-      try {
-        paint();
-        if (typeof trackPixel === "function") trackPixel(place.id, "ViewContent", { slug: place.slug });
-        if (location.hash === "#resenas") {
-          document.getElementById("resenas")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-      } catch (error) {
-        document.getElementById("ficha").innerHTML = `
-          <section class="store-hero">
-            <div class="store-hero-copy">
-              <p class="meta">turnoya.com/${place.slug}</p>
-              <h1>${place.name}</h1>
-              <p>${place.service} en ${cityLabel(place.city)}.</p>
-              <a class="btn btn-ticket" href="./reservar.html?id=${place.id}">Reservar turno</a>
+
+              <section class="band" style="padding-top:0;">
+                <h2 class="ficha-section-title">Servicios disponibles</h2>
+                <p class="band-lead" style="margin-bottom:24px;">Elegí el servicio que buscás y seleccioná tu día y horario disponible online.</p>
+                <div class="card-grid" style="grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">
+                  ${services
+                    .map((service) => {
+                      const row = normalizeService(service);
+                      return `
+                        <article class="service-card">
+                          <img src="${row.image}" alt="${row.name}" loading="lazy" />
+                          <div>
+                            <strong>${row.name}</strong>
+                            <span class="meta">
+                              ⏱ ${row.minutes} min · ${hoursLabel(row)}
+                            </span>
+                            ${row.description ? `<p class="meta">${row.description}</p>` : ""}
+                            ${
+                              row.includes.length
+                                ? `<ul class="include-list">${row.includes.map((item) => `<li>${item}</li>`).join("")}</ul>`
+                                : ""
+                            }
+                            <span class="price">${money(row.price)}</span>
+                          </div>
+                          ${
+                            published
+                              ? `<a class="btn btn-ticket" href="./reservar.html?id=${place.id}&service=${row.id}">Reservar</a>`
+                              : ""
+                          }
+                        </article>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </section>
+
+              <!-- Ubicación y Mapa -->
+              <section class="band" id="place-go" style="padding-top:0;">
+                <h2 class="ficha-section-title">Cómo llegar</h2>
+                <p class="band-lead" style="margin-bottom:18px;">Ubicación del negocio en el mapa y cálculo de ruta desde tu posición.</p>
+                <div id="place-map" class="place-map" role="img" aria-label="Mapa del local y tu ubicación" style="border-radius:12px; overflow:hidden; border:1px solid var(--line);"></div>
+                ${directionsPanelHtml(place)}
+              </section>
+
+              <!-- Cupones de descuento -->
+              ${(() => {
+                const live = publicPlaceCoupons(place.id);
+                if (!live.length) return "";
+                return `
+                  <section class="band" id="cupones" style="padding-top:0;">
+                    <h2 class="ficha-section-title">Cupones y promociones</h2>
+                    <p class="band-lead" style="margin-bottom:18px;">Copiá el código para aplicarlo durante el proceso de reserva.</p>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:16px;">
+                      ${live
+                        .map((coupon) => {
+                          const off =
+                            coupon.type === "fijo" ? `${money(coupon.value)} OFF` : `${coupon.value}% OFF`;
+                          const service = coupon.serviceId
+                            ? services.find((row) => row.id === coupon.serviceId)
+                            : null;
+                          const scope = service ? `Solo para: ${service.name}` : "Válido para todos los servicios";
+                          return `
+                            <article class="caja-panel" style="margin:0; padding:18px; border-radius:12px; border:1.5px dashed #cbd5cb; background:#fbfdfb;">
+                              <div style="font-size:1.5rem; font-weight:800; color:var(--enamel); font-family:var(--display); margin-bottom:4px;">
+                                ${off}
+                              </div>
+                              <div style="display:inline-block; font-family:monospace; font-size:1.1rem; font-weight:750; background:rgba(11,61,46,0.08); padding:3px 10px; border-radius:6px; color:var(--enamel); margin-bottom:8px;">
+                                ${coupon.code}
+                              </div>
+                              <p class="meta" style="font-size:0.8rem; margin:0 0 14px;">${scope}</p>
+                              <button class="btn btn-enamel" type="button" data-copy-coupon="${coupon.code}" style="width:100%; justify-content:center; font-size:0.84rem; min-height:36px;">
+                                Copiar código
+                              </button>
+                            </article>
+                          `;
+                        })
+                        .join("")}
+                    </div>
+                  </section>
+                `;
+              })()}
+
+              <!-- Canales de contacto / Soporte -->
+              ${(() => {
+                const support = placeSupport(place);
+                if (!support.whatsappEnabled && !support.emailEnabled) return "";
+                return `
+                  <section class="band" id="soporte" style="padding-top:0;">
+                    <h2 class="ficha-section-title">Contacto directo</h2>
+                    <p class="band-lead" style="margin-bottom:18px;">¿Tenés consultas antes de reservar? Contactate con el local.</p>
+                    <div class="caja-panel" style="padding:24px;">
+                      ${
+                        support.whatsappEnabled
+                          ? `<div style="margin-bottom:${support.emailEnabled ? "20px" : "0"};">
+                              <a class="btn btn-ticket" data-pixel-contact href="${whatsappHref(
+                                support.whatsapp,
+                                `Hola, te consulto por ${place.name}`,
+                              )}" target="_blank" rel="noreferrer" style="font-weight:750; min-height:44px; display:inline-flex; align-items:center; gap:8px;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                                Hablar con el local por WhatsApp
+                              </a>
+                            </div>`
+                          : ""
+                      }
+                      ${
+                        support.emailEnabled
+                          ? `<form id="support-form" class="review-form" style="max-width:580px; margin-top:14px;">
+                              <h4 style="margin:0 0 10px; font-size:1rem;">O envianos un mensaje por email</h4>
+                              <div class="grid-2col">
+                                <label>Tu nombre <input name="nombre" required value="${user?.nombre || ""}" placeholder="Ej. Florencia" /></label>
+                                <label>Tu email <input name="email" type="email" required value="${user?.email || ""}" placeholder="tu@correo.com" /></label>
+                              </div>
+                              <label>Celular / WhatsApp <input name="celular" value="${user?.celular || ""}" placeholder="351..." /></label>
+                              <label>Mensaje o consulta <textarea name="mensaje" required rows="3" placeholder="¿En qué te podemos ayudar?"></textarea></label>
+                              <button class="btn btn-enamel" type="submit" style="min-height:38px; align-self:flex-start;">
+                                Enviar mensaje
+                              </button>
+                              <p id="support-msg" class="meta" style="color:var(--enamel); font-weight:700;"></p>
+                            </form>`
+                          : ""
+                      }
+                    </div>
+                  </section>
+                `;
+              })()}
+
             </div>
-          </section>
-          <section class="band">
-            <h2>Servicios</h2>
-            <div class="card-grid">
-              ${placeServices(place)
-                .map((service) => {
-                  const row = normalizeService(service);
-                  return `<article class="service-card"><div>
-                    <strong>${row.name}</strong>
-                    <span class="meta">${row.minutes} min · ${money(row.price)}</span>
-                    <a class="btn btn-ticket" href="./reservar.html?id=${place.id}&service=${row.id}">Elegir horario</a>
-                  </div></article>`;
-                })
-                .join("")}
-            </div>
-          </section>`;
-      }
+          `;
+
+          bindTurnoActions(document.getElementById("ficha"), paint);
+          startPlaceGuide(place);
+          bindReviewsMarquee();
+
+          const share = document.getElementById("share");
+          if (share) {
+            const shareLabel = share.querySelector("[data-share-label]");
+            share.addEventListener("click", async () => {
+              const url = location.href;
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: place.name, url });
+                  return;
+                }
+                await navigator.clipboard.writeText(url);
+                if (shareLabel) {
+                  shareLabel.textContent = "¡Enlace copiado!";
+                  setTimeout(() => { shareLabel.textContent = "Compartir"; }, 2000);
+                }
+              } catch {
+                /* ignore */
+              }
+            });
+          }
+
+          document.querySelectorAll("[data-copy-coupon]").forEach((button) => {
+            button.addEventListener("click", async () => {
+              const code = button.dataset.copyCoupon;
+              try {
+                await navigator.clipboard.writeText(code);
+                button.textContent = "¡Copiado!";
+                setTimeout(() => { button.textContent = "Copiar código"; }, 2000);
+              } catch {
+                button.textContent = code;
+              }
+            });
+          });
+
+          document.querySelectorAll("[data-pixel-contact]").forEach((link) => {
+            link.addEventListener("click", () => {
+              if (typeof trackPixel === "function") trackPixel(place.id, "Contact");
+            });
+          });
+
+          const supportForm = document.getElementById("support-form");
+          if (supportForm) {
+            supportForm.addEventListener("submit", (event) => {
+              event.preventDefault();
+              const data = Object.fromEntries(new FormData(supportForm));
+              saveInquiry(place.id, data);
+              if (typeof trackPixel === "function") trackPixel(place.id, "Lead");
+              document.getElementById("support-msg").textContent =
+                "✓ Mensaje enviado. El negocio te responderá a la brevedad.";
+              supportForm.reset();
+            });
+          }
+        }
+
+        try {
+          paint();
+          if (typeof trackPixel === "function") trackPixel(place.id, "ViewContent", { slug: place.slug });
+          if (location.hash === "#resenas") {
+            document.getElementById("resenas")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        } catch (error) {
+          console.error(error);
+        }
       }
     </script>
   </body>

@@ -16,26 +16,26 @@ En Argentina el turno se pide por WhatsApp (“che, tenés lugar mañana?”), n
 
 TurnoYa prueba dos cosas a la vez:
 
-1. **El dueño** deja de anotar en el cuaderno: calendario web + bot en *su* WhatsApp.
-2. **El cliente** entra por el mapa, el listado o la búsqueda, ve la ficha y reserva en el calendario.
+1. **El dueño** deja de anotar en el cuaderno: calendario web + bot de menú.
+2. **El cliente** entra por el link de Instagram / WhatsApp del local, ve la ficha y reserva en el calendario.
 
-La métrica del piloto **no** es “quedó lindo el mapa”. Es: ¿hay reservas confirmadas por semana? ¿el dueño abre la agenda sin que lo llamemos? ¿pagaría $5.000–$10.000 cuando saquemos el regalo?
+La métrica del piloto **no** es “quedó lindo el mapa”. Es: ¿hay reservas confirmadas por semana? ¿el dueño abre la agenda sin que lo llamemos? ¿pagan $5.000–$10.000 cuando saquemos el regalo?
 
-El mapa es el diferenciador de después (hace falta densidad). Al principio el cliente llega sobre todo por el WhatsApp / Instagram del local.
+El mapa **no entra en este corte**. Calendar-BE `main` lo dejó fuera: hace falta densidad. El prototipo lo sigue teniendo, marcado como después.
 
 ---
 
 ## Qué ya decidimos
 
-| Tema | Decisión |
+| Tema | Decisión (alineada a Calendar-BE `main`) |
 |---|---|
-| Cómo reserva el cliente | Mapa, lista o search → ficha del local → calendario → reserva. |
+| Cómo reserva el cliente | Link del local → ficha → calendario → reserva. El mapa queda para después. |
 | Bot de WhatsApp | **Menú con botones**, no una IA que charla. Siempre hay “hablar con el local”. |
-| De quién es el número | **Cada local conecta el suyo** en el backoffice. |
-| API | **Cloud API oficial de Meta** (no QR tipo WhatsApp Web). |
-| Quién le paga a Meta | Ideal: **el dueño**, en su cuenta. TurnoYa $0 de tráfico. |
-| Pago de la seña | Mercado Pago con confirmación automática **y** “ya pagué” (alias/CVU) para que el dueño confirme. |
-| Cómo se ven los servicios en el chat | Link a la ficha **y** PDF cacheado (mismo costo de producto). |
+| De quién es el número | **Número compartido de TurnoYa** en el piloto (ADR-0002). Tu línea entra solo para el pase humano (`wa.me`). Coexistence (número propio) es plan de después. |
+| API | **Cloud API oficial de Meta** (no QR tipo WhatsApp Web / Baileys). |
+| Quién le paga a Meta | El tráfico sale del WABA de TurnoYa. Flujo corto para que sean centavos. |
+| Pago de la seña | Mercado Pago **de la cuenta del local** **y** “ya pagué” (alias/CVU) para que el dueño confirme. Hoy el BE todavía cobra con un token global: eso hay que cambiar (RN-3.1). |
+| Cómo se ven los servicios en el chat | Link a la ficha **y** PDF cacheado. |
 | Alcance | MVP primero. El resto del prototipo queda dormido, no se borra. |
 
 ---
@@ -59,9 +59,9 @@ El calendario es la fuente de verdad. WhatsApp es la puerta. No duplicamos la gr
 Es gratis para Meta y se conecta en un minuto. El riesgo es que Meta **banee el número del spa**. Si esa línea es la de atención del local, nos comemos el reclamo. Para locales reales: oficial.
 
 **“Poner el número en el backoffice”**  
-Sí. El dueño toca *Conectar WhatsApp*, carga **su** número, Meta le manda un código (o termina el alta de Facebook). No es el QR verde de WhatsApp Web. Es el alta oficial. El bot corre en *su* línea, con *su* nombre.
+En el piloto: el bot ya está en el WABA de TurnoYa. El dueño solo carga **su** WhatsApp para el botón *Hablar con el local*. No hay QR verde. Después del piloto se puede pasar a Coexistence (su número), cambiando una fila (`SHARED` → `COEXISTENCE`).
 
-No existe Cloud API oficial sin Meta. El tubo es de ellos. Lo que sí se puede es que **la factura no sea nuestra**.
+No existe Cloud API oficial sin Meta. El tubo es de ellos.
 
 ---
 
@@ -96,12 +96,13 @@ Lo que no se aguanta: bot de 10 mensajes + recordatorios + campañas. Ahí se va
 
 ### Cliente
 
-- Mapa + listado + búsqueda → ficha → calendario → reserva (hold 15 min).
-- Login simple.
+- Ficha pública → calendario → reserva (hold 15 min).
+- Login simple (en el BE, aislado por dominio del local).
 - Seña: ninguno / mínimo / % (lo configura el dueño).
 - Mercado Pago (se puede fallar y reintentar) o transferencia + espera de confirmación.
 - Mis turnos: ver, cancelar según política simple.
 - Avisos en la web (y mail barato). No campañas por WhatsApp.
+- El mapa / listado / search **sigue en el prototipo**, fuera de este corte.
 
 ### Dueño (backoffice básico)
 
@@ -113,8 +114,8 @@ Para que el local funcione solo, sin nosotros en el medio:
 - Regla de seña.
 - **Conectar Mercado Pago** (webhook).
 - **Alias, CVU, titular, banco** (para el “ya pagué”).
-- **Conectar su WhatsApp**.
-- Landing / ficha pública simple: foto, texto, servicios, reservar, WhatsApp.  
+- WhatsApp: su número para “hablar con el local”. El bot ya corre en el número de TurnoYa.
+- Landing / ficha pública simple: foto, texto, servicios, reservar.  
   El editor canvas (drag & zoom) del prototipo **no** entra ahora.
 - Un cupón simple, si no pesa.
 
@@ -158,6 +159,16 @@ Orden tentativo: API + calendario real → Mercado Pago → bot menú en el núm
 1. ¿Te cierra el recorte (web + menú WhatsApp, sin IA, sin QR no oficial)?
 2. ¿La factura de Meta en el piloto la come el local o nosotros?
 3. ¿Falta algo en el backoffice sin lo cual un dueño de spa/pelu/kinesio no lo usaría?
-4. ¿El mapa entra en el primer piloto o lo dejamos solo como ficha + link de Instagram/WhatsApp?
+4. El mapa quedó **fuera** en Calendar-BE `main`. ¿Confirmamos eso o lo volvemos a meter?
 
-Cuando esto tenga el OK, se baja a tareas de desarrollo encima del prototipo. El código actual se aprovecha; no se reescribe de cero.
+Cuando esto tenga el OK, se estila Calendar-FE encima de este recorte. El código actual se aprovecha; no se reescribe de cero.
+
+---
+
+## Qué ya tiene el backend (`main`) y qué no
+
+**Hecho en BE:** tenancy (`Empresa` → `Sucursal` → `Recurso`), agenda en UTC, estados `reservado` / `no_show`, Cloud API (puerto + webhook), hold, montos en centavos, alta de empresa, credenciales cifradas por tenant.
+
+**Falta en BE (bloquea cobrar de verdad):** Mercado Pago **por empresa** (hoy un solo `MP_ACCESS_TOKEN`), plantillas de WhatsApp con botones, atribuir un mensaje entrante al local cuando varios comparten el número.
+
+**Frontend Calendar-FE todavía no enteró estos cambios.** Login por dominio, `inicioUtc`/`finUtc`, montos `…Centavos`, sacar la pantalla de QR, marcar ausente / completar, alta de empresa. El estilado MVP espera a que este prototipo convenza.

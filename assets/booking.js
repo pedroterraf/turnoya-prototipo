@@ -451,6 +451,10 @@ function paymentRule(placeId) {
     piso: MP_FLOOR,
     techo: 0,
     mpConnected: true,
+    alias: "",
+    cvu: "",
+    titular: "",
+    banco: "",
   };
   try {
     const stored = JSON.parse(memoryGet(`turnoya-pay-${placeId}`) ?? "null");

@@ -204,6 +204,24 @@ function fitViewport() {
   if (meta) meta.content = "width=device-width, initial-scale=1, viewport-fit=cover";
 }
 
+function keepFocusAboveKeyboard() {
+  function reveal(target) {
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.matches("input, textarea, select")) return;
+    const form = target.closest("form");
+    const action = form?.querySelector("button[type='submit'], .btn-ticket, .btn-enamel");
+    target.scrollIntoView({ block: "center", inline: "nearest" });
+    action?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  document.addEventListener("focusin", (event) => reveal(event.target));
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", () => {
+      reveal(document.activeElement);
+    });
+  }
+}
+
 function dockIcon(d) {
   return `<svg class="dock-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="${d}"/></svg>`;
 }
@@ -267,7 +285,183 @@ function paintAppDock() {
   document.body.classList.add("has-app-dock");
 }
 
+function closeAllCustomSelects(except) {
+  document.querySelectorAll(".custom-dropdown.is-open").forEach((wrap) => {
+    if (wrap === except) return;
+    wrap.classList.remove("is-open");
+    const toggle = wrap.querySelector(".custom-dropdown-toggle");
+    if (toggle) toggle.setAttribute("aria-expanded", "false");
+    const menu = wrap.querySelector(".custom-dropdown-menu");
+    if (menu) menu.hidden = true;
+  });
+}
+
+function enhanceSelect(select) {
+  if (!select || select.dataset.customEnhanced) return;
+  select.dataset.customEnhanced = "true";
+
+  select.classList.add("custom-select-native-hidden");
+  select.setAttribute("tabindex", "-1");
+  select.setAttribute("aria-hidden", "true");
+
+  const wrap = document.createElement("div");
+  wrap.className = "custom-dropdown";
+  if (select.closest(".place-switch")) {
+    wrap.classList.add("custom-dropdown-pill");
+  }
+
+  select.parentNode.insertBefore(wrap, select);
+  wrap.appendChild(select);
+
+  const toggle = document.createElement("button");
+  toggle.type = "button";
+  toggle.className = "custom-dropdown-toggle";
+  toggle.setAttribute("aria-haspopup", "listbox");
+  toggle.setAttribute("aria-expanded", "false");
+
+  const label = document.createElement("span");
+  label.className = "custom-dropdown-label";
+
+  const chevron = document.createElement("span");
+  chevron.className = "custom-dropdown-chevron";
+  chevron.innerHTML = `<svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 1.5 6 6 10.5 1.5"/></svg>`;
+
+  toggle.appendChild(label);
+  toggle.appendChild(chevron);
+  wrap.appendChild(toggle);
+
+  const menu = document.createElement("ul");
+  menu.className = "custom-dropdown-menu";
+  menu.setAttribute("role", "listbox");
+  menu.hidden = true;
+  wrap.appendChild(menu);
+
+  function sync() {
+    const selected = select.options[select.selectedIndex];
+    label.textContent = selected ? selected.textContent : (select.getAttribute("placeholder") || "Seleccionar...");
+    menu.querySelectorAll(".custom-dropdown-item").forEach((item) => {
+      const isSelected = item.dataset.value === select.value;
+      item.classList.toggle("is-selected", isSelected);
+      item.setAttribute("aria-selected", isSelected ? "true" : "false");
+    });
+  }
+
+  function renderOptions() {
+    menu.innerHTML = "";
+    Array.from(select.options).forEach((opt) => {
+      const li = document.createElement("li");
+      li.className = "custom-dropdown-item" + (opt.value === select.value ? " is-selected" : "");
+      li.setAttribute("role", "option");
+      li.setAttribute("data-value", opt.value);
+      li.setAttribute("aria-selected", opt.value === select.value ? "true" : "false");
+
+      const itemText = document.createElement("span");
+      itemText.className = "custom-dropdown-text";
+      itemText.textContent = opt.textContent;
+      li.appendChild(itemText);
+
+      const check = document.createElement("span");
+      check.className = "custom-dropdown-check";
+      check.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`;
+      li.appendChild(check);
+
+      li.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        select.value = opt.value;
+        select.dispatchEvent(new Event("change", { bubbles: true }));
+        select.dispatchEvent(new Event("input", { bubbles: true }));
+        sync();
+        close();
+        toggle.focus();
+      });
+
+      menu.appendChild(li);
+    });
+    sync();
+  }
+
+  function open() {
+    closeAllCustomSelects(wrap);
+    wrap.classList.add("is-open");
+    toggle.setAttribute("aria-expanded", "true");
+    menu.hidden = false;
+  }
+
+  function close() {
+    wrap.classList.remove("is-open");
+    toggle.setAttribute("aria-expanded", "false");
+    menu.hidden = true;
+  }
+
+  toggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (wrap.classList.contains("is-open")) {
+      close();
+    } else {
+      open();
+    }
+  });
+
+  toggle.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      if (!wrap.classList.contains("is-open")) {
+        open();
+      }
+    }
+  });
+
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+  if (descriptor && descriptor.set) {
+    const originalSet = descriptor.set;
+    Object.defineProperty(select, "value", {
+      get() {
+        return descriptor.get.call(this);
+      },
+      set(v) {
+        originalSet.call(this, v);
+        sync();
+      },
+      configurable: true,
+    });
+  }
+
+  select.addEventListener("change", sync);
+  select.addEventListener("input", sync);
+
+  const observer = new MutationObserver(() => {
+    renderOptions();
+  });
+  observer.observe(select, { childList: true, subtree: true, characterData: true });
+
+  renderOptions();
+}
+
+function initCustomSelects() {
+  document.querySelectorAll(".place-switch select, select[data-custom-select]").forEach(enhanceSelect);
+}
+
+if (!window.__customSelectDocBound) {
+  window.__customSelectDocBound = true;
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".custom-dropdown")) {
+      closeAllCustomSelects();
+    }
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeAllCustomSelects();
+    }
+  });
+}
+
+window.enhanceSelect = enhanceSelect;
+window.initCustomSelects = initCustomSelects;
+
 fitViewport();
+keepFocusAboveKeyboard();
 if (typeof seedListedUsers === "function") seedListedUsers();
 if (typeof runPlatformCron === "function") runPlatformCron();
 if (typeof autoCompletePastTurnos === "function") autoCompletePastTurnos();
@@ -276,6 +470,7 @@ paintOwnerBell();
 paintDemoFoot();
 paintAppDock();
 bindNotifyLive();
+initCustomSelects();
 if (location.hash && document.querySelector(location.hash)) {
   document.querySelector(location.hash).scrollIntoView({ block: "start" });
 }

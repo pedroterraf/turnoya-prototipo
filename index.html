@@ -14,9 +14,9 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-loop1" />
   </head>
-  <body>
+  <body class="map-home">
     <a class="skip" href="#query">Ir a la búsqueda</a>
     <header class="topbar">
       <a class="brand" href="./index.html">
@@ -43,38 +43,7 @@
       </nav>
     </header>
 
-    <main class="market">
-      <section class="rail" aria-label="Resultados">
-        <div class="ticket">
-          <span>Turno · cerca</span>
-          <h1>¿Qué necesitás hoy?</h1>
-          <p id="location-status">Pedimos tu ubicación para marcarte en vivo y decirte cómo llegar.</p>
-          <p class="meta"><a href="./recorrido.html">Guía del prototipo</a> · mail 123456 · WhatsApp 0000</p>
-          <div class="search-row">
-            <input
-              id="query"
-              type="search"
-              placeholder="Masaje, kinesio, corte, vet…"
-              autocomplete="off"
-            />
-            <button class="btn btn-enamel" id="search-btn" type="button">Buscar</button>
-          </div>
-        </div>
-        <div id="home-turns" class="home-turns" hidden></div>
-        <div id="reco" class="reco">
-          <h2>Recomendados cerca tuyo</h2>
-          <div class="reco-carousel">
-            <button class="reco-nav" type="button" data-reco-dir="-1" aria-label="Anterior">‹</button>
-            <div id="reco-track" class="reco-track"></div>
-            <button class="reco-nav" type="button" data-reco-dir="1" aria-label="Siguiente">›</button>
-          </div>
-        </div>
-        <div class="results">
-          <h2 id="results-count">Cerca</h2>
-          <div id="results-list"></div>
-        </div>
-      </section>
-
+    <main class="market" id="market">
       <section class="map-wrap" aria-label="Mapa de negocios">
         <div id="map" class="map"></div>
         <div class="map-hud">
@@ -84,6 +53,43 @@
           </button>
         </div>
         <div class="watermark">TurnoYa</div>
+      </section>
+
+      <section class="rail" id="rail" aria-label="Lista de negocios">
+        <button class="rail-toggle" id="rail-toggle" type="button" aria-expanded="false" aria-controls="rail-body">
+          <span class="rail-handle" aria-hidden="true"></span>
+          <span id="rail-toggle-label">Ver lista</span>
+        </button>
+        <div class="rail-body" id="rail-body">
+          <div class="ticket">
+            <span>Turno · cerca</span>
+            <h1>¿Qué necesitás hoy?</h1>
+            <p id="location-status">Pedimos tu ubicación para marcarte en vivo y decirte cómo llegar.</p>
+            <p class="meta"><a href="./recorrido.html">Guía</a> · mail 123456 · WhatsApp 0000</p>
+            <div class="search-row">
+              <input
+                id="query"
+                type="search"
+                placeholder="Masaje, kinesio, corte, vet…"
+                autocomplete="off"
+              />
+              <button class="btn btn-enamel" id="search-btn" type="button">Buscar</button>
+            </div>
+          </div>
+          <div id="home-turns" class="home-turns" hidden></div>
+          <div id="reco" class="reco">
+            <h2>Recomendados cerca tuyo</h2>
+            <div class="reco-carousel">
+              <button class="reco-nav" type="button" data-reco-dir="-1" aria-label="Anterior">‹</button>
+              <div id="reco-track" class="reco-track"></div>
+              <button class="reco-nav" type="button" data-reco-dir="1" aria-label="Siguiente">›</button>
+            </div>
+          </div>
+          <div class="results">
+            <h2 id="results-count">Cerca</h2>
+            <div id="results-list"></div>
+          </div>
+        </div>
       </section>
     </main>
 
@@ -102,7 +108,7 @@
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
-    <script src="./assets/app.js"></script>
+    <script src="./assets/app.js?v=ux-loop1"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>

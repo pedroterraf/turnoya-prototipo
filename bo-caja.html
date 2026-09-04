@@ -3,19 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Caja · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>Caja y Finanzas · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=caja-v4" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;700;800&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
       <a id="back" href="./bo.html">Volver</a>
     </header>
     <main class="band" id="root"></main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -24,6 +25,7 @@
     <script src="./assets/accounts.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       requireOwner(id, `./bo-caja.html?id=${id}`);
@@ -31,90 +33,328 @@
       const place = findPlace(id);
       seedPlaceAgenda(id);
 
+      let currentFilter = "all";
+      let searchQuery = "";
+
+      function getBadgeClass(estado) {
+        const norm = String(estado || "").toLowerCase();
+        if (norm.includes("concret") || norm.includes("completo")) return "is-concretado";
+        if (norm.includes("confirm") || norm.includes("seña")) return "is-confirmado";
+        if (norm.includes("cancel")) return "is-cancelado";
+        return "is-noshow";
+      }
+
       function paint() {
         const arca = placeArca(id);
         const metrics = placeMetrics(id);
-        const rows = accountRows(id);
+        const allRows = accountRows(id);
         const invoices = placeInvoices(id);
+
+        const filteredRows = allRows.filter((row) => {
+          if (currentFilter === "cobrado" && row.cobrado <= 0) return false;
+          if (currentFilter === "saldo" && row.saldo <= 0) return false;
+          if (currentFilter === "cancelado" && !row.estado.toLowerCase().includes("cancel")) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            const matchName = row.cliente.toLowerCase().includes(q);
+            const matchSvc = row.servicio.toLowerCase().includes(q);
+            const matchDate = row.fecha.toLowerCase().includes(q);
+            if (!matchName && !matchSvc && !matchDate) return false;
+          }
+          return true;
+        });
+
         document.getElementById("root").innerHTML = `
-          <h2>Caja de ${place.name}</h2>
-          <p class="band-lead">Cuentas del mes, exportes y facturas ARCA (prototipo: CAE mock, no es el web service real).</p>
-          <div class="ops-stats">
-            <div class="ops-stat"><b>${money(metrics.cobrado)}</b><span class="meta">Recaudado</span></div>
-            <div class="ops-stat"><b>${money(metrics.saldo)}</b><span class="meta">Saldo por cobrar</span></div>
-            <div class="ops-stat"><b>${money(metrics.reembolso)}</b><span class="meta">Cancelado a devolver</span></div>
-            <div class="ops-stat"><b>${metrics.concretados}</b><span class="meta">Concretados</span></div>
-            <div class="ops-stat"><b>${metrics.cancelados}</b><span class="meta">Cancelados</span></div>
-            <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Se olvidaron de cobrar</span></div>
-            <div class="ops-stat"><b>${metrics.facturas}</b><span class="meta">Facturas del mes</span></div>
+          <div class="caja-shell">
+            <div class="deferred-banner" data-mvp="deferred">
+              <span class="deferred-icon" aria-hidden="true">⏳</span>
+              <div>
+                <h4>Funcionalidad diferida (Post-MVP)</h4>
+                <p>Esta pantalla está maquetada como referencia a futuro. Para el piloto MVP no se conecta a backend ni se desarrolla lógica de facturación o caja.</p>
+              </div>
+            </div>
+
+            <div class="caja-header">
+              <div>
+                <h2>Caja y Finanzas · ${place.name}</h2>
+                <p class="band-lead">Cuentas del mes en curso, exportación contable y facturación electrónica ARCA.</p>
+              </div>
+              <div class="caja-actions">
+                <button class="caja-btn-export" type="button" id="csv">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Exportar CSV
+                </button>
+                <button class="caja-btn-export" type="button" id="xls">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  Exportar Excel
+                </button>
+              </div>
+            </div>
+
+            <div class="caja-kpi-grid">
+              <div class="caja-kpi-card is-primary">
+                <div class="caja-kpi-top">
+                  <span class="caja-kpi-label">Recaudado</span>
+                  <span class="caja-kpi-badge">Ingresos reales</span>
+                </div>
+                <div class="caja-kpi-num">${money(metrics.cobrado)}</div>
+                <div class="caja-kpi-sub">Total cobrado este período</div>
+              </div>
+
+              <div class="caja-kpi-card">
+                <div class="caja-kpi-top">
+                  <span class="caja-kpi-label">Saldo pendiente</span>
+                  <span class="caja-kpi-badge" style="background:#fef3c7; color:#92400e;">Por cobrar</span>
+                </div>
+                <div class="caja-kpi-num">${money(metrics.saldo)}</div>
+                <div class="caja-kpi-sub">Monto a cobrar en mostrador</div>
+              </div>
+
+              <div class="caja-kpi-card">
+                <div class="caja-kpi-top">
+                  <span class="caja-kpi-label">Reembolsos</span>
+                  <span class="caja-kpi-badge" style="background:#fee2e2; color:#991b1b;">Cancelaciones</span>
+                </div>
+                <div class="caja-kpi-num">${money(metrics.reembolso)}</div>
+                <div class="caja-kpi-sub">Cancelados a devolver</div>
+              </div>
+
+              <div class="caja-kpi-card">
+                <div class="caja-kpi-top">
+                  <span class="caja-kpi-label">Turnos del mes</span>
+                  <span class="caja-kpi-badge">${metrics.turnos} turnos</span>
+                </div>
+                <div class="caja-kpi-num">${metrics.concretados} <span style="font-size: 0.95rem; font-weight: 500; color: var(--ink-soft);">concretados</span></div>
+                <div class="caja-kpi-sub">${metrics.cancelados} cancelados · ${metrics.olvidado} sin cobrar</div>
+              </div>
+            </div>
+
+            <!-- Panel ARCA -->
+            <div class="caja-panel">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                  Facturación electrónica ARCA / AFIP
+                </h3>
+                <label class="switch-wrap" for="arca-toggle">
+                  <input class="switch-input" type="checkbox" id="arca-toggle" name="on" ${arca.connected ? "checked" : ""} />
+                  <span class="switch-slider"></span>
+                  <span class="switch-label-text">Integración</span>
+                  <span class="switch-status-pill ${arca.connected ? "is-on" : "is-off"}" id="arca-pill">
+                    ${arca.connected ? "Conectado" : "Desconectado"}
+                  </span>
+                </label>
+              </div>
+
+              <div class="caja-callout">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div>
+                  <strong>Régimen de comprobantes fiscales:</strong>
+                  Monotributistas emiten Factura C. Responsables Inscriptos emiten Factura A (a CUIT RI) o Factura B (a consumidor final). En este prototipo se genera CAE simulado para pruebas de flujo.
+                </div>
+              </div>
+
+              <form id="arca-form">
+                <div class="arca-form-grid">
+                  <div class="arca-field-group">
+                    <label for="arca-cuit">CUIT del local</label>
+                    <input id="arca-cuit" name="cuit" value="${arca.cuit || ""}" placeholder="30-12345678-9" autocomplete="off" />
+                  </div>
+                  <div class="arca-field-group">
+                    <label for="arca-razon">Razón social o Titular</label>
+                    <input id="arca-razon" name="razon" value="${arca.razonSocial || ""}" placeholder="Ej. Oasis Multispa S.R.L." autocomplete="off" />
+                  </div>
+                  <div class="arca-field-group">
+                    <label for="arca-pv">Punto de venta</label>
+                    <input id="arca-pv" name="pv" type="number" min="1" max="9999" value="${arca.puntoVenta || "1"}" />
+                  </div>
+                  <div class="arca-field-group">
+                    <label for="arca-condicion">Condición fiscal</label>
+                    <select id="arca-condicion" name="condicion">
+                      <option value="monotributo" ${arca.condicion === "monotributo" ? "selected" : ""}>Monotributo · Factura C</option>
+                      <option value="ri" ${arca.condicion === "ri" ? "selected" : ""}>Responsable inscripto · Facturas A / B</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style="display:flex; align-items:center; margin-top:20px;">
+                  <button class="btn btn-ticket arca-btn-save" type="submit">
+                    Guardar configuración ARCA
+                  </button>
+                  <span class="arca-save-msg" id="arca-msg">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Cambios guardados con éxito</span>
+                  </span>
+                </div>
+              </form>
+            </div>
+
+            <!-- Panel Movimientos del mes -->
+            <div class="caja-panel">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                  Movimientos de caja del mes
+                </h3>
+                <span class="meta">${filteredRows.length} de ${allRows.length} turnos</span>
+              </div>
+
+              <div class="caja-filter-bar">
+                <div class="caja-search-box">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  <input type="text" id="filter-search" placeholder="Buscar por cliente o servicio..." value="${searchQuery}" />
+                </div>
+                <div class="caja-tabs-filter">
+                  <button class="caja-tab-btn ${currentFilter === "all" ? "is-active" : ""}" data-filter="all" type="button">Todos (${allRows.length})</button>
+                  <button class="caja-tab-btn ${currentFilter === "cobrado" ? "is-active" : ""}" data-filter="cobrado" type="button">Cobrados</button>
+                  <button class="caja-tab-btn ${currentFilter === "saldo" ? "is-active" : ""}" data-filter="saldo" type="button">Con saldo</button>
+                  <button class="caja-tab-btn ${currentFilter === "cancelado" ? "is-active" : ""}" data-filter="cancelado" type="button">Cancelados</button>
+                </div>
+              </div>
+
+              ${
+                filteredRows.length
+                  ? `<div class="caja-table-wrap">
+                      <table class="caja-table">
+                        <thead>
+                          <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Servicio</th>
+                            <th>Estado</th>
+                            <th style="text-align:right;">Cobrado</th>
+                            <th style="text-align:right;">Saldo</th>
+                            <th>Detalle de cobro</th>
+                            <th>Factura</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          ${filteredRows
+                            .map((row) => {
+                              const badgeClass = getBadgeClass(row.estado);
+                              return `
+                                <tr>
+                                  <td style="font-weight:600; white-space:nowrap;">${row.fecha}</td>
+                                  <td><strong>${row.cliente || "Cliente"}</strong></td>
+                                  <td>${row.servicio || "—"}</td>
+                                  <td><span class="caja-badge ${badgeClass}">${row.estado}</span></td>
+                                  <td style="text-align:right;" class="caja-price-num caja-price-cobrado">${money(row.cobrado)}</td>
+                                  <td style="text-align:right;" class="caja-price-num caja-price-saldo">${row.saldo > 0 ? money(row.saldo) : "—"}</td>
+                                  <td style="font-size:0.82rem; color:var(--ink-soft);">${row.pago}</td>
+                                  <td>${row.factura ? `<code style="background:#f1f5f2; padding:2px 6px; border-radius:4px; font-size:0.78rem;">CAE ${row.factura}</code>` : "—"}</td>
+                                </tr>
+                              `;
+                            })
+                            .join("")}
+                        </tbody>
+                      </table>
+                    </div>`
+                  : `<p class="meta" style="text-align:center; padding:28px 14px; background:#fafbfa; border:1px dashed var(--line); border-radius:8px;">
+                      No se encontraron movimientos para el filtro seleccionado.
+                    </p>`
+              }
+            </div>
+
+            <!-- Panel Facturas Emitidas -->
+            <div class="caja-panel">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                  Facturas emitidas del mes
+                </h3>
+                <span class="meta">${invoices.length} comprobantes</span>
+              </div>
+
+              ${
+                invoices.length
+                  ? `<div class="invoice-grid">
+                      ${invoices
+                        .map(
+                          (inv) => `
+                            <article class="invoice-voucher-card">
+                              <div class="invoice-letter-box">${inv.letter || "C"}</div>
+                              <div class="invoice-info">
+                                <h4 class="invoice-title">${inv.nombre || "Consumidor final"}</h4>
+                                <div class="invoice-cae">CAE ${inv.cae} · Doc ${inv.doc || "CF"}</div>
+                                <div class="invoice-amount">${money(inv.amount)}</div>
+                                <div class="invoice-date">${new Date(inv.at).toLocaleString("es-AR")}</div>
+                              </div>
+                            </article>
+                          `,
+                        )
+                        .join("")}
+                    </div>`
+                  : `<p class="meta" style="text-align:center; padding:24px 14px; background:#fafbfa; border:1px dashed var(--line); border-radius:8px;">
+                      Todavía no emitiste facturas este mes. Conectá ARCA arriba y podés facturar turnos concretados directamente desde la agenda.
+                    </p>`
+              }
+            </div>
           </div>
-          <p>
-            <button class="btn btn-ticket" type="button" id="csv">Exportar CSV</button>
-            <button class="btn btn-enamel" type="button" id="xls">Exportar Excel</button>
-          </p>
-          <h3 class="ficha-sub">ARCA</h3>
-          <p class="meta">Responsable inscripto emite A (a CUIT RI) o B (consumidor final). Monotributo emite C. Fuente: régimen de comprobantes ARCA/AFIP.</p>
-          <form id="arca" class="review-form wide-form">
-            <label><input type="checkbox" name="on" ${arca.connected ? "checked" : ""} /> Conectado a ARCA</label>
-            <label>CUIT del local <input name="cuit" value="${arca.cuit || ""}" placeholder="30-12345678-9" /></label>
-            <label>Razón social <input name="razon" value="${arca.razonSocial || ""}" /></label>
-            <label>Punto de venta <input name="pv" value="${arca.puntoVenta || "1"}" /></label>
-            <label>Condición
-              <select name="condicion">
-                <option value="monotributo" ${arca.condicion === "monotributo" ? "selected" : ""}>Monotributo · Factura C</option>
-                <option value="ri" ${arca.condicion === "ri" ? "selected" : ""}>Responsable inscripto · A / B</option>
-              </select>
-            </label>
-            <button class="btn btn-ticket" type="submit">Guardar ARCA</button>
-            <p class="meta" id="arca-msg"></p>
-          </form>
-          <h3 class="ficha-sub">Movimientos del mes</h3>
-          ${
-            rows.length
-              ? `<div class="compare-wrap"><table class="compare">
-                  <thead><tr><th>Fecha</th><th>Cliente</th><th>Servicio</th><th>Estado</th><th>Cobrado</th><th>Saldo</th><th>Pago</th></tr></thead>
-                  <tbody>${rows
-                    .map(
-                      (row) =>
-                        `<tr><td>${row.fecha}</td><td>${row.cliente}</td><td>${row.servicio}</td><td>${row.estado}</td><td>${money(row.cobrado)}</td><td>${money(row.saldo)}</td><td>${row.pago}</td></tr>`,
-                    )
-                    .join("")}</tbody>
-                </table></div>`
-              : "<p class=\"meta\">No hay movimientos este mes.</p>"
-          }
-          <h3 class="ficha-sub">Facturas emitidas</h3>
-          ${
-            invoices.length
-              ? invoices
-                  .map(
-                    (row) =>
-                      `<p class="meta">Factura ${row.letter} · CAE ${row.cae} · ${row.nombre} · ${money(row.amount)} · ${new Date(row.at).toLocaleString("es-AR")}</p>`,
-                  )
-                  .join("")
-              : "<p class=\"meta\">Todavía no emitiste. Conectá ARCA y facturá desde un turno en la agenda.</p>"
-          }
         `;
+
+        // Eventos de Exportación
         document.getElementById("csv").addEventListener("click", () => {
-          downloadSheet(rows, `caja-${place.slug}-${metrics.bounds.key}.csv`, "csv");
+          downloadSheet(allRows, `caja-${place.slug}-${metrics.bounds.key}.csv`, "csv");
         });
         document.getElementById("xls").addEventListener("click", () => {
-          downloadSheet(rows, `caja-${place.slug}-${metrics.bounds.key}.xls`, "excel");
+          downloadSheet(allRows, `caja-${place.slug}-${metrics.bounds.key}.xls`, "excel");
         });
-        document.getElementById("arca").addEventListener("submit", (event) => {
-          event.preventDefault();
-          const form = event.target;
+
+        // Toggle ARCA
+        const arcaToggle = document.getElementById("arca-toggle");
+        const arcaPill = document.getElementById("arca-pill");
+        arcaToggle.addEventListener("change", () => {
+          const on = arcaToggle.checked;
+          arcaPill.textContent = on ? "Conectado" : "Desconectado";
+          arcaPill.className = `switch-status-pill ${on ? "is-on" : "is-off"}`;
+        });
+
+        // Formulario ARCA
+        const arcaForm = document.getElementById("arca-form");
+        arcaForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const form = e.target;
+          const isConnected = arcaToggle.checked;
           savePlaceArca(id, {
-            connected: form.on.checked,
-            cuit: form.cuit.value,
-            razonSocial: form.razon.value,
-            puntoVenta: form.pv.value,
+            connected: isConnected,
+            cuit: form.cuit.value.trim(),
+            razonSocial: form.razon.value.trim(),
+            puntoVenta: form.pv.value.trim(),
             condicion: form.condicion.value,
           });
-          document.getElementById("arca-msg").textContent = form.on.checked
-            ? "ARCA conectado. Ya podés facturar desde cada turno."
-            : "Desconectado.";
+
+          const msg = document.getElementById("arca-msg");
+          msg.classList.add("is-visible");
+          setTimeout(() => {
+            msg.classList.remove("is-visible");
+          }, 3200);
         });
+
+        // Buscador y filtros de la tabla
+        const searchInput = document.getElementById("filter-search");
+        searchInput.addEventListener("input", (e) => {
+          searchQuery = e.target.value.trim();
+          paint();
+          // Restaurar foco al input después del repintado
+          const reInput = document.getElementById("filter-search");
+          if (reInput) {
+            reInput.focus();
+            reInput.setSelectionRange(reInput.value.length, reInput.value.length);
+          }
+        });
+
+        document.querySelectorAll(".caja-tab-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            currentFilter = btn.dataset.filter;
+            paint();
+          });
+        });
+
+        if (typeof initCustomSelects === "function") {
+          initCustomSelects();
+        }
       }
+
       paint();
     </script>
   </body>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Guía · TurnoYa</title>
+    <title>Guía MVP · TurnoYa</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -16,54 +16,51 @@
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
       <nav class="topbar-nav">
-        <a class="hide-sm" href="./index.html">Mapa</a>
+        <a class="hide-sm" href="./ficha.html?id=oasis">Ficha</a>
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
     <main class="band narrow">
-      <p class="meta">Prototipo</p>
-      <h2>Flujo para clickear</h2>
-      <p class="band-lead">No abras el listado de archivos. Entrá por el mapa. La barra de arriba te lleva de un paso al otro. Los logins se saltean con datos de Pedro / Oasis / Ops.</p>
+      <p class="later-tag">MVP</p>
+      <h2>Recorte para clickear</h2>
+      <p class="band-lead">
+        Armado contra Calendar-BE <code>main</code>, no contra todo el prototipo.
+        El mapa y Ops grande siguen en el repo; no son el primer pase a mercado.
+      </p>
+      <div class="mvp-banner">
+        <strong>Entrada del piloto</strong>
+        <p class="meta">El cliente llega por el link de Instagram / WhatsApp del local a la ficha. El dueño opera la agenda en el celular.</p>
+      </div>
       <div class="guide-list">
         <article>
-          <strong>1. Mapa</strong>
-          <p class="meta">Buscá o abrí Oasis.</p>
-          <a class="btn btn-ticket" href="./index.html">Abrir el mapa</a>
-        </article>
-        <article>
-          <strong>2–6. Cliente</strong>
-          <p class="meta">Ficha → horario → confirmar → pagar → mis turnos. Si te pide login, “Seguir con datos de prueba”.</p>
-          <a class="btn btn-enamel" href="./ficha.html?id=oasis">Ficha Oasis</a>
-          <a class="btn-line" href="./reservar.html?id=oasis">Elegir horario</a>
-          <a class="btn-line" href="./datos.html">Confirmar</a>
+          <strong>1. Cliente — ficha y reserva</strong>
+          <p class="meta">Ficha → horario (hold 15 min) → login → seña MP o “ya pagué” → mis turnos.</p>
+          <a class="btn btn-ticket" href="./ficha.html?id=oasis">Ficha Oasis</a>
+          <a class="btn-line" href="./reservar.html?id=oasis">Calendario</a>
           <a class="btn-line" href="./pago.html">Pago</a>
           <a class="btn-line" href="./mi-turno.html">Mis turnos</a>
-          <a class="btn-line" href="./notificaciones.html">Notificaciones</a>
         </article>
         <article>
-          <strong>7. Dueño</strong>
-          <p class="meta">Panel, datos del local, agenda, CRM, servicios, cupones, soporte, landing, pagos y textos.</p>
+          <strong>2. Dueño — lo que tiene que funcionar solo</strong>
+          <p class="meta">Agenda, servicios, seña + alias, WhatsApp de menú, ficha simple.</p>
           <a class="btn btn-enamel" href="./bo.html?id=oasis">Abrir panel</a>
-          <a class="btn-line" href="./notificaciones.html?rol=dueno">Notificaciones del dueño</a>
           <a class="btn-line" href="./bo-agenda.html?id=oasis">Agenda</a>
           <a class="btn-line" href="./bo-servicios.html?id=oasis">Servicios</a>
-          <a class="btn-line" href="./bo-cupones.html?id=oasis">Cupones</a>
-          <a class="btn-line" href="./bo-soporte.html?id=oasis">Soporte</a>
-          <a class="btn-line" href="./bo-landing.html?id=oasis">Landing</a>
-          <a class="btn-line" href="./bo-pagos.html?id=oasis">Pagos</a>
-          <a class="btn-line" href="./negocio-resenas.html?id=oasis">Textos</a>
-          <a class="btn-line" href="./bo-plan.html?id=oasis">Plan</a>
-          <a class="btn-line" href="./planes.html">Detalle de planes</a>
-          <a class="btn-line" href="./bo-caja.html?id=oasis">Caja</a>
-          <a class="btn-line" href="./bo-crm.html?id=oasis">CRM</a>
+          <a class="btn-line" href="./bo-pagos.html?id=oasis">Pagos y alias</a>
+          <a class="btn-line" href="./bo-whatsapp.html?id=oasis">WhatsApp</a>
         </article>
         <article>
-          <strong>8. Ops</strong>
-          <p class="meta">Usuarios, negocios, planes, avisos, altas y dinero.</p>
-          <a class="btn btn-enamel" href="./ops.html">Abrir Ops</a>
-          <a class="btn-line" href="./ops-usuarios.html">Usuarios</a>
-          <a class="btn-line" href="./ops-planes.html">Planes</a>
-          <a class="btn-line" href="./ops-avisos.html">Avisos</a>
+          <strong>3. Ops — mínimo</strong>
+          <p class="meta">Aprobar el alta. El pin no es público hasta que alguien lo apruebe. El resto de Ops es después.</p>
+          <a class="btn btn-enamel" href="./ops-altas.html">Altas</a>
+        </article>
+        <article>
+          <strong>Después (sigue en el prototipo)</strong>
+          <p class="meta">Mapa, planes, CRM, ARCA, canvas, lista de espera, número propio del local.</p>
+          <a class="btn-line" href="./index.html">Mapa</a>
+          <a class="btn-line" href="./bo-caja.html?id=oasis">Caja</a>
+          <a class="btn-line" href="./bo-crm.html?id=oasis">CRM</a>
+          <a class="btn-line" href="./ops.html">Ops grande</a>
         </article>
       </div>
     </main>

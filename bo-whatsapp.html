@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhatsApp · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="sell">
+    <header class="topbar">
+      <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
+      <a id="back" href="./bo.html">Volver</a>
+    </header>
+    <main class="band narrow">
+      <p class="later-tag">MVP</p>
+      <h2>WhatsApp del local</h2>
+      <p class="band-lead">
+        En el piloto el bot corre en el <strong>número compartido de TurnoYa</strong> (Cloud API oficial).
+        El cliente reserva por menú. Si pide una persona, lo mandamos a <em>tu</em> WhatsApp con un link.
+        No es el QR de WhatsApp Web.
+      </p>
+      <article class="bo-panel mvp-banner">
+        <strong>Cómo habla el bot</strong>
+        <p>Tres botones: Servicios · Reservar · Hablar con el local. El horario se elige en el calendario web.</p>
+      </article>
+      <form id="form" class="review-form">
+        <p class="meta">Canal de la plataforma (no lo cambia el dueño)</p>
+        <label>Estado
+          <input value="Conectado · número TurnoYa compartido" disabled />
+        </label>
+        <label>Tu WhatsApp para “hablar con el local”
+          <input name="humano" placeholder="5493512345678" />
+        </label>
+        <p class="meta">Ahí te llegan las conversaciones humanas. El bot se calla.</p>
+        <label><input type="checkbox" name="menu" checked /> Menú de botones (recomendado)</label>
+        <label><input type="checkbox" name="pdf" /> Mandar PDF de servicios además del link</label>
+        <p class="meta">El PDF se arma cuando guardás el menú, no en cada chat.</p>
+        <p class="meta">Después del piloto: tu propio número (Coexistence). No entra ahora.</p>
+        <button class="btn btn-ticket" type="submit">Guardar</button>
+        <p id="msg" class="meta"></p>
+      </form>
+    </main>
+    <script src="./assets/store.js"></script>
+    <script src="./assets/notifications.js"></script>
+    <script src="./assets/reviews.js"></script>
+    <script src="./assets/app.js"></script>
+    <script src="./assets/booking.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script>
+      const id = new URLSearchParams(location.search).get("id") || "oasis";
+      if (!requireOwner(id, `./bo-whatsapp.html?id=${id}`)) throw new Error("redirect");
+      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const support = placeSupport(findPlace(id));
+      const form = document.getElementById("form");
+      form.humano.value = (support.whatsapp || "").replace(/\D/g, "");
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        savePlaceSupport(id, {
+          ...support,
+          whatsappEnabled: true,
+          whatsapp: form.humano.value,
+        });
+        document.getElementById("msg").textContent = "Guardado. El bot sigue en el número de TurnoYa.";
+      });
+    </script>
+  </body>
+</html>

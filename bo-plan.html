@@ -3,19 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Plan · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <title>Planes Comerciales · BO</title>
+    <link rel="stylesheet" href="./assets/styles.css?v=plan-v4" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750;800&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
       <a id="back" href="./bo.html">Volver</a>
     </header>
+
     <main class="band" id="root"></main>
+
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
@@ -23,6 +25,7 @@
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       const need = new URLSearchParams(location.search).get("need");
@@ -33,62 +36,112 @@
       function paint() {
         const current = placePlan(id);
         const used = monthBookings(id);
-        document.getElementById("root").innerHTML = `
-          <h2>Plan de ${place.name}</h2>
-          <p class="band-lead">Hoy: <strong>${current.name}</strong> · ${planPriceLabel(current)} · ${used} turnos este mes${
-            current.bookings ? ` / ${current.bookings}` : ""
-          }. Comisión TurnoYa 0%.</p>
-          <p class="meta"><a href="./planes.html">Ver todos los planes al detalle</a></p>
-          ${
-            need
-              ? `<p class="meta">Esa función pide un plan más alto (${need}). Barrio desbloquea espera y huecos. Ciudad suma el pin dorado.</p>`
-              : ""
-          }
-          <div class="plan-grid">
-            ${PLAN_ORDER.map((key) => {
-              const plan = PLANS[key];
-              const on = plan.id === current.id;
-              return `<article class="plan-tile${on ? " is-hot" : ""}">
-                <p class="meta">${on ? "Plan actual" : plan.tag}</p>
-                <h3>${plan.name}</h3>
-                <p class="plan-price">${planPriceLabel(plan)}</p>
-                <p class="meta">${plan.pitch}</p>
-                <ul>${planIncludeRows(plan)
-                  .slice(0, 6)
-                  .map((row) => `<li>${row}</li>`)
-                  .join("")}</ul>
-                <a class="btn-line" href="./planes.html?plan=${plan.id}">Detalle completo</a>
-                <button class="btn ${on ? "btn-line" : "btn-ticket"}" type="button" data-plan="${plan.id}" ${on ? "disabled" : ""}>${
-                  on ? "Activo" : `Pasar a ${plan.name}`
-                }</button>
-              </article>`;
-            }).join("")}
+        const root = document.getElementById("root");
+
+        root.innerHTML = `
+          <div class="plan-shell">
+            <div class="deferred-banner" data-mvp="deferred">
+              <span class="deferred-icon" aria-hidden="true">⏳</span>
+              <div>
+                <h4>Funcionalidad diferida (Post-MVP)</h4>
+                <p>Los planes comerciales (Barrio / Ciudad / Red) y sus límites están diferidos. Durante el piloto inicial el acceso a las funciones MVP es irrestricto y gratuito para validar el producto.</p>
+              </div>
+            </div>
+
+            <div class="bo-head">
+              <div>
+                <h2>Plan y Suscripción · ${place.name}</h2>
+                <p class="band-lead">
+                  Tu suscripción actual es <strong>${current.name}</strong> (${planPriceLabel(current)}). Llevás <strong>${used} turnos</strong> gestionados este mes${current.bookings ? ` de ${current.bookings} incluidos` : ""}. Comisión de TurnoYa: 0%.
+                </p>
+              </div>
+              <a class="btn btn-ghost" href="./planes.html" target="_blank" style="white-space:nowrap;">
+                Comparativa completa ↗
+              </a>
+            </div>
+
+            ${
+              need
+                ? `<div class="caja-callout" style="background:#fffbeb; border-color:#fde68a; color:#92400e;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <div>La función que intentás usar requiere el plan <strong>${need}</strong> o superior. Podés cambiarte de plan con un clic.</div>
+                  </div>`
+                : ""
+            }
+
+            <div class="plan-grid-modern">
+              ${PLAN_ORDER.map((key) => {
+                const plan = PLANS[key];
+                const isCurrent = plan.id === current.id;
+                return `
+                  <article class="plan-tile-modern ${isCurrent ? "is-current" : ""}">
+                    <span class="plan-badge-tag">${isCurrent ? "★ Plan actual" : plan.tag || "Plan"}</span>
+                    <h3 class="plan-tile-title">${plan.name}</h3>
+                    <div class="plan-tile-price">${planPriceLabel(plan)}</div>
+                    <p class="plan-tile-pitch">${plan.pitch}</p>
+                    <ul class="plan-features-list">
+                      ${planIncludeRows(plan)
+                        .slice(0, 5)
+                        .map((row) => `<li>${row}</li>`)
+                        .join("")}
+                    </ul>
+                    <button class="btn ${isCurrent ? "btn-line" : "btn-ticket"}" type="button" data-plan="${plan.id}" ${isCurrent ? "disabled style='opacity:0.6; cursor:default;'" : ""}>
+                      ${isCurrent ? "Plan en uso" : `Elegir ${plan.name}`}
+                    </button>
+                  </article>
+                `;
+              }).join("")}
+            </div>
+
+            <div class="caja-panel">
+              <div class="caja-panel-head">
+                <h3>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--enamel);"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  Adicionales de visibilidad y posicionamiento
+                </h3>
+              </div>
+              <p class="meta" style="margin:0 0 16px;">
+                Opciones opcionales para destacar tu local en la búsqueda y en el mapa de TurnoYa. Siempre se indican con etiqueta transparente para el cliente.
+              </p>
+
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                ${Object.values(PLAN_ADDONS)
+                  .map(
+                    (addon) => `
+                    <div class="day-row-modern" style="padding:16px; border:1px solid var(--line); border-radius:10px;">
+                      <div>
+                        <strong style="font-size:1rem; color:var(--ink);">${addon.name} · ${money(addon.price)} / mes</strong>
+                        <p class="meta" style="margin:4px 0 0;">${addon.pitch}</p>
+                      </div>
+                      <button class="btn btn-enamel" type="button" data-addon="${addon.id}" style="min-height:36px; padding:0 18px; font-size:0.86rem;">
+                        Activar extra
+                      </button>
+                    </div>
+                  `,
+                  )
+                  .join("")}
+              </div>
+            </div>
           </div>
-          <h3 class="ficha-sub">Extras de visibilidad</h3>
-          <p class="band-lead">Se etiquetan. El cliente sabe quién pagó por estar arriba.</p>
-          ${Object.values(PLAN_ADDONS)
-            .map(
-              (addon) => `<article class="agenda-row">
-                <div><strong>${addon.name} · ${money(addon.price)} / mes</strong><p class="meta">${addon.pitch}</p></div>
-                <button class="btn btn-enamel" type="button" data-addon="${addon.id}">Activar</button>
-              </article>`,
-            )
-            .join("")}
         `;
-        document.querySelectorAll("[data-plan]").forEach((button) => {
+
+        root.querySelectorAll("[data-plan]").forEach((button) => {
           button.addEventListener("click", () => {
             savePlacePlan(id, button.dataset.plan);
             paint();
           });
         });
-        document.querySelectorAll("[data-addon]").forEach((button) => {
+
+        root.querySelectorAll("[data-addon]").forEach((button) => {
           button.addEventListener("click", () => {
             const featured = button.dataset.addon === "destacado" || button.dataset.addon === "patrocinado";
             patchPlaceView(id, { featured, plan: placePlanId(id) === "calle" ? "barrio" : placePlanId(id) });
+            alert(`Se activó "${button.dataset.addon}".`);
             paint();
           });
         });
       }
+
       paint();
     </script>
   </body>

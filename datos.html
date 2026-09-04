@@ -21,12 +21,12 @@
     </header>
     <main class="auth-shell">
       <div class="auth-card wide">
-        <p class="meta">El horario queda retenido hasta que pagues. Si se vence, se libera solo.</p>
+        <p class="meta">Reservamos el horario 15 minutos. Pagás la seña al local.</p>
         <p class="hold-clock" id="clock">15:00</p>
         <h1>Confirmá el turno</h1>
         <p class="band-lead" id="summary"></p>
         <p id="who" class="meta"></p>
-        <form id="coupon-form" class="review-form">
+        <form id="coupon-form" class="review-form" hidden data-mvp="deferred">
           <label>Cupón <input name="code" placeholder="RELAX10" /></label>
           <button class="btn btn-ghost" type="submit">Aplicar</button>
           <p id="coupon-msg" class="meta"></p>
@@ -74,7 +74,7 @@
           `${draft.placeName} · ${draft.serviceName} · ${draft.slot.replace("T", " ")} · ${money(price)}`;
         document.getElementById("who").textContent = `${user.nombre} ${user.apellido} · DNI ${user.dni}${
           charge
-            ? ` · Seña ${money(senia)} + cargo de servicio ${money(charge)} = ${money(total)}`
+            ? ` · Seña ${money(senia)} + cargo TurnoYa ${money(charge)} = ${money(total)}`
             : senia
               ? ` · Seña ${money(senia)}`
               : ""
@@ -84,9 +84,7 @@
         document.getElementById("go-pay").href = "./pago.html";
         if (note) document.getElementById("coupon-msg").textContent = note;
       }
-      if (!placeCoupons(draft.placeId).some((row) => row.active)) {
-        document.getElementById("coupon-form").hidden = true;
-      }
+      document.getElementById("coupon-form").hidden = true;
       paintPay(listPrice);
       document.getElementById("coupon-form").addEventListener("submit", (event) => {
         event.preventDefault();

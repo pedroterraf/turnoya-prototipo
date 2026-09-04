@@ -137,30 +137,81 @@ function paintDemoFoot() {
   const host = document.querySelector("[data-demo-foot]");
   if (!host) return;
   host.innerHTML =
-    `Demo · mail <b>123456</b> · WhatsApp <b>0000</b> · dueño oasis@turnoya.com · ops@turnoya.com · <a href="./recorrido.html">Guía del prototipo</a>`;
+    `mail <b>123456</b> · WhatsApp <b>0000</b> · dueño oasis@turnoya.com · ops@turnoya.com · <a href="./recorrido.html">Guía del prototipo</a>`;
 }
 
 if (typeof seedPlaceAgenda === "function") {
   seedPlaceAgenda("oasis");
 }
 
-function showNotifyToast(row) {
-  let host = document.getElementById("notify-toast");
-  if (!host) {
-    host = document.createElement("aside");
-    host.id = "notify-toast";
-    host.className = "notify-toast";
-    document.body.append(host);
+const TOAST_DURATION_MS = 4200;
+
+function toastIcon(tone) {
+  if (tone === "success") {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   }
-  const href =
-    (typeof notificationHref === "function" && notificationHref(row)) || notificationsPageHref();
-  host.innerHTML = `<strong>${row.title}</strong><p>${row.body}</p><a class="btn btn-ticket" href="${href}">Ver</a>`;
-  host.hidden = false;
-  window.clearTimeout(host._hide);
-  host._hide = window.setTimeout(() => {
-    host.hidden = true;
-  }, 8000);
+  if (tone === "error") {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M15 9 9 15M9 9l6 6"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Zm4 9a2 2 0 0 0 4 0"/></svg>';
 }
+
+function toastHost() {
+  let host = document.getElementById("app-toasts");
+  if (host) return host;
+  host = document.createElement("div");
+  host.id = "app-toasts";
+  host.className = "app-toasts";
+  host.setAttribute("aria-live", "polite");
+  document.body.append(host);
+  return host;
+}
+
+function showAppToast(input) {
+  const data =
+    typeof input === "string"
+      ? { title: input, tone: "info" }
+      : input || {};
+  const tone = data.tone || (data.href ? "notice" : "info");
+  const card = document.createElement("aside");
+  card.className = `app-toast is-${tone}`;
+  card.setAttribute("role", "status");
+  const action = data.href
+    ? `<a class="btn btn-ticket" href="${data.href}">${data.actionLabel || "Ver"}</a>`
+    : "";
+  card.innerHTML = `
+    <span class="app-toast-ico" aria-hidden="true">${toastIcon(tone)}</span>
+    <div>
+      <strong>${data.title || "Aviso"}</strong>
+      ${data.body ? `<p>${data.body}</p>` : ""}
+    </div>
+    ${action}
+    <button class="app-toast-close" type="button" aria-label="Cerrar">×</button>
+  `;
+  toastHost().prepend(card);
+  const hide = () => {
+    card.remove();
+  };
+  card.querySelector(".app-toast-close")?.addEventListener("click", hide);
+  window.setTimeout(hide, data.duration || TOAST_DURATION_MS);
+  return card;
+}
+
+function showNotifyToast(row) {
+  const href =
+    (typeof notificationHref === "function" && notificationHref(row)) ||
+    (typeof notificationsPageHref === "function" ? notificationsPageHref() : "./notificaciones.html");
+  showAppToast({
+    title: row.title,
+    body: row.body,
+    href,
+    tone: "notice",
+    actionLabel: "Abrir",
+    duration: 7000,
+  });
+}
+
+window.showAppToast = showAppToast;
 
 function bindNotifyLive() {
   if (window.__notifyLiveBound) return;
@@ -207,11 +258,19 @@ function fitViewport() {
 function keepFocusAboveKeyboard() {
   function reveal(target) {
     if (!(target instanceof HTMLElement)) return;
-    if (!target.matches("input, textarea, select")) return;
-    const form = target.closest("form");
-    const action = form?.querySelector("button[type='submit'], .btn-ticket, .btn-enamel");
+    if (!target.matches("input, textarea, select, [contenteditable]")) return;
+    const form = target.closest("form") || document;
+    const action =
+      form.querySelector("button[type='submit'], .btn-ticket, .btn-enamel, #go-pay, #confirm-slot") ||
+      document.querySelector("#pick-bar .btn, #go-pay, #confirm-slot");
+    const cutoff = Math.min(window.visualViewport?.height || window.innerHeight, window.innerHeight - 300);
     target.scrollIntoView({ block: "center", inline: "nearest" });
-    action?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (action) {
+      const box = action.getBoundingClientRect();
+      if (box.bottom > cutoff) {
+        window.scrollBy({ top: box.bottom - cutoff + 16, behavior: "smooth" });
+      }
+    }
   }
 
   document.addEventListener("focusin", (event) => reveal(event.target));
@@ -381,11 +440,27 @@ function enhanceSelect(select) {
     sync();
   }
 
+  function pinTopbarMenu() {
+    if (!select.closest(".topbar")) {
+      menu.style.removeProperty("top");
+      menu.style.removeProperty("left");
+      menu.style.removeProperty("right");
+      menu.style.removeProperty("width");
+      return;
+    }
+    const box = toggle.getBoundingClientRect();
+    menu.style.top = `${Math.round(box.bottom + 6)}px`;
+    menu.style.left = `${Math.round(box.left)}px`;
+    menu.style.right = "auto";
+    menu.style.width = `${Math.max(Math.round(box.width), 168)}px`;
+  }
+
   function open() {
     closeAllCustomSelects(wrap);
     wrap.classList.add("is-open");
     toggle.setAttribute("aria-expanded", "true");
     menu.hidden = false;
+    pinTopbarMenu();
   }
 
   function close() {
@@ -440,7 +515,10 @@ function enhanceSelect(select) {
 }
 
 function initCustomSelects() {
-  document.querySelectorAll(".place-switch select, select[data-custom-select]").forEach(enhanceSelect);
+  document.querySelectorAll("select").forEach((select) => {
+    if (select.closest(".search-select")) return;
+    enhanceSelect(select);
+  });
 }
 
 if (!window.__customSelectDocBound) {

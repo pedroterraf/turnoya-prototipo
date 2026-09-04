@@ -51,9 +51,9 @@
       function renderCard(service) {
         const mode = overlapMode(service);
         const cap = serviceCapacity(service);
-        let capText = "No se pisa";
-        if (mode === "unlimited") capText = "Piso ilimitado";
-        else if (mode === "yes") capText = `Cupo máx: ${cap}`;
+        let capText = "Un turno a la vez";
+        if (mode === "unlimited") capText = "Varios a la vez, sin tope";
+        else if (mode === "yes") capText = `Hasta ${cap} a la vez`;
 
         const fallbackImg = "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&auto=format&fit=crop&q=75";
         const imgUrl = service.image || fallbackImg;

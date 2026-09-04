@@ -53,7 +53,7 @@ function defaultServices(place) {
       capacity: 1,
       hourStart: 9,
       hourEnd: 19,
-      description: "Sesión completa. El horario se tapa: no se pisa con otro turno.",
+      description: "Sesión completa. Este horario es solo tuyo.",
       includes: ["Entrevista breve", "Servicio de 60 min", "Agua y toalla"],
       image: "https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=800&q=80",
     },
@@ -65,7 +65,7 @@ function defaultServices(place) {
       capacity: 2,
       hourStart: 9,
       hourEnd: 20,
-      description: "45 minutos. Se pisa hasta 2 personas en el mismo horario.",
+      description: "45 minutos. Hasta 2 personas a la vez.",
       includes: ["Servicio de 45 min"],
       image: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80",
     },
@@ -77,7 +77,7 @@ function defaultServices(place) {
       capacity: 3,
       hourStart: 9,
       hourEnd: 20,
-      description: "30 minutos. Se pisa hasta 3 personas en el mismo horario.",
+      description: "30 minutos. Hasta 3 personas a la vez.",
       includes: ["Servicio de 30 min"],
       image: "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?w=800&q=80",
     },
@@ -128,10 +128,10 @@ function serviceAllowsOverlap(service) {
 }
 
 function capacityLabel(service) {
-  if (isOpenCapacity(service)) return "Se pisa · ilimitado";
+  if (isOpenCapacity(service)) return "Varios a la vez, sin tope";
   const capacity = serviceCapacity(service);
-  if (capacity === 1) return "No se pisa";
-  return `Se pisa hasta ${capacity}`;
+  if (capacity === 1) return "Un turno a la vez";
+  return `Hasta ${capacity} a la vez`;
 }
 
 function serviceHours(service) {
@@ -283,6 +283,33 @@ function money(value) {
 
 function pad(value) {
   return String(value).padStart(2, "0");
+}
+
+function slotLabel(slot) {
+  const raw = String(slot || "");
+  const date = new Date(raw.includes("T") ? raw : raw.replace(" ", "T"));
+  if (Number.isNaN(date.getTime())) return raw.replace("T", " ");
+  return date.toLocaleString("es-AR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function googleReviewHref(place) {
+  if (!place) return "";
+  const query = [place.name, typeof cityLabel === "function" ? cityLabel(place.city) : place.city, "Argentina"]
+    .filter(Boolean)
+    .join(" ");
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
+function googleReviewCta(place) {
+  const href = googleReviewHref(place);
+  if (!href) return "";
+  return `<p class="meta"><a class="btn-line" target="_blank" rel="noreferrer" href="${href}">También en Google Maps</a></p>`;
 }
 
 function dayKey(date) {
@@ -1437,7 +1464,7 @@ function reprogramLink(turno) {
 
 function turnoCardHtml(turno) {
   if (!turno?.slot) return "";
-  const when = String(turno.slot).replace("T", " ");
+  const when = slotLabel(turno.slot);
   const policy = placePolicy(turno.placeId);
   const user = typeof currentUser === "function" ? currentUser() : null;
   let actions = `<p class="meta">Cancelado. Horario libre${
@@ -1446,7 +1473,7 @@ function turnoCardHtml(turno) {
   if (turno.estado === "concretado") {
     const review = typeof reviewForTurno === "function" ? reviewForTurno(turno.id) : null;
     actions = review
-      ? lockedReviewHtml(review)
+      ? `${lockedReviewHtml(review)}${googleReviewCta(lookupPlace(turno.placeId))}`
       : canReviewTurno(turno, user)
         ? `<form class="review-form" data-review="${turno.id}">
           ${starPickerHtml()}
@@ -1454,16 +1481,16 @@ function turnoCardHtml(turno) {
             <label>Comentario <input name="text" required maxlength="160" /></label>
             <button class="btn btn-ticket" type="submit">Calificar</button>
           </div>
-        </form>`
+        </form>${googleReviewCta(lookupPlace(turno.placeId))}`
         : `<p class="meta">Turno concretado.</p>`;
   } else if (turno.estado === "no_show") {
     actions = `<p class="meta">No te presentaste. El horario se consumió.</p>`;
   } else if (turno.estado === "confirmado" && canRepent(turno)) {
-    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="arrepentimiento">Arrepentirme y devolver</button>
-      <p class="meta">Ley 24.240 · ${policy.arrepentimientoDias} días · el servicio todavía no se prestó. Se libera el horario y se reintegra lo pagado.</p>`;
+    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="arrepentimiento">Cancelar y devolver</button>
+      <p class="meta">Si cancelás ahora, se libera el horario y te devolvemos lo pagado.</p>`;
   } else if (turno.estado === "confirmado" && canCancelLocal(turno)) {
-    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="cancelacion">Cancelar según el local</button>
-      <p class="meta">Ya no aplica arrepentimiento. El local deja cancelar hasta ${policy.horasAntesCancelacion} h antes.</p>`;
+    actions = `${reprogramLink(turno)}<button class="btn btn-enamel" type="button" data-cancel="${turno.id}" data-motivo="cancelacion">Cancelar</button>
+      <p class="meta">Podés cancelar hasta ${policy.horasAntesCancelacion} h antes.</p>`;
   } else if (turno.estado === "confirmado") {
     actions = `${reprogramLink(turno)}<p class="meta">El local confirma cuando vas. Todavía no se puede calificar.</p>`;
   }

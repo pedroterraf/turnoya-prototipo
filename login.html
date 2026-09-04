@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix4" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
@@ -22,7 +22,7 @@
         <h1>Entrar con tu mail</h1>
         <p class="band-lead">Te mandamos un código de 6 dígitos. En el prototipo es 123456.</p>
         <form id="email-form" class="review-form">
-          <label>Email <input name="email" type="email" required value="pedroterraf@gmail.com" autocomplete="email" /></label>
+          <label>Email <input name="email" type="email" required placeholder="tu@correo.com" autocomplete="email" /></label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
           <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
@@ -59,6 +59,9 @@
         event.target.hidden = true;
         document.getElementById("otp-form").hidden = false;
         document.getElementById("otp-hint").textContent = `Código enviado a ${email}. Pegalo o escribilo.`;
+        if (typeof showAppToast === "function") {
+          showAppToast({ title: "Código enviado", body: "En el prototipo es 123456.", tone: "success" });
+        }
         otp.focus();
       });
       document.getElementById("change-email")?.addEventListener("click", () => {
@@ -75,6 +78,9 @@
         const ok = verifyOtp(otp.read());
         if (!ok) {
           document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
+          if (typeof showAppToast === "function") {
+            showAppToast({ title: "Código incorrecto", body: "Probá 123456.", tone: "error" });
+          }
           return;
         }
         location.href = profileComplete(currentUser()) ? next : `./perfil.html?next=${encodeURIComponent(next)}`;

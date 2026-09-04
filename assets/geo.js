@@ -140,7 +140,7 @@ const GEO_TREE = {
     Jalisco: ["Guadalajara"],
     "Nuevo León": ["Monterrey"],
     Puebla: ["Puebla"],
-    Quintana Roo: ["Cancún"],
+    "Quintana Roo": ["Cancún"],
   },
   Paraguay: {
     Asunción: ["Asunción"],
@@ -384,6 +384,7 @@ function bindGeoSelects(form, initial) {
   let pais;
   const ciudad = mountSearchSelect(ciudadHost, {
     name: "ciudad",
+    required: false,
     options: withCurrentValue(geoCities(startCountry, startProvince), startCity),
     value: startCity,
     placeholder: "Escribí o elegí la ciudad",
@@ -391,6 +392,7 @@ function bindGeoSelects(form, initial) {
   });
   const provincia = mountSearchSelect(provinciaHost, {
     name: "provincia",
+    required: false,
     options: withCurrentValue(geoProvinces(startCountry), startProvince),
     value: startProvince,
     placeholder: "Escribí o elegí la provincia",
@@ -402,6 +404,7 @@ function bindGeoSelects(form, initial) {
   });
   pais = mountSearchSelect(paisHost, {
     name: "pais",
+    required: false,
     options: geoCountries(),
     value: startCountry,
     placeholder: "Escribí o elegí el país",

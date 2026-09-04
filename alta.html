@@ -44,16 +44,15 @@
         </label>
         <label>Servicio que se muestra <input name="servicio" placeholder="Masaje relajante" /></label>
         <label>WhatsApp <input name="whatsapp" required placeholder="351..." /></label>
-        <label>CUIT (opcional) <input name="cuit" placeholder="30-12345678-9" /></label>
-        <label>Plan
+        <label hidden data-mvp="deferred">CUIT (opcional) <input name="cuit" placeholder="30-12345678-9" /></label>
+        <label hidden data-mvp="deferred">Plan
           <select name="plan">
-            <option value="calle">Calle · gratis · 0% comisión</option>
+            <option value="calle" selected>Calle · gratis · 0% comisión</option>
             <option value="barrio">Barrio · $12.900 · espera y huecos</option>
             <option value="ciudad">Ciudad · $22.900 · Destacado incluido</option>
             <option value="red">Red · $49.900 · cadenas</option>
           </select>
         </label>
-        <p class="meta"><a href="./planes.html">Qué incluye cada plan, precios y techos</a></p>
         <button class="btn btn-ticket" type="submit">Enviar alta</button>
       </form>
       <div id="done" hidden></div>
@@ -119,7 +118,6 @@
           <p class="band-lead">turnoya.com/${place.slug} queda en revisión. No aparece en el mapa hasta que Administración apruebe.</p>
           <div style="display:flex; flex-direction:column; gap:10px; margin-top:16px;">
             <a class="btn btn-enamel" href="./bo-login.html?id=${place.id}">Armar el backoffice</a>
-            <a class="btn btn-ghost" href="./ops-login.html?next=${encodeURIComponent(`./ops-altas.html`)}">Ver la cola de administración</a>
           </div>
         `;
       });

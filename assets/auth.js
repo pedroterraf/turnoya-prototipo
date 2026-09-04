@@ -346,15 +346,10 @@ function paintBoNav() {
   bar.innerHTML = [
     ["./bo.html", "Panel"],
     ["./bo-agenda.html", "Agenda"],
-    ["./bo-caja.html", "Caja"],
     ["./bo-servicios.html", "Servicios"],
-    ["./bo-cupones.html", "Cupones"],
-    ["./bo-soporte.html", "Soporte"],
-    ["./bo-landing.html", "Landing"],
     ["./bo-pagos.html", "Pagos"],
-    ["./bo-plan.html", "Plan"],
-    ["./bo-crm.html", "CRM"],
-    ["./negocio-resenas.html", "Textos"],
+    ["./bo-whatsapp.html", "WhatsApp"],
+    ["./bo-landing.html", "Ficha"],
     ["./ficha.html", "Ver ficha"],
   ]
     .map(([href, label]) => {
@@ -377,12 +372,10 @@ function paintOpsNav() {
   bar.setAttribute("data-ops-nav", "");
   bar.innerHTML = [
     ["./ops.html", "Panel"],
-    ["./ops-usuarios.html", "Usuarios"],
-    ["./ops-locales.html", "Negocios"],
-    ["./ops-planes.html", "Planes"],
-    ["./ops-avisos.html", "Avisos"],
     ["./ops-altas.html", "Altas"],
+    ["./ops-locales.html", "Negocios"],
     ["./ops-dinero.html", "Dinero"],
+    ["./ops-usuarios.html", "Usuarios"],
   ]
     .map(([href, label]) => {
       const here = page === href.replace("./", "");

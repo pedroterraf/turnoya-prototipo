@@ -94,7 +94,10 @@
           senia: seniaOf(place.id, service.price),
         });
         holdSlot(readDraft());
-        ensureDemoUser();
+        if (!currentUser()) {
+          location.href = `./login.html?next=${encodeURIComponent(`./datos.html?id=${place.id}`)}`;
+          return;
+        }
         if (typeof trackPixel === "function") {
           trackPixel(place.id, "InitiateCheckout", { serviceId: service.id, slot: key });
         }
@@ -108,7 +111,7 @@
               ? "Elegí el nuevo horario. Sin cobro extra. El bloque mide la duración del servicio."
               : requestedReprogram
                 ? "Este local no permite reprogramar. Podés reservar un turno nuevo."
-                : "Tocá un horario libre. El bloque amarillo dura exactamente este servicio."
+                : "Tocá un horario libre. El bloque amarillo es tu turno."
           }</p>
           <h2>${place.name}</h2>
           <div class="service-picks">${chips}</div>
@@ -152,11 +155,7 @@
               ? ""
               : "<p class=\"meta\">No hay hueco donde entre este servicio en estos 7 días. Probá otro o pedile al local que abra más horas.</p>"
           }
-          ${
-            planAllows(place.id, "waitlist")
-              ? `<p><button class="btn btn-enamel" type="button" id="wait">Avisame si se libera un horario</button></p><p class="meta" id="wait-msg"></p>`
-              : ""
-          }`;
+          `;
         bindTimeGrid(root, {
           place,
           service: picked,

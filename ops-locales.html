@@ -31,27 +31,16 @@
         const list = allPlaces().map(placeView);
         root.innerHTML = `
           <h2>Locales</h2>
-          <p class="band-lead">Calle / Barrio / Ciudad / Red. Ciudad y Red prenden el pin dorado. Suspender saca el local del mapa.</p>
+          <p class="band-lead">Publicados en el mapa. Suspender saca el local. El pin no se publica hasta que Aprueben el alta.</p>
           ${list
             .map((place) => {
               const live = place.status === "live" && !place.suspended;
               return `<article class="agenda-row">
                 <div>
                   <strong>${place.name}</strong>
-                  <p class="meta">${statusLabel(place.status)}${place.suspended ? " · Suspendido" : ""} · ${place.featured ? "Destacado" : "Orgánico"} · ${catalogPlan(place.plan).name}${
-                    place.planUntil
-                      ? ` · hasta ${new Date(Number(place.planUntil)).toLocaleDateString("es-AR")}`
-                      : ""
-                  }</p>
+                  <p class="meta">${statusLabel(place.status)}${place.suspended ? " · Suspendido" : ""} · ${cityLabel(place.city)}</p>
                 </div>
                 <div class="agenda-actions">
-                  <button class="btn ${place.featured ? "btn-ticket" : "btn-ghost"}" type="button" data-feat="${place.id}">${place.featured ? "Quitar destacado" : "Destacar"}</button>
-                  <select data-setplan="${place.id}">
-                    ${PLAN_ORDER.map((key) => `<option value="${key}" ${normalizePlanId(place.plan) === key ? "selected" : ""}>${PLANS[key].name}</option>`).join("")}
-                  </select>
-                  <input type="date" data-until="${place.id}" value="${
-                    place.planUntil ? new Date(Number(place.planUntil)).toISOString().slice(0, 10) : ""
-                  }" />
                   <button class="btn btn-enamel" type="button" data-suspend="${place.id}">${place.suspended ? "Reactivar" : "Suspender"}</button>
                   ${live ? `<a class="btn-line" href="./ficha.html?id=${place.id}">Ver ficha</a>` : ""}
                 </div>
@@ -59,26 +48,6 @@
             })
             .join("")}
         `;
-        root.querySelectorAll("[data-feat]").forEach((button) => {
-          button.addEventListener("click", () => {
-            const place = placeView(findPlace(button.dataset.feat));
-            patchPlaceView(place.id, { featured: !place.featured });
-            paint();
-          });
-        });
-        function assignPlan(placeId) {
-          const select = root.querySelector(`[data-setplan="${placeId}"]`);
-          const until = root.querySelector(`[data-until="${placeId}"]`);
-          const date = until?.value ? new Date(`${until.value}T23:59:59`).getTime() : 0;
-          savePlacePlan(placeId, select.value, { planUntil: date });
-          paint();
-        }
-        root.querySelectorAll("[data-setplan]").forEach((select) => {
-          select.addEventListener("change", () => assignPlan(select.dataset.setplan));
-        });
-        root.querySelectorAll("[data-until]").forEach((input) => {
-          input.addEventListener("change", () => assignPlan(input.dataset.until));
-        });
         root.querySelectorAll("[data-suspend]").forEach((button) => {
           button.addEventListener("click", () => {
             const place = placeView(findPlace(button.dataset.suspend));

@@ -18,14 +18,12 @@
     <main class="band">
       <p class="meta" id="who"></p>
       <h2>Plataforma</h2>
-      <p class="band-lead">Acá se aprueba el alta, se destaca un pin y se ven las señas / reembolsos de todos los locales.</p>
+      <p class="band-lead">Acá se aprueba el alta y se ven las señas / reembolsos de todos los locales.</p>
       <div class="card-grid">
-        <a class="service-card" href="./ops-usuarios.html"><div><strong>Usuarios</strong><span class="meta">Cuentas, rol y suspensión</span></div></a>
-        <a class="service-card" href="./ops-locales.html"><div><strong>Negocios</strong><span class="meta">Destacado, plan, suspender</span></div></a>
-        <a class="service-card" href="./ops-planes.html"><div><strong>Planes</strong><span class="meta">Vencimiento, cargo de servicio, cron</span></div></a>
-        <a class="service-card" href="./ops-avisos.html"><div><strong>Avisos</strong><span class="meta">Inbox y correos mock</span></div></a>
         <a class="service-card" href="./ops-altas.html"><div><strong>Altas</strong><span class="meta">Aprobar, pedir datos o rechazar</span></div></a>
-        <a class="service-card" href="./ops-dinero.html"><div><strong>Dinero</strong><span class="meta">Señas, cargo y reembolsos</span></div></a>
+        <a class="service-card" href="./ops-locales.html"><div><strong>Negocios</strong><span class="meta">Publicados, suspender, ver ficha</span></div></a>
+        <a class="service-card" href="./ops-dinero.html"><div><strong>Dinero</strong><span class="meta">Señas y reembolsos</span></div></a>
+        <a class="service-card" href="./ops-usuarios.html"><div><strong>Usuarios</strong><span class="meta">Cuentas y suspensión</span></div></a>
       </div>
       <div id="dash"></div>
     </main>
@@ -53,19 +51,13 @@
       const views = allPlaces().map(placeView);
       const queue = views.filter((place) => place.status === "pending" || place.status === "datos");
       const live = views.filter((place) => place.status === "live" && !place.suspended);
-      const featured = live.filter((place) => place.featured);
       const users = listedUsers();
       const month = new Date().toISOString().slice(0, 7);
       const monthBooked = bookedSlots().filter((row) => String(row.slot || "").startsWith(month)).length;
-      const byPlan = PLAN_ORDER.map((key) => ({
-        name: PLANS[key].name,
-        count: views.filter((place) => normalizePlanId(place.plan) === key).length,
-      }));
       const ledger = moneyLedger();
       const sum = (kind) =>
         ledger.filter((row) => row.kind === kind).reduce((acc, row) => acc + (row.amount || 0), 0);
       const refunds = ledger.filter((row) => row.kind === "reembolso");
-      const cron = lastCronReport();
       document.getElementById("dash").innerHTML = `
         <h3 class="ficha-sub">Usuarios</h3>
         <div class="ops-stats">
@@ -78,14 +70,9 @@
         <div class="ops-stats">
           <div class="ops-stat"><b>${queue.length}</b><span class="meta">Altas en cola</span></div>
           <div class="ops-stat"><b>${live.length}</b><span class="meta">Locales publicados</span></div>
-          <div class="ops-stat"><b>${featured.length}</b><span class="meta">Destacados</span></div>
-          ${byPlan.map((row) => `<div class="ops-stat"><b>${row.count}</b><span class="meta">${row.name}</span></div>`).join("")}
           <div class="ops-stat"><b>${money(sum("senia_activa"))}</b><span class="meta">Señas activas</span></div>
-          <div class="ops-stat"><b>${money(sum("service_charge"))}</b><span class="meta">Cargo de servicio</span></div>
           <div class="ops-stat"><b>${money(sum("reembolso"))}</b><span class="meta">A devolver</span></div>
         </div>
-        <p class="meta">Cron: ${cron.at ? new Date(cron.at).toLocaleString("es-AR") : "nunca"} · ${cron.users} cuentas · ${cron.plans} planes</p>
-        ${platformChartBlocks()}
         <section class="ops-feed">
           <h3 class="ficha-sub">Cola de altas</h3>
           ${

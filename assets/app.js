@@ -161,8 +161,10 @@ const PLACES = [
   },
 ];
 
-const GEO_OPTIONS = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
+const GEO_OPTIONS_FAST = { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 };
+const GEO_OPTIONS_FINE = { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 };
 const GEO_ACCURACY_GOOD_M = 80;
+const GEO_FALLBACK_DELAY_MS = 2500;
 
 const state = {
   city: "cordoba",
@@ -171,6 +173,7 @@ const state = {
   userLat: null,
   userLng: null,
   userAccuracy: null,
+  userIsFallback: false,
   followUser: false,
 };
 
@@ -340,9 +343,9 @@ function pinIcon(place) {
 function youIcon() {
   return L.divIcon({
     className: "you-pin",
-    html: '<span class="you-wrap"><span class="you-pulse"></span><span class="you-dot"></span></span>',
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
+    html: '<span class="you-wrap"><span class="you-pulse"></span><span class="you-dot"></span><span class="you-label">Vos</span></span>',
+    iconSize: [52, 58],
+    iconAnchor: [26, 22],
   });
 }
 
@@ -369,32 +372,13 @@ function renderHomeTurns() {
   root.innerHTML = html;
 }
 
-function renderReco(places) {
-  const featured = places.filter((place) => place.featured);
-  const root = document.getElementById("reco-track");
+function renderReco() {
   const wrap = document.getElementById("reco");
-  if (!featured.length) {
-    wrap.hidden = true;
-    return;
-  }
-  wrap.hidden = false;
-  root.innerHTML = featured
-    .map(
-      (place) => `
-      <button class="reco-card" type="button" data-id="${place.id}">
-        <span class="badge">Destacado</span>
-        <strong>${place.name}</strong>
-        ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count, place.id)}
-        <span class="meta">${place.service} · ${place.km} km</span>
-      </button>`,
-    )
-    .join("");
+  if (wrap) wrap.hidden = true;
 }
 
 function renderResults(places) {
-  const organic = places.filter((place) => !place.featured);
-  const sponsored = places.find((place) => place.featured);
-  const list = sponsored ? [sponsored, ...organic] : organic;
+  const list = [...places];
   const root = document.getElementById("results-list");
   const count = document.getElementById("results-count");
   count.textContent = `${places.length} cerca en ${CITIES[state.city].label}`;
@@ -404,13 +388,12 @@ function renderResults(places) {
     return;
   }
   root.innerHTML = list
-    .map((place, index) => {
-      const sponsoredSlot = index === 0 && place.featured;
+    .map((place) => {
       return `
-      <button class="place-card${sponsoredSlot ? " sponsored" : ""}" type="button" data-id="${place.id}">
+      <button class="place-card" type="button" data-id="${place.id}">
         <span class="thumb" aria-hidden="true">${place.name.slice(0, 1)}</span>
         <span>
-          ${sponsoredSlot ? '<span class="badge">Patrocinado</span>' : place.featured ? '<span class="badge">Destacado</span>' : `<span class="badge badge-soft">${place.category}</span>`}
+          <span class="badge badge-soft">${place.category}</span>
           ${typeof todayHuecos === "function" && todayHuecos(place.id).length ? '<span class="badge badge-hueco">Hoy hay hueco</span>' : ""}
           <strong>${place.name}</strong>
           ${starsMarkup(ratingOf(place.id).average, ratingOf(place.id).count, place.id)}
@@ -436,26 +419,30 @@ function updateYouOnMap() {
   if (!youMarker) {
     youMarker = L.marker(here, {
       icon: youIcon(),
-      zIndexOffset: 800,
+      zIndexOffset: 2000,
+      keyboard: false,
     }).addTo(map);
+    youMarker.setZIndexOffset(2000);
   } else {
     youMarker.setLatLng(here);
   }
-  const radius = Math.max(Number(state.userAccuracy) || 0, 16);
+  const radius = Math.max(Number(state.userAccuracy) || 40, 40);
   if (!youCircle) {
     youCircle = L.circle(here, {
       radius,
       color: "#0b3d2e",
-      weight: 1,
+      weight: 2,
       fillColor: "#f2d54a",
-      fillOpacity: 0.12,
+      fillOpacity: 0.18,
     }).addTo(map);
   } else {
     youCircle.setLatLng(here);
     youCircle.setRadius(radius);
   }
+  const live = document.getElementById("live-chip");
+  if (live) live.textContent = state.userIsFallback ? "Cerca" : "En vivo";
   if (state.followUser) {
-    map.panTo(here);
+    map.setView(here, Math.max(map.getZoom(), 15), { animate: true });
   }
 }
 
@@ -537,7 +524,13 @@ function applyCity(cityId, recenter) {
   state.city = cityId;
   const select = document.getElementById("city");
   if (select) select.value = cityId;
-  if (recenter && map) {
+  if (state.userIsFallback) {
+    const city = CITIES[cityId] || CITIES.cordoba;
+    state.userLat = city.lat + 0.0042;
+    state.userLng = city.lng + 0.0034;
+    state.userAccuracy = 90;
+  }
+  if (recenter && map && !state.followUser) {
     const city = CITIES[cityId];
     map.setView([city.lat, city.lng], 13);
   }
@@ -555,9 +548,9 @@ function applyPosition(position, isFirst) {
   const lat = position.coords.latitude;
   const lng = position.coords.longitude;
   const accuracy = Math.round(position.coords.accuracy || 0);
-  const prevLat = state.userLat;
-  const prevLng = state.userLng;
-  const prevAccuracy = state.userAccuracy;
+  const prevLat = state.userIsFallback ? null : state.userLat;
+  const prevLng = state.userIsFallback ? null : state.userLng;
+  const prevAccuracy = state.userIsFallback ? null : state.userAccuracy;
   const worse =
     prevLat != null &&
     prevAccuracy != null &&
@@ -567,6 +560,7 @@ function applyPosition(position, isFirst) {
   state.userLat = lat;
   state.userLng = lng;
   state.userAccuracy = accuracy;
+  state.userIsFallback = false;
   const cityId = nearestCity(lat, lng);
   setLocationStatus(`En vivo · ${CITIES[cityId].label} · ±${accuracy} m`);
   updateYouOnMap();
@@ -574,7 +568,7 @@ function applyPosition(position, isFirst) {
   renderHomeTurns();
   const movedFar = prevLat == null || distanceKm(prevLat, prevLng, lat, lng) > 0.08;
   const now = Date.now();
-  if (isFirst) {
+  if (isFirst || state.followUser) {
     lastListRender = now;
     if (map) map.setView([lat, lng], accuracy > 400 ? 14 : 16);
     applyCity(cityId, false);
@@ -586,34 +580,61 @@ function applyPosition(position, isFirst) {
   }
 }
 
+function fallbackYouCoords(cityId) {
+  const city = CITIES[cityId] || CITIES.cordoba;
+  return { lat: city.lat + 0.0042, lng: city.lng + 0.0034, accuracy: 90 };
+}
+
+function placeFallbackYou(message) {
+  if (state.userLat != null && !state.userIsFallback) return;
+  const here = fallbackYouCoords(state.city);
+  state.userLat = here.lat;
+  state.userLng = here.lng;
+  state.userAccuracy = here.accuracy;
+  state.userIsFallback = true;
+  setLocationStatus(message);
+  updateYouOnMap();
+  refreshGoCards();
+  renderHomeTurns();
+}
+
 function requestLocation() {
   if (!navigator.geolocation) {
-    setLocationStatus("Tu navegador no comparte ubicación. Elegí la ciudad a mano.");
+    placeFallbackYou("Tu navegador no comparte GPS. Te marcamos cerca del centro.");
     return;
   }
 
-  setLocationStatus("Pedimos tu ubicación para marcarte en vivo.");
+  setLocationStatus("Pedimos tu ubicación para marcarte en el mapa.");
   if (watchId != null) {
     navigator.geolocation.clearWatch(watchId);
     watchId = null;
   }
+
+  const fallbackTimer = window.setTimeout(() => {
+    if (state.userLat == null) {
+      placeFallbackYou("Buscando GPS… te marcamos cerca del centro por ahora.");
+    }
+  }, GEO_FALLBACK_DELAY_MS);
+
   navigator.geolocation.getCurrentPosition(
     (position) => {
+      window.clearTimeout(fallbackTimer);
       applyPosition(position, true);
       watchId = navigator.geolocation.watchPosition(
         (next) => applyPosition(next, false),
         () => {
           if (state.userLat == null) {
-            setLocationStatus("No pudimos usar tu ubicación. Elegí la ciudad a mano.");
+            placeFallbackYou("No pudimos usar tu GPS. Te marcamos cerca del centro.");
           }
         },
-        GEO_OPTIONS,
+        GEO_OPTIONS_FINE,
       );
     },
     () => {
-      setLocationStatus("No pudimos usar tu ubicación. Elegí la ciudad a mano.");
+      window.clearTimeout(fallbackTimer);
+      placeFallbackYou("No pudimos usar tu GPS. Te marcamos cerca del centro.");
     },
-    GEO_OPTIONS,
+    GEO_OPTIONS_FAST,
   );
 }
 
@@ -648,8 +669,10 @@ function boot() {
       }
       state.followUser = true;
       syncFollowButton();
-      requestLocation();
-      if (state.userLat != null) {
+      if (state.userLat == null) {
+        requestLocation();
+      } else {
+        updateYouOnMap();
         map.setView([state.userLat, state.userLng], 16);
       }
     });
@@ -703,29 +726,55 @@ function bindRail() {
   const toggle = document.getElementById("rail-toggle");
   const label = document.getElementById("rail-toggle-label");
   const body = document.getElementById("rail-body");
+  const query = document.getElementById("query");
   if (!market || !rail || !toggle) return;
 
   const compact = window.matchMedia("(max-width: 900px)");
+  const dragThresholdPx = 18;
+  let drag = null;
+
   if (compact.matches) {
-    host.classList.remove("is-rail-open");
-    market.classList.remove("is-rail-open");
+    host.classList.remove("is-rail-open", "is-rail-expanded", "is-rail-dragging");
+    market.classList.remove("is-rail-open", "is-rail-expanded");
   }
 
-  function isRailOpen() {
-    return host.classList.contains("is-rail-open");
+  function railSnap() {
+    if (host.classList.contains("is-rail-expanded")) return "full";
+    if (host.classList.contains("is-rail-open")) return "mid";
+    return "closed";
   }
 
-  function setRailOpen(open) {
+  function setRailSnap(snap) {
+    const open = snap !== "closed";
     host.classList.toggle("is-rail-open", open);
     market.classList.toggle("is-rail-open", open);
+    host.classList.toggle("is-rail-expanded", snap === "full");
+    market.classList.toggle("is-rail-expanded", snap === "full");
+    host.classList.remove("is-rail-dragging");
+    rail.style.removeProperty("--rail-drag-h");
+  }
+
+  function snapHeights() {
+    const full = market.clientHeight;
+    return { closed: 0, mid: Math.min(full * 0.58, 520), full };
+  }
+
+  function nearestSnap(height) {
+    const points = snapHeights();
+    const midGate = (points.closed + points.mid) / 2;
+    const fullGate = (points.mid + points.full) / 2;
+    if (height >= fullGate) return "full";
+    if (height >= midGate) return "mid";
+    return "closed";
   }
 
   function syncRail() {
-    const open = isRailOpen();
+    const snap = railSnap();
+    const open = snap !== "closed";
     toggle.setAttribute("aria-expanded", String(open));
     if (label) {
       if (compact.matches) {
-        label.textContent = open ? "Ver mapa" : "Ver lista";
+        label.textContent = snap === "closed" ? "Ver lista" : "Ver mapa";
       } else {
         label.textContent = open ? "Ocultar lista" : "Ver lista";
       }
@@ -743,11 +792,85 @@ function bindRail() {
     }
   }
 
+  function cycleSnap() {
+    const snap = railSnap();
+    if (snap === "closed") setRailSnap("mid");
+    else if (snap === "full") setRailSnap("mid");
+    else setRailSnap("closed");
+  }
+
   toggle.addEventListener("click", (event) => {
     event.stopPropagation();
-    setRailOpen(!isRailOpen());
+    if (drag?.moved) {
+      drag = null;
+      return;
+    }
+    if (!compact.matches) {
+      setRailSnap(railSnap() === "closed" ? "mid" : "closed");
+      syncRail();
+      return;
+    }
+    cycleSnap();
     syncRail();
   });
+
+  toggle.addEventListener("pointerdown", (event) => {
+    if (!compact.matches || event.button) return;
+    const fromHandle = Boolean(event.target.closest(".rail-handle"));
+    const startHeight = railSnap() === "closed" ? 0 : rail.getBoundingClientRect().height;
+    drag = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight,
+      moved: false,
+      fromHandle,
+    };
+  });
+
+  toggle.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.pointerId || !drag.fromHandle) return;
+    const delta = drag.startY - event.clientY;
+    if (Math.abs(delta) < dragThresholdPx && !drag.moved) return;
+    if (!drag.moved) {
+      drag.moved = true;
+      try {
+        toggle.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+    const max = snapHeights().full;
+    const height = Math.min(max, Math.max(0, drag.startHeight + delta));
+    host.classList.add("is-rail-dragging");
+    host.classList.toggle("is-rail-open", height > 24);
+    market.classList.toggle("is-rail-open", height > 24);
+    rail.style.setProperty("--rail-drag-h", `${height}px`);
+  });
+
+  function endDrag(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const moved = drag.moved;
+    const height = moved
+      ? Number.parseFloat(rail.style.getPropertyValue("--rail-drag-h")) || 0
+      : railSnap() === "closed"
+        ? 0
+        : rail.getBoundingClientRect().height;
+    if (moved) {
+      const travel = Math.abs(height - drag.startHeight);
+      if (travel < 48) cycleSnap();
+      else setRailSnap(nearestSnap(height));
+      syncRail();
+    }
+    try {
+      toggle.releasePointerCapture(event.pointerId);
+    } catch {
+      /* already released */
+    }
+    drag = moved ? { moved: true } : null;
+  }
+
+  toggle.addEventListener("pointerup", endDrag);
+  toggle.addEventListener("pointercancel", endDrag);
 
   rail.addEventListener("transitionend", (event) => {
     if ((event.propertyName === "width" || event.propertyName === "height") && map) {
@@ -755,18 +878,37 @@ function bindRail() {
     }
   });
 
-  document.querySelector(".map-wrap")?.addEventListener("pointerdown", () => {
+  document.querySelector(".map-wrap")?.addEventListener("pointerdown", (event) => {
     if (!compact.matches) return;
-    if (!isRailOpen()) return;
-    setRailOpen(false);
+    if (railSnap() === "closed") return;
+    if (event.target.closest(".map-hud, .leaflet-control, .leaflet-marker-icon, .you-pin, .place-pin")) {
+      return;
+    }
+    setRailSnap("closed");
     syncRail();
   });
 
+  if (query) {
+    const openSearch = () => {
+      if (!compact.matches) return;
+      setRailSnap("full");
+      syncRail();
+    };
+    query.addEventListener("focus", openSearch);
+    query.addEventListener("pointerdown", openSearch);
+    document.querySelector(".search-row")?.addEventListener("pointerdown", openSearch);
+  }
+
   compact.addEventListener("change", () => {
-    if (!compact.matches) return;
-    setRailOpen(false);
+    if (!compact.matches) {
+      setRailSnap("mid");
+      syncRail();
+      return;
+    }
+    setRailSnap("closed");
     syncRail();
   });
+  if (!compact.matches) setRailSnap("mid");
   syncRail();
 }
 

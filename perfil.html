@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix5" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
@@ -28,7 +28,7 @@
         <form id="form" class="review-form">
           <label>Nombre <input name="nombre" required /></label>
           <label>Apellido <input name="apellido" required /></label>
-          <label>DNI <input name="dni" required inputmode="numeric" /></label>
+          <label>DNI (opcional) <input name="dni" inputmode="numeric" /></label>
           <label>País <div data-search-select="pais"></div></label>
           <label>Provincia <div data-search-select="provincia"></div></label>
           <label>Ciudad <div data-search-select="ciudad"></div></label>
@@ -91,6 +91,13 @@
         if (needsPhoneCode(phone) && code !== "0000") {
           document.getElementById("msg").textContent =
             "Verificá el WhatsApp con 0000 o dejá el celular vacío.";
+          if (typeof showAppToast === "function") {
+            showAppToast({
+              title: "Falta el código",
+              body: "Verificá el WhatsApp con 0000 o dejá el celular vacío.",
+              tone: "error",
+            });
+          }
           return;
         }
         const phoneOk = Boolean(phone) && (phone === savedPhone || code === "0000");
@@ -100,7 +107,12 @@
           celular: phoneOk ? phone : "",
           phoneVerified: phoneOk,
         });
-        location.href = next;
+        if (typeof showAppToast === "function") {
+          showAppToast({ title: "Datos guardados", tone: "success", duration: 1600 });
+        }
+        window.setTimeout(() => {
+          location.href = next;
+        }, 400);
       });
     </script>
   </body>

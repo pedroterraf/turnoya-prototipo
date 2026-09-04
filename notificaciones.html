@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix4" />
   </head>
   <body class="sell">
     <header class="topbar">
@@ -45,33 +45,54 @@
         const root = document.getElementById("root");
         if (!rows.length) {
           root.innerHTML =
-            "<h2>Sin notificaciones</h2><p class=\"band-lead\">Cuando reserves, canceles o el local confirme, aparece acá. El push llega el día que haya app.</p>";
+            "<h2>Avisos</h2><p class=\"band-lead\">Cuando reserves, canceles o el local confirme, te avisamos acá.</p>";
           return;
         }
+        function noticeIcon(row) {
+          const type = row.metadata?.type || "";
+          if (type === "TURNO" || /calific/i.test(row.title)) {
+            return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>';
+          }
+          return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Zm4 9a2 2 0 0 0 4 0"/></svg>';
+        }
+        function timeAgo(ts) {
+          const min = Math.max(0, Math.round((Date.now() - Number(ts)) / 60000));
+          if (min < 1) return "Ahora";
+          if (min < 60) return `Hace ${min} min`;
+          const hours = Math.round(min / 60);
+          if (hours < 24) return `Hace ${hours} h`;
+          const days = Math.round(hours / 24);
+          return `Hace ${days} día${days > 1 ? "s" : ""}`;
+        }
         root.innerHTML = `
-          <h2>Notificaciones</h2>
-          <p class="band-lead">Bandeja de ${userKey}. ${unread ? `${unread} sin leer.` : "Todo leído."} Sin push: se quedan acá.</p>
+          <h2>Avisos</h2>
+          <p class="band-lead">${unread ? `${unread} sin leer.` : "Todo leído."}</p>
           ${
             unread
               ? `<button class="btn btn-enamel" type="button" id="read-all">Marcar todas como leídas</button>`
               : ""
           }
+          <div class="notice-list">
           ${rows
             .map((row) => {
               const href = notificationHref(row);
               return `<article class="notice${row.isRead ? "" : " is-unread"}" data-id="${row.id}">
-                <p class="notice-kicker">${row.isRead ? "Leída" : "Nueva"} · ${new Date(row.createdAt).toLocaleString("es-AR")}</p>
-                <h3>${row.title}</h3>
-                <p>${row.body}</p>
-                <div class="notice-actions">
-                  ${href ? `<a class="btn btn-ticket" href="${href}" data-open="${row.id}">Abrir</a>` : ""}
-                  <button class="btn btn-line" type="button" data-toggle="${row.id}" data-read="${row.isRead ? "0" : "1"}">${
-                    row.isRead ? "Marcar no leída" : "Marcar leída"
-                  }</button>
+                <span class="notice-ico" aria-hidden="true">${noticeIcon(row)}</span>
+                <div>
+                  <p class="notice-kicker">${row.isRead ? "" : '<span class="notice-dot"></span>'}${row.isRead ? "Leída" : "Nueva"} · ${timeAgo(row.createdAt)}</p>
+                  <h3>${row.title}</h3>
+                  <p>${row.body}</p>
+                  <div class="notice-actions">
+                    ${href ? `<a class="btn btn-ticket" href="${href}" data-open="${row.id}">Abrir</a>` : ""}
+                    <button class="btn btn-line" type="button" data-toggle="${row.id}" data-read="${row.isRead ? "0" : "1"}">${
+                      row.isRead ? "Marcar no leída" : "Marcar leída"
+                    }</button>
+                  </div>
                 </div>
               </article>`;
             })
             .join("")}
+          </div>
         `;
         const readAll = document.getElementById("read-all");
         if (readAll) {
@@ -79,6 +100,9 @@
             markAllRead(userKey);
             paint();
             paintClientAccount();
+            if (typeof showAppToast === "function") {
+              showAppToast({ title: "Todos los avisos quedaron leídos", tone: "success" });
+            }
           });
         }
         root.querySelectorAll("[data-toggle]").forEach((button) => {

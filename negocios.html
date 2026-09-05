@@ -57,14 +57,14 @@
         Solo califica quien tuvo el turno y lo concretó en el lugar. El promedio de estrellas es de
         todos esos votos: el negocio no lo toca. Lo que sí elige es qué recomendaciones se leen en la ficha.
       </p>
-      <p><a class="btn btn-enamel" href="./negocio-resenas.html?id=oasis">Probar el panel de Oasis</a></p>
+      <p><a class="btn btn-enamel" href="./negocio-resenas.html?id=oasis">Ver el panel de reseñas</a></p>
     </section>
 
     <section class="band" id="alta">
       <h2>Alta en una tarde</h2>
       <p class="band-lead">
-        Tomamos el boceto que ya tenés: servicios, horarios, seña con Mercado Pago, WhatsApp y panel.
-        Lo que cambia es que ahora hay muchos negocios, no uno.
+        Cargás servicios, horarios, seña con Mercado Pago, WhatsApp y el panel.
+        El pin sale en el mapa cuando se aprueba el alta.
       </p>
     </section>
 
@@ -106,74 +106,10 @@
     <section class="band" id="planes">
       <h2>Planes en pesos, sin letra chica de comisión</h2>
       <p class="band-lead">
-        Anclados a lo que publican Turnito ($0 / $24.500 / $42.000 y 5%–0% de comisión), turnoapp ($14.999),
-        Fresha (USD 19,95 + 20% marketplace) y Booksy (USD 29,99 + Boost 30%). Precio de prototipo, agosto 2026.
+        Sin comisión sobre tu cartera. La seña va a tu Mercado Pago. Anual = 10 meses.
       </p>
-      <p class="meta">Anual = 10 meses. Destacado suelto: $9.900/mes por ciudad + rubro. Patrocinado: $18.900/mes. <a href="./planes.html">Ver cada plan al detalle</a>.</p>
+      <p class="meta">Destacado suelto: $9.900/mes por ciudad + rubro. Patrocinado: $18.900/mes. <a href="./planes.html">Ver cada plan al detalle</a>.</p>
       <div id="plan-grid" class="plan-grid"></div>
-      <div class="compare-wrap">
-        <table class="compare">
-          <thead>
-            <tr>
-              <th></th>
-              <th>TurnoYa</th>
-              <th>Turnito</th>
-              <th>Fresha / Booksy</th>
-              <th>AgendaPro</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Moneda</td>
-              <td>Pesos</td>
-              <td>Pesos o USD</td>
-              <td>Dólares / euros</td>
-              <td>Dólares</td>
-            </tr>
-            <tr>
-              <td>Comisión de la plataforma</td>
-              <td>0% en todos los planes</td>
-              <td>5% gratis · 1% Advance · 0% Experto</td>
-              <td>20% cliente nuevo / Boost 30%</td>
-              <td>1–2% extra + POS aparte</td>
-            </tr>
-            <tr>
-              <td>El cliente instala app</td>
-              <td>No</td>
-              <td>No</td>
-              <td>Sí, para el marketplace</td>
-              <td>App del negocio</td>
-            </tr>
-            <tr>
-              <td>Descubrimiento</td>
-              <td>Mapa de ciudad + ficha</td>
-              <td>Link de Instagram</td>
-              <td>Marketplace cerrado</td>
-              <td>Sin mapa público</td>
-            </tr>
-            <tr>
-              <td>Arrepentimiento Ley 24.240</td>
-              <td>Nativo</td>
-              <td>No</td>
-              <td>No</td>
-              <td>No</td>
-            </tr>
-            <tr>
-              <td>Cómo llegar en vivo</td>
-              <td>GPS + Google / Waze</td>
-              <td>No</td>
-              <td>Reserva en Maps, no te guía</td>
-              <td>Mapa del local, estático</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="meta">
-        Fuentes: <a href="https://turnito.app/ar/">turnito.app/ar</a>,
-        <a href="https://www.fresha.com/es/pricing">fresha.com/es/pricing</a>,
-        <a href="https://biz.booksy.com/es-es/precios">biz.booksy.com</a>,
-        comparativas públicas de AgendaPro y turnoapp (2026).
-      </p>
     </section>
 
     <section class="band" id="destacados">
@@ -195,15 +131,16 @@
       </div>
     </section>
 
-    <footer class="footer">
-      Prototipo UI · no es la web en producción · TurnoYa no es TurnosYa.com
-    </footer>
+    <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
+    <script src="./assets/platform.js"></script>
+    <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js"></script>
     <script>
       document.getElementById("plan-grid").innerHTML = PLAN_ORDER.map((id) => {
         const plan = PLANS[id];

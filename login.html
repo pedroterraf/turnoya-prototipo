@@ -24,13 +24,12 @@
       <div class="auth-card">
         <p class="meta">Cliente</p>
         <h1>Entrar</h1>
-        <p class="band-lead">Mail o celular. Te mandamos un código. En el prototipo es 123456 (mail) o 0000 (celular).</p>
+        <p class="band-lead">Mail o celular. Te mandamos un código para entrar.</p>
         <form id="email-form" class="review-form">
           <label>Email o celular
             <input name="identifier" required placeholder="tu@correo.com o 3515550000" autocomplete="username" />
           </label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
-          <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
         <form id="otp-form" class="review-form" hidden>
           <p class="meta" id="otp-hint"></p>
@@ -71,12 +70,12 @@
         event.target.hidden = true;
         document.getElementById("otp-form").hidden = false;
         document.getElementById("otp-hint").textContent = phone
-          ? `Código enviado al celular. En el prototipo es ${code}.`
-          : `Código enviado a ${identifier}. En el prototipo es ${code}.`;
+          ? "Código enviado al celular."
+          : `Código enviado a ${identifier}.`;
         if (typeof showAppToast === "function") {
           showAppToast({
-            title: phone ? "SMS de prueba" : "Código enviado",
-            body: `Usá ${code}.`,
+            title: "Código enviado",
+            body: phone ? "Revisá el SMS." : "Revisá tu correo.",
             tone: "success",
           });
         }
@@ -87,18 +86,13 @@
         document.getElementById("email-form").hidden = false;
         document.getElementById("email-form").querySelector("[name='identifier']")?.focus();
       });
-      document.getElementById("skip").addEventListener("click", () => {
-        ensureDemoUser();
-        location.href = next;
-      });
       document.getElementById("otp-form").addEventListener("submit", (event) => {
         event.preventDefault();
         const ok = verifyOtp(otp.read());
         if (!ok) {
-          const hint = otpLength === 4 ? "0000" : "123456";
-          document.getElementById("otp-msg").textContent = `Código incorrecto. Probá ${hint}.`;
+          document.getElementById("otp-msg").textContent = "Código incorrecto.";
           if (typeof showAppToast === "function") {
-            showAppToast({ title: "Código incorrecto", body: `Probá ${hint}.`, tone: "error" });
+            showAppToast({ title: "Código incorrecto", body: "Revisá el código e intentá de nuevo.", tone: "error" });
           }
           return;
         }

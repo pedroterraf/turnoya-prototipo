@@ -466,10 +466,13 @@ img {
 .search-row input {
   width: 100%;
   min-height: 44px;
-  border: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: var(--chalk);
   color: var(--ink);
   padding: 0 12px;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .city-select {
@@ -507,7 +510,12 @@ img {
   transform: scale(0.98);
 }
 
-.search-row input:focus,
+.search-row input:focus {
+  outline: none;
+  border-color: var(--enamel);
+  box-shadow: none;
+}
+
 .city-select:focus,
 .btn:focus-visible,
 .place-card:focus-visible {
@@ -992,6 +1000,27 @@ img {
   color: var(--danger);
 }
 
+[data-theme="dark"] .turno-card-thumb {
+  background: #0b3d2e;
+  color: #f2d54a;
+}
+
+[data-theme="dark"] .turno-chip.is-confirmado {
+  background: #1f5a43;
+  color: #d7f5e4;
+}
+
+[data-theme="dark"] .turno-chip.is-concretado {
+  background: #4a3a16;
+  color: #f2d54a;
+}
+
+[data-theme="dark"] .turno-chip.is-cancelado,
+[data-theme="dark"] .turno-chip.is-no_show {
+  background: #4a2218;
+  color: #f3c4b6;
+}
+
 .turno-card-actions {
   display: grid;
   gap: 8px;
@@ -1310,7 +1339,7 @@ img {
 
 .go-card .chip[aria-pressed="true"] {
   background: var(--enamel);
-  color: var(--chalk);
+  color: var(--on-accent);
   border-color: var(--enamel);
 }
 
@@ -3578,9 +3607,12 @@ body.sell:not(.map-home) > .demo-foot {
   min-width: 0;
 }
 
-.topbar .custom-dropdown-menu {
+.topbar .custom-dropdown-menu,
+.custom-dropdown-menu.is-portaled {
   position: fixed;
-  z-index: 1400;
+  z-index: 3000;
+  max-width: min(16rem, calc(100vw - 20px));
+  overflow-x: hidden;
 }
 
 .custom-dropdown-toggle {
@@ -4274,19 +4306,34 @@ body.sell:not(.map-home) > .demo-foot {
 
   .topbar {
     flex-wrap: nowrap;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 8px;
+    padding: 10px 12px;
     padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .topbar .brand {
+    flex: 0 0 auto;
+    z-index: 2;
+  }
+
+  .topbar .brand-mark {
+    font-size: 1.12rem;
+    white-space: nowrap;
+  }
+
+  .map-home .topbar .brand-mark {
+    font-size: 1.55rem;
   }
 
   .topbar-nav {
     width: auto;
     min-width: 0;
-    flex: 1;
+    flex: 1 1 auto;
     flex-wrap: nowrap;
     justify-content: flex-end;
-    gap: 8px;
-    overflow: visible;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: visible;
   }
 
   .topbar-nav:has(.nav-bell-wrap.is-open) {
@@ -4306,8 +4353,17 @@ body.sell:not(.map-home) > .demo-foot {
   .has-app-dock .topbar-nav > a[href="./ops-login.html"],
   .has-app-dock .topbar-nav > a[href="./bo.html"],
   .has-app-dock .topbar-nav > #bo-link,
-  .has-app-dock .account-slot,
   .has-app-dock .topbar-nav > .btn-ticket {
+    display: none;
+  }
+
+  .has-app-dock .account-slot {
+    display: inline-flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .has-app-dock .account-slot > :not(.theme-toggle) {
     display: none;
   }
 
@@ -4331,7 +4387,82 @@ body.sell:not(.map-home) > .demo-foot {
 
   .city-select {
     min-width: 0;
-    max-width: 42vw;
+    max-width: 100%;
+  }
+
+  .topbar-nav > label {
+    min-width: 0;
+    flex: 1 1 0;
+    max-width: 6.8rem;
+  }
+
+  .map-home .topbar-nav > label {
+    max-width: none;
+  }
+
+  .map-home .theme-slot {
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    flex: 0 0 auto;
+  }
+
+  .map-home.has-app-dock .account-slot {
+    display: none;
+  }
+
+  .map-home .topbar {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .map-home .topbar-nav {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  body.map-home {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .map-home .topbar {
+    flex: 0 0 auto;
+  }
+
+  .map-home .market,
+  .map-home.has-app-dock .market {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    margin-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+
+  .map-home.has-app-dock.is-rail-open .market,
+  .map-home.has-app-dock.is-rail-expanded .market,
+  .map-home.has-app-dock.is-rail-dragging .market {
+    margin-bottom: 0;
+  }
+
+  .topbar .custom-dropdown {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .topbar .custom-dropdown-toggle {
+    width: 100%;
+    max-width: 100%;
+    min-height: 34px;
+    padding: 4px 8px;
+    gap: 4px;
+    font-size: 0.78rem;
+  }
+
+  .topbar .custom-dropdown-item {
+    white-space: normal;
   }
 
   .band {
@@ -4595,6 +4726,8 @@ body.sell:not(.map-home) > .demo-foot {
     background: var(--enamel);
     color: var(--chalk);
     box-shadow: none;
+    transition: transform 220ms var(--ease-out);
+    view-transition-name: app-dock;
   }
 
   body.has-app-dock:not(.map-home) {
@@ -4698,6 +4831,45 @@ body.sell:not(.map-home) > .demo-foot {
   min-height: calc(100dvh - 64px - 64px - env(safe-area-inset-bottom));
 }
 
+@media (max-width: 900px) {
+  .map-home .market,
+  .map-home.has-app-dock .market {
+    height: auto;
+    min-height: 0;
+  }
+
+  .map-home .map-wrap {
+    inset: 0;
+  }
+
+  .map-home .map,
+  .map-home .map-wrap .map {
+    height: 100%;
+    min-height: 100%;
+  }
+
+  .map-home:not(.is-rail-open):not(.is-rail-expanded):not(.is-rail-dragging) .rail {
+    height: 0;
+    overflow: visible;
+  }
+
+  .map-home:not(.is-rail-open):not(.is-rail-expanded):not(.is-rail-dragging) .rail-toggle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+  }
+
+  .map-home #rail-toggle-label {
+    display: block;
+    color: var(--ticket-ink);
+    font-size: 1rem;
+    font-weight: 720;
+    line-height: 1.2;
+  }
+}
+
 .map-home .map-wrap {
   position: absolute;
   inset: 0;
@@ -4758,25 +4930,26 @@ body.sell:not(.map-home) > .demo-foot {
 
 .map-home .rail-toggle {
   position: absolute;
-  left: 50%;
-  bottom: 18px;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 26;
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: auto;
-  min-height: 44px;
-  padding: 8px 20px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 20px 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 18px 18px 0 0;
   background: var(--ticket);
   color: var(--ticket-ink);
   font-family: var(--display);
   font-size: 0.95rem;
   font-weight: 720;
   letter-spacing: 0.02em;
-  box-shadow: var(--shadow);
-  transform: translateX(-50%);
+  box-shadow: 0 -8px 20px rgba(18, 23, 20, 0.14);
+  transform: none;
   pointer-events: auto;
   cursor: pointer;
   touch-action: none;
@@ -5110,10 +5283,25 @@ body.sell:not(.map-home) > .demo-foot {
     background: var(--ticket);
   }
 
+  [data-theme="dark"] .map-home.is-rail-searching .search-row,
+  [data-theme="dark"] .map-home.is-keyboard-open .search-row {
+    background: #2a3220;
+  }
+
+  .map-home.is-rail-open .app-dock,
+  .map-home.is-rail-expanded .app-dock,
+  .map-home.is-rail-dragging .app-dock,
   .map-home.is-rail-searching .app-dock,
   .map-home.is-keyboard-open .app-dock {
-    transform: translateY(calc(100% + 12px));
+    transform: translateY(calc(100% + 16px));
     pointer-events: none;
+  }
+
+  .map-home.has-app-dock.is-rail-open .market,
+  .map-home.has-app-dock.is-rail-expanded .market,
+  .map-home.has-app-dock.is-rail-dragging .market {
+    height: calc(100dvh - 64px);
+    min-height: calc(100dvh - 64px);
   }
 
   body.map-home.has-app-dock {
@@ -7085,6 +7273,10 @@ body.sell:not(.map-home) > .demo-foot {
   }
 }
 
+.theme-slot {
+  display: none;
+}
+
 .theme-toggle {
   position: relative;
   display: inline-flex;
@@ -7390,6 +7582,11 @@ body.sell:not(.map-home) > .demo-foot {
   border-color: var(--line);
 }
 
+[data-theme="dark"] .search-row input:focus {
+  border-color: rgba(242, 213, 74, 0.55);
+  box-shadow: none;
+}
+
 [data-theme="dark"] label,
 [data-theme="dark"] .meta,
 [data-theme="dark"] .band-lead,
@@ -7400,6 +7597,72 @@ body.sell:not(.map-home) > .demo-foot {
 [data-theme="dark"] .agenda-card-details,
 [data-theme="dark"] .service-card strong {
   color: var(--ink);
+}
+
+[data-theme="dark"] .service-card .price {
+  color: #f2d54a;
+}
+
+[data-theme="dark"] .service-card .meta,
+[data-theme="dark"] .service-card .include-list {
+  color: var(--ink-soft);
+}
+
+[data-theme="dark"] .go-card {
+  background: #2a3220;
+  color: #f4f0d8;
+  box-shadow: none;
+}
+
+[data-theme="dark"] .go-card .meta,
+[data-theme="dark"] .go-card .go-live,
+[data-theme="dark"] .go-card p {
+  color: #f4f0d8;
+}
+
+[data-theme="dark"] .go-card .chip {
+  background: #24302b;
+  color: #f4f0d8;
+  border-color: rgba(244, 240, 216, 0.28);
+}
+
+[data-theme="dark"] .go-card .chip[aria-pressed="true"] {
+  background: var(--ticket);
+  color: var(--ticket-ink);
+  border-color: var(--ticket);
+}
+
+[data-theme="dark"] .go-card .btn-enamel,
+[data-theme="dark"] .drawer .btn-enamel,
+[data-theme="dark"] .drawer a.btn-enamel {
+  background: var(--ticket);
+  color: var(--ticket-ink);
+  border-color: var(--ticket);
+}
+
+[data-theme="dark"] .go-card .btn-ghost,
+[data-theme="dark"] .drawer .btn-ghost {
+  color: #f4f0d8;
+  background: transparent;
+  border-color: rgba(244, 240, 216, 0.28);
+}
+
+[data-theme="dark"] .drawer .meta,
+[data-theme="dark"] .drawer h3,
+[data-theme="dark"] .drawer-close {
+  color: var(--ink);
+}
+
+[data-theme="dark"] .drawer .go-card {
+  background: transparent;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+[data-theme="dark"] .place-map {
+  filter: grayscale(0.15) brightness(0.82) contrast(1.06);
+  border-color: var(--line);
 }
 
 [data-theme="dark"] .notice.is-unread {
@@ -7452,6 +7715,28 @@ body.sell:not(.map-home) > .demo-foot {
   --theme-x: 92%;
   --theme-y: 28px;
   --theme-r: 140vmax;
+}
+
+.map-home .rail-toggle {
+  view-transition-name: rail-list;
+}
+
+.theme-wipe-on .app-dock,
+.theme-wipe-on .map-home .rail-toggle {
+  transition: none;
+}
+
+::view-transition-group(app-dock),
+::view-transition-group(rail-list) {
+  animation: none;
+}
+
+::view-transition-old(app-dock),
+::view-transition-new(app-dock),
+::view-transition-old(rail-list),
+::view-transition-new(rail-list) {
+  animation: none;
+  mix-blend-mode: normal;
 }
 
 ::view-transition-group(root) {
@@ -7751,4 +8036,43 @@ body.sell:not(.map-home) > .demo-foot {
   border: 1px dashed var(--line);
   border-radius: 8px;
   color: var(--ink);
+}
+
+@media (max-width: 430px) {
+  .map-home .topbar .brand-mark {
+    font-size: 1.55rem;
+  }
+
+  .map-home .topbar-nav {
+    gap: 4px;
+  }
+
+  .map-home .topbar-nav > label {
+    max-width: none;
+  }
+
+  .map-home .topbar .custom-dropdown-toggle {
+    padding: 4px 6px;
+    font-size: 0.72rem;
+  }
+
+  .map-home .topbar .custom-dropdown-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .map-home .theme-toggle {
+    width: 44px;
+    height: 26px;
+  }
+
+  .map-home .theme-toggle-knob {
+    width: 20px;
+    height: 20px;
+  }
+
+  [data-theme="dark"] .map-home .theme-toggle-knob {
+    transform: translateX(18px);
+  }
 }

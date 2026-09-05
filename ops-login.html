@@ -21,11 +21,10 @@
       <div class="auth-card">
         <p class="meta">Plataforma</p>
         <h1>Entrar a Ops</h1>
-        <p class="band-lead">Te mandamos un código de 6 dígitos. En el prototipo es 123456.</p>
+        <p class="band-lead">Te mandamos un código de 6 dígitos al mail de la plataforma.</p>
         <form id="email-form" class="review-form">
-          <label>Email <input name="email" type="email" required value="ops@turnoya.com" autocomplete="email" /></label>
+          <label>Email <input name="email" type="email" required placeholder="ops@turnoya.com" autocomplete="email" /></label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
-          <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
         <form id="otp-form" class="review-form" hidden>
           <p class="meta" id="otp-hint"></p>
@@ -50,10 +49,6 @@
     <script>
       const next = new URLSearchParams(location.search).get("next") || "./ops.html";
       if (currentStaff()) location.replace(next);
-      document.getElementById("skip").addEventListener("click", () => {
-        ensureDemoStaff();
-        location.href = next;
-      });
       const otp = mountOtp(document.getElementById("otp-form"), (code) => {
         document.getElementById("otp-form").requestSubmit();
       });
@@ -74,7 +69,7 @@
       document.getElementById("otp-form").addEventListener("submit", (event) => {
         event.preventDefault();
         if (!checkOtp(otp.read())) {
-          document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
+          document.getElementById("otp-msg").textContent = "Código incorrecto.";
           return;
         }
         saveStaff({ email: memoryGet("turnoya-otp-email") });

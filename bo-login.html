@@ -21,11 +21,10 @@
       <div class="auth-card">
         <p class="meta">Dueño del local</p>
         <h1 id="title">Entrar al backoffice</h1>
-        <p class="band-lead">Código de 6 dígitos. En el prototipo es 123456.</p>
+        <p class="band-lead">Te mandamos un código de 6 dígitos al mail del local.</p>
         <form id="email-form" class="review-form">
-          <label>Email del local <input name="email" type="email" required value="oasis@turnoya.com" autocomplete="email" /></label>
+          <label>Email del local <input name="email" type="email" required placeholder="dueno@tulocal.com" autocomplete="email" /></label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
-          <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
         <form id="otp-form" class="review-form" hidden>
           <p class="meta" id="otp-hint"></p>
@@ -54,10 +53,6 @@
       const place = findPlace(id);
       document.getElementById("title").textContent = `Dueño · ${place.name}`;
       if (currentOwner()?.placeId === id) location.replace(next);
-      document.getElementById("skip").addEventListener("click", () => {
-        ensureDemoOwner(id);
-        location.href = next;
-      });
       const otp = mountOtp(document.getElementById("otp-form"), () => {
         document.getElementById("otp-form").requestSubmit();
       });
@@ -78,7 +73,7 @@
       document.getElementById("otp-form").addEventListener("submit", (event) => {
         event.preventDefault();
         if (!checkOtp(otp.read())) {
-          document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
+          document.getElementById("otp-msg").textContent = "Código incorrecto.";
           return;
         }
         const email = memoryGet("turnoya-otp-email");

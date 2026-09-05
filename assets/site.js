@@ -114,12 +114,15 @@ function persistThemeOnUser(dark) {
 }
 
 function refreshThemeToggles() {
+  const dark = document.documentElement.dataset.theme === "dark";
   document.querySelectorAll(".theme-toggle").forEach((button) => {
-    const wrap = document.createElement("div");
-    wrap.innerHTML = themeToggleHtml();
-    const next = wrap.firstElementChild;
-    button.replaceWith(next);
-    next.addEventListener("click", toggleTheme);
+    button.setAttribute("aria-pressed", String(dark));
+    button.setAttribute("aria-label", dark ? "Modo claro" : "Modo oscuro");
+    const knob = button.querySelector(".theme-toggle-knob");
+    if (!knob) return;
+    knob.innerHTML = dark
+      ? '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M16 13a6 6 0 1 1-7-7 5 5 0 0 0 7 7z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
   });
 }
 
@@ -237,7 +240,7 @@ function paintDemoFoot() {
   const host = document.querySelector("[data-demo-foot]");
   if (!host) return;
   host.innerHTML =
-    `mail <b>123456</b> · WhatsApp <b>0000</b> · dueño oasis@turnoya.com · ops@turnoya.com · <a href="./recorrido.html">Guía del prototipo</a>`;
+    `© 2026 TurnoYa · <a href="./negocios.html">Para negocios</a> · <a href="./planes.html">Planes</a> · <a href="./alta.html">Publicar mi local</a>`;
 }
 
 if (typeof seedPlaceAgenda === "function") {
@@ -373,6 +376,9 @@ function visualKeyboard() {
 }
 
 function applyVisualKeyboard() {
+  if (document.documentElement.classList.contains("theme-wipe-on")) {
+    return visualKeyboard();
+  }
   const kb = visualKeyboard();
   const root = document.documentElement;
   root.style.setProperty("--kb-inset", `${kb.inset}px`);
@@ -505,8 +511,11 @@ function closeAllCustomSelects(except) {
     wrap.classList.remove("is-open");
     const toggle = wrap.querySelector(".custom-dropdown-toggle");
     if (toggle) toggle.setAttribute("aria-expanded", "false");
-    const menu = wrap.querySelector(".custom-dropdown-menu");
-    if (menu) menu.hidden = true;
+    const menu = wrap.querySelector(".custom-dropdown-menu") || wrap._dropdownMenu;
+    if (!menu) return;
+    menu.hidden = true;
+    menu.classList.remove("is-portaled");
+    if (menu.parentElement !== wrap) wrap.appendChild(menu);
   });
 }
 
@@ -549,6 +558,7 @@ function enhanceSelect(select) {
   menu.setAttribute("role", "listbox");
   menu.hidden = true;
   wrap.appendChild(menu);
+  wrap._dropdownMenu = menu;
 
   function sync() {
     const selected = select.options[select.selectedIndex];
@@ -597,19 +607,40 @@ function enhanceSelect(select) {
 
   function pinTopbarMenu() {
     if (!select.closest(".topbar")) {
+      if (menu.parentElement !== wrap) wrap.appendChild(menu);
+      menu.classList.remove("is-portaled");
       menu.style.removeProperty("top");
       menu.style.removeProperty("left");
       menu.style.removeProperty("right");
       menu.style.removeProperty("width");
+      menu.style.removeProperty("max-width");
+      menu.style.removeProperty("max-height");
       return;
     }
+    if (menu.parentElement !== document.body) document.body.appendChild(menu);
+    menu.classList.add("is-portaled");
     const box = toggle.getBoundingClientRect();
+    const view = window.visualViewport;
+    const viewW = view ? view.width : window.innerWidth;
+    const viewL = view ? view.offsetLeft : 0;
+    const viewH = view ? view.height : window.innerHeight;
+    const pad = 10;
+    const roomRight = viewL + viewW - box.left - pad;
+    const roomLeft = box.right - viewL - pad;
+    const maxWidth = Math.min(260, viewW - pad * 2);
     menu.style.top = `${Math.round(box.bottom + 6)}px`;
-    menu.style.left = `${Math.round(box.left)}px`;
-    menu.style.right = "auto";
     menu.style.width = "max-content";
-    menu.style.minWidth = `${Math.round(box.width)}px`;
-    menu.style.maxWidth = "16rem";
+    menu.style.minWidth = `${Math.min(Math.round(box.width), maxWidth)}px`;
+    if (roomRight < 168 && roomLeft > roomRight) {
+      menu.style.left = "auto";
+      menu.style.right = `${Math.round(window.innerWidth - box.right)}px`;
+      menu.style.maxWidth = `${Math.round(Math.min(maxWidth, roomLeft))}px`;
+    } else {
+      menu.style.right = "auto";
+      menu.style.left = `${Math.round(Math.max(pad, box.left))}px`;
+      menu.style.maxWidth = `${Math.round(Math.min(maxWidth, roomRight))}px`;
+    }
+    menu.style.maxHeight = `${Math.max(160, Math.min(280, viewH - box.bottom - pad))}px`;
   }
 
   function open() {
@@ -618,12 +649,15 @@ function enhanceSelect(select) {
     toggle.setAttribute("aria-expanded", "true");
     menu.hidden = false;
     pinTopbarMenu();
+    requestAnimationFrame(pinTopbarMenu);
   }
 
   function close() {
     wrap.classList.remove("is-open");
     toggle.setAttribute("aria-expanded", "false");
     menu.hidden = true;
+    if (menu.parentElement !== wrap) wrap.appendChild(menu);
+    menu.classList.remove("is-portaled");
   }
 
   toggle.addEventListener("click", (e) => {
@@ -681,9 +715,10 @@ function initCustomSelects() {
 if (!window.__customSelectDocBound) {
   window.__customSelectDocBound = true;
   document.addEventListener("click", (e) => {
-    if (!e.target.closest(".custom-dropdown")) {
-      closeAllCustomSelects();
+    if (e.target.closest(".custom-dropdown") || e.target.closest(".custom-dropdown-menu")) {
+      return;
     }
+    closeAllCustomSelects();
   });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
@@ -763,7 +798,15 @@ keepFocusAboveKeyboard();
 if (typeof seedListedUsers === "function") seedListedUsers();
 if (typeof runPlatformCron === "function") runPlatformCron();
 if (typeof autoCompletePastTurnos === "function") autoCompletePastTurnos();
+function paintThemeSlot() {
+  const slot = document.querySelector("[data-theme-slot]");
+  if (!slot) return;
+  slot.innerHTML = themeToggleHtml();
+  slot.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
+}
+
 function paintThemeButton() {
+  paintThemeSlot();
   const nav = document.querySelector(".topbar-nav");
   if (!nav || nav.querySelector(".theme-toggle")) return;
   if (nav.querySelector("[data-client-account]")) return;

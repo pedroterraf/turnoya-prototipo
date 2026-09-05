@@ -49,7 +49,31 @@ function bindNavBellDoc() {
   });
 }
 
+function guestNavBellHtml() {
+  const next = encodeURIComponent(location.pathname.split("/").pop() + location.search);
+  const login = `./login.html?next=${next}`;
+  return `<div class="nav-bell-wrap">
+      <button class="nav-bell" type="button" aria-expanded="false" aria-haspopup="true" aria-label="Notificaciones">
+        ${navBellSvg()}
+      </button>
+      <div class="nav-bell-panel" hidden>
+        <p class="nav-bell-login">Para recibir avisos de tus reservas, <a href="${login}">ingresá a tu cuenta</a>.</p>
+        <p class="nav-bell-sample-label">Ejemplo · así se verían</p>
+        <div class="nav-bell-item is-sample is-unread">
+          <strong>Oasis MultiSpa confirmó tu turno</strong>
+          <span>Mañana 11:30 · Masaje relajante</span>
+        </div>
+        <div class="nav-bell-item is-sample">
+          <strong>Recordatorio</strong>
+          <span>Tu turno es en 2 horas. Llegá 10 minutos antes.</span>
+        </div>
+        <a class="nav-bell-all" href="${login}">Entrar para activar avisos</a>
+      </div>
+    </div>`;
+}
+
 function navBellHtml(userKey, href) {
+  if (!userKey) return guestNavBellHtml();
   const unread = typeof unreadCount === "function" ? unreadCount(userKey) : 0;
   const rows = typeof findMyNotifications === "function" ? findMyNotifications(userKey).slice(0, 3) : [];
   const items = rows.length
@@ -101,7 +125,7 @@ function themeToggleHtml() {
     dark ? "Modo claro" : "Modo oscuro"
   }"><span class="theme-toggle-knob" aria-hidden="true">${
     dark
-      ? '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M16 13a6 6 0 1 1-7-7 5 5 0 0 0 7 7z"/></svg>'
+      ? '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.4 4.2a8.2 8.2 0 1 0 7.4 12.1A6.6 6.6 0 0 1 12.4 4.2z"/></svg>'
       : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>'
   }</span></button>`;
 }
@@ -121,7 +145,7 @@ function refreshThemeToggles() {
     const knob = button.querySelector(".theme-toggle-knob");
     if (!knob) return;
     knob.innerHTML = dark
-      ? '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M16 13a6 6 0 1 1-7-7 5 5 0 0 0 7 7z"/></svg>'
+      ? '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12.4 4.2a8.2 8.2 0 1 0 7.4 12.1A6.6 6.6 0 0 1 12.4 4.2z"/></svg>'
       : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>';
   });
 }
@@ -201,7 +225,7 @@ function clientAccountHtml() {
   const user = typeof currentUser === "function" ? currentUser() : null;
   const next = encodeURIComponent(location.pathname.split("/").pop() + location.search);
   if (!user) {
-    return `${themeToggleHtml()}<a href="./login.html?next=${next}">Entrar</a>`;
+    return `${themeToggleHtml()}${guestNavBellHtml()}<a href="./login.html?next=${next}">Entrar</a>`;
   }
   return `${themeToggleHtml()}${navBellHtml(user.email, notificationsPageHref())}
     <a href="./perfil.html">Perfil</a>
@@ -213,7 +237,7 @@ function paintClientAccount() {
   if (!host) return;
   const user = typeof currentUser === "function" ? currentUser() : null;
   host.innerHTML = clientAccountHtml();
-  if (user) bindNavBell(host, user.email);
+  bindNavBell(host, user?.email || "");
   bindNavBellDoc();
   host.querySelector("[class='theme-toggle'], .theme-toggle")?.addEventListener("click", toggleTheme);
   host.querySelectorAll("[data-logout]").forEach((button) => {
@@ -744,18 +768,60 @@ function bindBookingGate() {
 
 function paintTour() {
   if (currentPageName() !== "index.html") return;
+  const tourVersion = "5";
+  if (memoryGet("turnoya-tour-version") !== tourVersion) {
+    memoryRemove("turnoya-tour-done");
+    memorySet("turnoya-need-tour", "1");
+    memorySet("turnoya-tour-version", tourVersion);
+  }
   if (memoryGet("turnoya-tour-done") === "1" || memoryGet("turnoya-need-tour") !== "1") return;
   if (document.querySelector(".app-tour")) return;
+  const desktop = window.matchMedia("(min-width: 901px)").matches;
   const steps = [
-    { title: "Mapa", body: "Buscá un servicio y tocá un pin o una card para ver el local." },
-    { title: "Turnos", body: "En Mis turnos cancelás, reprogramás y calificás." },
-    { title: "Avisos", body: "La campana guarda los últimos 3. El resto vive en Avisos." },
-    { title: "Perfil", body: "Completá los 3 pasos. Sin eso no se puede reservar." },
+    {
+      title: "Mapa",
+      body: "Abrí la lista, buscá lo que necesitás y tocá un local en el mapa o en la lista para reservar.",
+      selectors: ["#rail-toggle"],
+      pad: desktop ? 0 : 6,
+      radius: desktop ? 0 : 16,
+      openRail: desktop,
+    },
+    {
+      title: "Tus turnos",
+      body: "Acá ves tus reservas. Podés cancelar, cambiar el horario o dejar una opinión.",
+      selectors: [".app-dock a[href*='mi-turno.html']", ".topbar-nav a[href='./mi-turno.html']"],
+      pad: 4,
+      radius: 12,
+    },
+    {
+      title: "Avisos",
+      body: "La campanita te avisa si confirman, cancelan o te escriben. Si todavía no ingresaste, te mostramos un ejemplo.",
+      selectors: [".app-dock a[href*='notificaciones.html']", ".account-slot .nav-bell", ".nav-bell"],
+      pad: 4,
+      radius: 12,
+    },
+    {
+      title: "Perfil",
+      body: "Completá tus datos. Sin eso no se puede reservar.",
+      selectors: [
+        ".app-dock a[href*='login.html']",
+        ".app-dock a[href*='perfil.html']",
+        ".app-dock .dock-item:last-child",
+        ".account-slot a[href*='login.html']",
+        ".account-slot a[href='./perfil.html']",
+      ],
+      pad: 4,
+      radius: 12,
+    },
   ];
   let index = 0;
   const overlay = document.createElement("div");
   overlay.className = "app-tour";
   overlay.innerHTML = `
+    <div class="app-tour-spot" hidden></div>
+    <div class="app-tour-pointer" hidden aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 16.5 5.5 9h13z"/></svg>
+    </div>
     <div class="app-tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
       <p class="meta" id="tour-kicker"></p>
       <h2 id="tour-title"></h2>
@@ -766,18 +832,122 @@ function paintTour() {
       </div>
     </div>`;
   document.body.append(overlay);
+  const spot = overlay.querySelector(".app-tour-spot");
+  const pointer = overlay.querySelector(".app-tour-pointer");
+  const card = overlay.querySelector(".app-tour-card");
+
+  function isOnScreen(node) {
+    if (!node) return false;
+    const style = getComputedStyle(node);
+    if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) {
+      return false;
+    }
+    const box = node.getBoundingClientRect();
+    return box.width > 2 && box.height > 2;
+  }
+
+  function findTarget(step) {
+    return (step.selectors || []).map((sel) => document.querySelector(sel)).find(isOnScreen) || null;
+  }
+
+  function clearLit() {
+    document.querySelectorAll(".app-tour-lit").forEach((node) => node.classList.remove("app-tour-lit"));
+  }
+
+  function placeTour(step) {
+    if (step.openRail) {
+      const rail = document.getElementById("rail");
+      if (rail) rail.style.transition = "none";
+      document.body.classList.add("is-rail-open");
+      document.getElementById("market")?.classList.add("is-rail-open");
+      if (rail) void rail.offsetWidth;
+    }
+    const target = findTarget(step);
+    overlay.classList.toggle("is-centered", !target);
+    clearLit();
+    if (!target) {
+      overlay.querySelector("#tour-body").textContent = step.body;
+      spot.hidden = true;
+      pointer.hidden = true;
+      card.style.removeProperty("top");
+      card.style.removeProperty("left");
+      return;
+    }
+    const href = target.getAttribute("href") || "";
+    const label = (target.textContent || "").replace(/\s+/g, " ").trim();
+    const needsLogin = /login\.html/i.test(href) || /^entrar$/i.test(label);
+    overlay.querySelector("#tour-body").textContent = needsLogin
+      ? "Tenés que acceder para ver tu perfil. Completá tus datos. Sin eso no se puede reservar."
+      : step.body;
+    if (!step.openRail) target.classList.add("app-tour-lit");
+    const box = target.getBoundingClientRect();
+    const railBox = step.openRail ? document.getElementById("rail")?.getBoundingClientRect() : null;
+    const pad = step.pad || 8;
+    const useRail = Boolean(railBox && railBox.width > box.width + 8);
+    const rawW = (useRail ? railBox.width : box.width) + pad * 2;
+    const rawH = box.height + pad * 2;
+    const width = Math.min(window.innerWidth - 8, rawW);
+    const height = Math.min(window.innerHeight - 8, rawH);
+    const centerX = useRail ? railBox.left + railBox.width / 2 : box.left + box.width / 2;
+    const centerY = box.top + box.height / 2;
+    const hole = {
+      width,
+      height,
+      left: Math.max(4, Math.min(centerX - width / 2, window.innerWidth - width - 4)),
+      top: Math.max(4, Math.min(centerY - height / 2, window.innerHeight - height - 4)),
+    };
+    spot.hidden = false;
+    spot.style.top = `${hole.top}px`;
+    spot.style.left = `${hole.left}px`;
+    spot.style.width = `${hole.width}px`;
+    spot.style.height = `${hole.height}px`;
+    spot.style.borderRadius = `${step.radius || 16}px`;
+
+    const cardW = Math.min(320, window.innerWidth - 24);
+    const cardH = card.offsetHeight || 160;
+    const gap = 32;
+    const spaceAbove = hole.top;
+    const spaceBelow = window.innerHeight - (hole.top + hole.height);
+    const placeAbove = spaceAbove >= cardH + gap || spaceAbove > spaceBelow;
+    let cardTop = placeAbove ? hole.top - cardH - gap : hole.top + hole.height + gap;
+    cardTop = Math.max(12, Math.min(cardTop, window.innerHeight - cardH - 12));
+    let cardLeft = hole.left + hole.width / 2 - cardW / 2;
+    cardLeft = Math.max(12, Math.min(cardLeft, window.innerWidth - cardW - 12));
+    card.style.top = `${cardTop}px`;
+    card.style.left = `${cardLeft}px`;
+
+    const pointerSize = 28;
+    const midX = hole.left + hole.width / 2 - pointerSize / 2;
+    if (placeAbove) {
+      pointer.style.top = `${hole.top - 20}px`;
+      pointer.style.setProperty("--tour-rot", "0deg");
+      pointer.style.setProperty("--tour-nudge", "7px");
+    } else {
+      pointer.style.top = `${Math.max(4, hole.top + hole.height - 12)}px`;
+      pointer.style.setProperty("--tour-rot", "180deg");
+      pointer.style.setProperty("--tour-nudge", "-7px");
+    }
+    pointer.style.left = `${Math.max(8, Math.min(midX, window.innerWidth - 36))}px`;
+    pointer.hidden = false;
+  }
+
   function paintStep() {
+    const step = steps[index];
     overlay.querySelector("#tour-kicker").textContent = `${index + 1} / ${steps.length}`;
-    overlay.querySelector("#tour-title").textContent = steps[index].title;
-    overlay.querySelector("#tour-body").textContent = steps[index].body;
+    overlay.querySelector("#tour-title").textContent = step.title;
     overlay.querySelector("[data-tour='next']").textContent =
       index === steps.length - 1 ? "Listo" : "Siguiente";
+    requestAnimationFrame(() => requestAnimationFrame(() => placeTour(step)));
   }
+
   function closeTour() {
     memorySet("turnoya-tour-done", "1");
     memoryRemove("turnoya-need-tour");
+    window.removeEventListener("resize", paintStep);
+    clearLit();
     overlay.remove();
   }
+
   overlay.addEventListener("click", (event) => {
     const action = event.target.dataset.tour;
     if (action === "skip") closeTour();
@@ -789,6 +959,7 @@ function paintTour() {
       }
     }
   });
+  window.addEventListener("resize", paintStep);
   paintStep();
 }
 

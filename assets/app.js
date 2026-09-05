@@ -925,41 +925,33 @@ function bindRail() {
     syncRail();
   });
 
-  toggle.addEventListener("pointerdown", (event) => {
-    if (!compact.matches || event.button) return;
-    const fromHandle = Boolean(event.target.closest(".rail-handle"));
-    const startHeight = railSnap() === "closed" ? 0 : rail.getBoundingClientRect().height;
-    drag = {
-      pointerId: event.pointerId,
-      startY: event.clientY,
-      startHeight,
-      moved: false,
-      fromHandle,
-    };
-  });
-
-  toggle.addEventListener("pointermove", (event) => {
-    if (!drag || event.pointerId !== drag.pointerId || !drag.fromHandle) return;
+  function onRailDragMove(event) {
+    if (!drag || event.pointerId !== drag.pointerId) return;
     const delta = drag.startY - event.clientY;
     if (Math.abs(delta) < dragThresholdPx && !drag.moved) return;
     if (!drag.moved) {
       drag.moved = true;
+      host.classList.remove("is-rail-searching");
       try {
         toggle.setPointerCapture(event.pointerId);
       } catch {
         /* ignore */
       }
     }
+    event.preventDefault();
     const max = snapHeights().full;
     const height = Math.min(max, Math.max(0, drag.startHeight + delta));
     host.classList.add("is-rail-dragging");
     host.classList.toggle("is-rail-open", height > 24);
     market.classList.toggle("is-rail-open", height > 24);
     rail.style.setProperty("--rail-drag-h", `${height}px`);
-  });
+  }
 
   function endDrag(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
+    window.removeEventListener("pointermove", onRailDragMove);
+    window.removeEventListener("pointerup", endDrag);
+    window.removeEventListener("pointercancel", endDrag);
     const moved = drag.moved;
     const height = moved
       ? Number.parseFloat(rail.style.getPropertyValue("--rail-drag-h")) || 0
@@ -980,8 +972,24 @@ function bindRail() {
     drag = moved ? { moved: true } : null;
   }
 
-  toggle.addEventListener("pointerup", endDrag);
-  toggle.addEventListener("pointercancel", endDrag);
+  toggle.addEventListener("pointerdown", (event) => {
+    if (!compact.matches || event.button) return;
+    const startHeight = railSnap() === "closed" ? 0 : rail.getBoundingClientRect().height;
+    drag = {
+      pointerId: event.pointerId,
+      startY: event.clientY,
+      startHeight,
+      moved: false,
+    };
+    try {
+      toggle.setPointerCapture(event.pointerId);
+    } catch {
+      /* ignore */
+    }
+    window.addEventListener("pointermove", onRailDragMove, { passive: false });
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
+  });
 
   rail.addEventListener("transitionend", (event) => {
     if ((event.propertyName === "width" || event.propertyName === "height") && map) {

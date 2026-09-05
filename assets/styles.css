@@ -4958,8 +4958,8 @@ body.sell:not(.map-home) > .demo-foot {
 
 .map-home .rail-handle {
   display: block;
-  width: 48px;
-  height: 18px;
+  width: 100%;
+  height: 22px;
   margin: 0 auto 2px;
   border-radius: 999px;
   background: transparent;
@@ -4981,7 +4981,7 @@ body.sell:not(.map-home) > .demo-foot {
   display: flex;
   flex-direction: column;
   width: 100%;
-  flex: 1;
+  flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
   opacity: 0;
@@ -4990,15 +4990,17 @@ body.sell:not(.map-home) > .demo-foot {
 }
 
 .map-home .rail-scroll {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   min-height: 0;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: scroll;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
 }
 
 .map-home .rail-body .ticket {
+  flex: 0 0 auto;
   margin: 10px 12px 6px;
   padding: 12px;
 }
@@ -5075,6 +5077,11 @@ body.sell:not(.map-home) > .demo-foot {
 
 .map-home.is-rail-open .rail-body,
 .map-home.is-rail-dragging .rail-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -5153,9 +5160,10 @@ body.sell:not(.map-home) > .demo-foot {
   }
 
   .map-home .rail-scroll {
-    flex: 1 1 auto;
+    flex: 1 1 0%;
     min-height: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     overscroll-behavior: contain;
   }
 
@@ -5295,6 +5303,20 @@ body.sell:not(.map-home) > .demo-foot {
   .map-home.is-keyboard-open .app-dock {
     transform: translateY(calc(100% + 16px));
     pointer-events: none;
+  }
+
+  .map-home.is-rail-dragging .rail,
+  .map-home.is-rail-searching.is-rail-dragging .rail,
+  .map-home.is-keyboard-open.is-rail-dragging .rail {
+    position: absolute;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 80;
+    height: var(--rail-drag-h, min(58vh, 520px));
+    max-height: none;
+    transition: none;
   }
 
   .map-home.has-app-dock.is-rail-open .market,

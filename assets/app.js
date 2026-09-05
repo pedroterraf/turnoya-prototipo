@@ -206,6 +206,7 @@ let placeMap = null;
 let placeWatchId = null;
 let placeYouMarker = null;
 let placeGuideId = null;
+let blockListTapUntil = 0;
 
 function distanceKm(lat1, lng1, lat2, lng2) {
   const toRad = (value) => (value * Math.PI) / 180;
@@ -762,6 +763,11 @@ function boot() {
     }
   });
   document.getElementById("reco-track").addEventListener("click", (event) => {
+    if (Date.now() < blockListTapUntil) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
     const button = event.target.closest("[data-id]");
     if (button) location.href = `./ficha.html?id=${button.dataset.id}`;
   });
@@ -776,10 +782,19 @@ function boot() {
       });
     });
   });
-  document.getElementById("results-list").addEventListener("click", (event) => {
-    const button = event.target.closest("[data-id]");
-    if (button) location.href = `./ficha.html?id=${button.dataset.id}`;
-  });
+  document.getElementById("results-list").addEventListener(
+    "click",
+    (event) => {
+      if (Date.now() < blockListTapUntil) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const button = event.target.closest("[data-id]");
+      if (button) location.href = `./ficha.html?id=${button.dataset.id}`;
+    },
+    true,
+  );
   document.getElementById("drawer").addEventListener("click", (event) => {
     if (event.target.id === "close-drawer") {
       document.getElementById("drawer").hidden = true;
@@ -1005,17 +1020,23 @@ function bindRail() {
   if (query) {
     const openSearch = () => {
       if (!compact.matches) return;
+      const already = host.classList.contains("is-rail-searching") && railSnap() === "full";
       host.classList.add("is-rail-searching");
       setRailSnap("full");
       syncRail();
+      if (!already) blockListTapUntil = Date.now() + 500;
       if (typeof applyVisualKeyboard === "function") applyVisualKeyboard();
     };
-    query.addEventListener("focus", () => {
-      openSearch();
-      window.requestAnimationFrame(syncSearchKeyboard);
+    query.addEventListener("pointerdown", () => {
+      if (compact.matches) blockListTapUntil = Date.now() + 500;
     });
-    query.addEventListener("pointerdown", openSearch);
-    document.querySelector(".search-row")?.addEventListener("pointerdown", openSearch);
+    query.addEventListener("focus", () => {
+      if (compact.matches) blockListTapUntil = Date.now() + 500;
+      window.setTimeout(() => {
+        openSearch();
+        syncSearchKeyboard();
+      }, 360);
+    });
     query.addEventListener("blur", () => {
       window.setTimeout(syncSearchKeyboard, 80);
     });

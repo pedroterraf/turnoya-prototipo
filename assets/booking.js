@@ -1462,11 +1462,18 @@ function reprogramLink(turno) {
   return `<a class="btn btn-line" href="./reservar.html?id=${turno.placeId}&service=${turno.serviceId || ""}&reprogram=${turno.id}">Reprogramar</a>`;
 }
 
+function turnoSearchBlob(turno) {
+  return [turno.placeName, turno.serviceName, slotLabel(turno.slot), estadoLabel(turno.estado), turno.slot]
+    .join(" ")
+    .toLowerCase();
+}
+
 function turnoCardHtml(turno) {
   if (!turno?.slot) return "";
   const when = slotLabel(turno.slot);
   const policy = placePolicy(turno.placeId);
   const user = typeof currentUser === "function" ? currentUser() : null;
+  const initial = String(turno.placeName || "?").slice(0, 1).toUpperCase();
   let actions = `<p class="meta">Cancelado. Horario libre${
     turno.motivo === "arrepentimiento" ? " y seña a reintegrar por Mercado Pago." : "."
   }</p>`;
@@ -1494,11 +1501,18 @@ function turnoCardHtml(turno) {
   } else if (turno.estado === "confirmado") {
     actions = `${reprogramLink(turno)}<p class="meta">El local confirma cuando vas. Todavía no se puede calificar.</p>`;
   }
-  return `<article class="quote" id="turno-${turno.id}" data-turno="${turno.id}">
-    <strong>${turno.placeName}</strong>
-    <p class="meta">${turno.serviceName} · ${when} · ${estadoLabel(turno.estado)}</p>
+  return `<article class="turno-card" id="turno-${turno.id}" data-turno="${turno.id}" data-slot="${turno.slot || ""}" data-search="${turnoSearchBlob(turno)}">
+    <header class="turno-card-head">
+      <span class="turno-card-thumb" aria-hidden="true">${initial}</span>
+      <div class="turno-card-title">
+        <strong>${turno.placeName}</strong>
+        <p class="meta">${turno.serviceName}</p>
+      </div>
+      <span class="turno-chip is-${turno.estado}">${estadoLabel(turno.estado)}</span>
+    </header>
+    <p class="turno-card-when">${when}</p>
     ${turnoGoLinks(turno)}
-    ${actions}
+    <div class="turno-card-actions">${actions}</div>
   </article>`;
 }
 

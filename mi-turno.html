@@ -4,13 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Mis turnos · TurnoYa</title>
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix4" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack3" />
   </head>
   <body class="sell">
     <header class="topbar">
@@ -20,7 +23,7 @@
         <span class="account-slot" data-client-account></span>
       </nav>
     </header>
-    <main class="band narrow" id="root"></main>
+    <main class="band turno-page" id="root"></main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
     <script src="./assets/notifications.js"></script>
@@ -30,12 +33,50 @@
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/range-picker.js?v=cal2"></script>
     <script src="./assets/site.js"></script>
     <script>
       const user = requireUser("./mi-turno.html");
       if (!user) throw new Error("redirect");
       const root = document.getElementById("root");
       const moved = new URLSearchParams(location.search).get("moved") === "1";
+      const PAGE = 6;
+      let query = "";
+      let fromDate = "";
+      let toDate = "";
+      let visible = PAGE;
+      let filtered = [];
+
+      function matchesTurno(turno) {
+        const needle = query.trim().toLowerCase();
+        const slot = String(turno.slot || "").slice(0, 10);
+        const blob = typeof turnoSearchBlob === "function" ? turnoSearchBlob(turno) : "";
+        return (!needle || blob.includes(needle)) && (!fromDate || slot >= fromDate) && (!toDate || slot <= toDate);
+      }
+
+      function renderList() {
+        const host = root.querySelector(".turno-list");
+        const empty = root.querySelector("#turno-empty");
+        const count = root.querySelector("#turno-count");
+        const more = root.querySelector("#turno-more");
+        if (!host) return;
+        const slice = filtered.slice(0, visible);
+        host.innerHTML = slice.map(turnoCardHtml).join("");
+        bindTurnoActions(host, paint);
+        if (empty) empty.hidden = filtered.length > 0;
+        if (count) {
+          count.textContent = `${filtered.length} turno${filtered.length === 1 ? "" : "s"}`;
+        }
+        if (more) more.hidden = visible >= filtered.length;
+      }
+
+      function applyTurnoFilter() {
+        const list = userTurnos(user.email);
+        filtered = list.filter(matchesTurno);
+        visible = PAGE;
+        renderList();
+      }
+
       function paint() {
         const list = userTurnos(user.email);
         if (!list.length) {
@@ -43,11 +84,56 @@
             "<h2>No tenés turnos</h2><p class=\"band-lead\">Reservá desde el mapa. Acá ves todos tus locales.</p><a class=\"btn btn-enamel\" href=\"./index.html\">Ir al mapa</a>";
           return;
         }
-        root.innerHTML = `<h2>Tus turnos</h2>
-          ${moved ? "<p class=\"meta\">Horario actualizado. El local y vos reciben el aviso.</p>" : ""}
-          <p class="band-lead">Todos los negocios. En la ficha de cada local ves solo los de ese lugar.</p>
-          <div class="turno-list">${list.map(turnoCardHtml).join("")}</div>`;
-        bindTurnoActions(root, paint);
+        root.innerHTML = `
+          <div class="turno-head">
+            <div>
+              <h2>Tus turnos</h2>
+              ${moved ? "<p class=\"meta\">Horario actualizado. El local y vos reciben el aviso.</p>" : ""}
+              <p class="band-lead">Buscá por local, servicio, fecha o estado.</p>
+            </div>
+            <p class="meta" id="turno-count"></p>
+          </div>
+          <div class="turno-toolbar">
+            <label class="turno-search">
+              <span class="visually-hidden">Buscar turno</span>
+              <input id="turno-query" type="search" placeholder="Oasis, masaje, confirmado…" autocomplete="off" />
+            </label>
+            <div class="turno-date">
+              <span>Desde y hasta</span>
+              <div id="turno-range"></div>
+            </div>
+          </div>
+          <div class="turno-list"></div>
+          <p class="meta turno-more" id="turno-more">Deslizá para ver más</p>
+          <p class="meta" id="turno-empty" hidden>No hay turnos con esa búsqueda.</p>`;
+        const input = document.getElementById("turno-query");
+        if (input) {
+          input.value = query;
+          input.addEventListener("input", () => {
+            query = input.value;
+            applyTurnoFilter();
+          });
+        }
+        mountRangePicker(document.getElementById("turno-range"), {
+          from: fromDate,
+          to: toDate,
+          onChange: (range) => {
+            fromDate = range.from;
+            toDate = range.to;
+            applyTurnoFilter();
+          },
+        });
+        applyTurnoFilter();
+        const sentinel = document.getElementById("turno-more");
+        if (sentinel && "IntersectionObserver" in window) {
+          const observer = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting)) return;
+            if (visible >= filtered.length) return;
+            visible += PAGE;
+            renderList();
+          });
+          observer.observe(sentinel);
+        }
         if (location.hash) {
           const card = document.querySelector(location.hash);
           if (card) card.scrollIntoView({ block: "start" });

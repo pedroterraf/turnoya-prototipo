@@ -4,34 +4,40 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Entrar · TurnoYa</title>
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix4" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack3" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
       <a class="brand" href="./index.html"><span class="brand-mark">TurnoYa</span></a>
+      <nav class="topbar-nav"></nav>
     </header>
     <main class="auth-shell">
       <div class="auth-card">
         <p class="meta">Cliente</p>
-        <h1>Entrar con tu mail</h1>
-        <p class="band-lead">Te mandamos un código de 6 dígitos. En el prototipo es 123456.</p>
+        <h1>Entrar</h1>
+        <p class="band-lead">Mail o celular. Te mandamos un código. En el prototipo es 123456 (mail) o 0000 (celular).</p>
         <form id="email-form" class="review-form">
-          <label>Email <input name="email" type="email" required placeholder="tu@correo.com" autocomplete="email" /></label>
+          <label>Email o celular
+            <input name="identifier" required placeholder="tu@correo.com o 3515550000" autocomplete="username" />
+          </label>
           <button class="btn btn-enamel" type="submit">Enviar código</button>
           <button class="btn btn-ticket" id="skip" type="button">Seguir con datos de prueba</button>
         </form>
         <form id="otp-form" class="review-form" hidden>
           <p class="meta" id="otp-hint"></p>
-          <div class="otp" role="group" aria-label="Código de 6 dígitos"></div>
+          <div class="otp" role="group" aria-label="Código"></div>
           <input type="hidden" name="code" />
           <button class="btn btn-ticket" type="submit">Verificar</button>
-          <button class="btn-link" id="change-email" type="button" style="background:none;border:none;color:var(--enamel);text-decoration:underline;cursor:pointer;font-size:0.85rem;padding:6px 0;text-align:left;">← Cambiar email</button>
+          <button class="btn-link" id="change-email" type="button">← Cambiar dato</button>
           <p id="otp-msg" class="meta"></p>
         </form>
       </div>
@@ -47,27 +53,39 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
-      if (currentUser() && profileComplete(currentUser())) location.replace(next);
-      const otp = mountOtp(document.getElementById("otp-form"), () => {
+      const next = new URLSearchParams(location.search).get("next") || "./index.html";
+      if (currentUser() && bookingReady(currentUser())) location.replace(next);
+      let otpLength = 6;
+      let otp = mountOtp(document.getElementById("otp-form"), () => {
         document.getElementById("otp-form").requestSubmit();
-      });
+      }, otpLength);
       document.getElementById("email-form").addEventListener("submit", (event) => {
         event.preventDefault();
-        const email = new FormData(event.target).get("email");
-        sendOtp(email);
+        const identifier = new FormData(event.target).get("identifier");
+        const phone = looksLikePhone(identifier);
+        const code = sendOtp(identifier);
+        otpLength = phone ? 4 : 6;
+        otp = mountOtp(document.getElementById("otp-form"), () => {
+          document.getElementById("otp-form").requestSubmit();
+        }, otpLength);
         event.target.hidden = true;
         document.getElementById("otp-form").hidden = false;
-        document.getElementById("otp-hint").textContent = `Código enviado a ${email}. Pegalo o escribilo.`;
+        document.getElementById("otp-hint").textContent = phone
+          ? `Código enviado al celular. En el prototipo es ${code}.`
+          : `Código enviado a ${identifier}. En el prototipo es ${code}.`;
         if (typeof showAppToast === "function") {
-          showAppToast({ title: "Código enviado", body: "En el prototipo es 123456.", tone: "success" });
+          showAppToast({
+            title: phone ? "SMS de prueba" : "Código enviado",
+            body: `Usá ${code}.`,
+            tone: "success",
+          });
         }
         otp.focus();
       });
       document.getElementById("change-email")?.addEventListener("click", () => {
         document.getElementById("otp-form").hidden = true;
         document.getElementById("email-form").hidden = false;
-        document.getElementById("email-form").querySelector("input[name='email']")?.focus();
+        document.getElementById("email-form").querySelector("[name='identifier']")?.focus();
       });
       document.getElementById("skip").addEventListener("click", () => {
         ensureDemoUser();
@@ -77,13 +95,16 @@
         event.preventDefault();
         const ok = verifyOtp(otp.read());
         if (!ok) {
-          document.getElementById("otp-msg").textContent = "Código incorrecto. Probá 123456.";
+          const hint = otpLength === 4 ? "0000" : "123456";
+          document.getElementById("otp-msg").textContent = `Código incorrecto. Probá ${hint}.`;
           if (typeof showAppToast === "function") {
-            showAppToast({ title: "Código incorrecto", body: "Probá 123456.", tone: "error" });
+            showAppToast({ title: "Código incorrecto", body: `Probá ${hint}.`, tone: "error" });
           }
           return;
         }
-        location.href = profileComplete(currentUser()) ? next : `./perfil.html?next=${encodeURIComponent(next)}`;
+        location.href = bookingReady(currentUser())
+          ? next
+          : `./perfil.html?next=${encodeURIComponent(next)}`;
       });
     </script>
   </body>

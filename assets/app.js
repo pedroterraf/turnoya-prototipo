@@ -166,6 +166,25 @@ const GEO_OPTIONS_FINE = { enableHighAccuracy: true, maximumAge: 0, timeout: 150
 const GEO_ACCURACY_GOOD_M = 80;
 const GEO_FALLBACK_DELAY_MS = 2500;
 
+const MAP_REGIONS = {
+  cordoba: { provincia: "Córdoba", cities: [{ value: "cordoba", label: "Córdoba" }] },
+  caba: { provincia: "CABA", cities: [{ value: "caba", label: "CABA" }] },
+  rosario: { provincia: "Santa Fe", cities: [{ value: "rosario", label: "Rosario" }] },
+  mendoza: { provincia: "Mendoza", cities: [{ value: "mendoza", label: "Mendoza" }] },
+  tucuman: { provincia: "Tucumán", cities: [{ value: "tucuman", label: "San Miguel de Tucumán" }] },
+};
+
+function cityFromProfile(user) {
+  if (!user) return "cordoba";
+  const province = String(user.provincia || "").toLowerCase();
+  const city = String(user.ciudad || "").toLowerCase();
+  if (province.includes("caba") || city.includes("caba") || city.includes("palermo")) return "caba";
+  if (province.includes("santa fe") || city.includes("rosario")) return "rosario";
+  if (province.includes("mendoza") || city.includes("mendoza")) return "mendoza";
+  if (province.includes("tucum") || city.includes("tucum")) return "tucuman";
+  return "cordoba";
+}
+
 const state = {
   city: "cordoba",
   query: "",
@@ -521,20 +540,39 @@ function render() {
 }
 
 function applyCity(cityId, recenter) {
-  state.city = cityId;
-  const select = document.getElementById("city");
-  if (select) select.value = cityId;
+  const resolved = CITIES[cityId] ? cityId : "cordoba";
+  state.city = resolved;
   if (state.userIsFallback) {
-    const city = CITIES[cityId] || CITIES.cordoba;
+    const city = CITIES[resolved] || CITIES.cordoba;
     state.userLat = city.lat + 0.0042;
     state.userLng = city.lng + 0.0034;
     state.userAccuracy = 90;
   }
   if (recenter && map && !state.followUser) {
-    const city = CITIES[cityId];
+    const city = CITIES[resolved] || CITIES.cordoba;
     map.setView([city.lat, city.lng], 13);
   }
   render();
+}
+
+function fillHomeGeoSelects(pais, provincia, ciudad) {
+  const countryEl = document.getElementById("country");
+  const provinceEl = document.getElementById("province");
+  const cityEl = document.getElementById("city");
+  if (!provinceEl || !cityEl || typeof geoCountries !== "function") return;
+  const countries = geoCountries();
+  if (countryEl) {
+    countryEl.innerHTML = countries.map((name) => `<option value="${name}">${name}</option>`).join("");
+    countryEl.value = countries.includes(pais) ? pais : "Argentina";
+  }
+  const country = countryEl?.value || "Argentina";
+  const provinces = geoProvinces(country);
+  provinceEl.innerHTML = provinces.map((name) => `<option value="${name}">${name}</option>`).join("");
+  provinceEl.value = provinces.includes(provincia) ? provincia : provinces[0] || "";
+  const cities = geoCities(country, provinceEl.value);
+  cityEl.innerHTML = cities.map((name) => `<option value="${name}">${name}</option>`).join("");
+  cityEl.value = cities.includes(ciudad) ? ciudad : cities[0] || "";
+  state.city = mapCityKey(provinceEl.value, cityEl.value);
 }
 
 function syncFollowButton() {
@@ -568,6 +606,15 @@ function applyPosition(position, isFirst) {
   renderHomeTurns();
   const movedFar = prevLat == null || distanceKm(prevLat, prevLng, lat, lng) > 0.08;
   const now = Date.now();
+  if (isFirst && typeof reverseGeocodeProfile === "function") {
+    reverseGeocodeProfile(lat, lng)
+      .then((geo) => {
+        fillHomeGeoSelects(geo.pais, geo.provincia, geo.ciudad);
+        persistProfileGeo(geo);
+        applyCity(mapCityKey(geo.provincia, geo.ciudad), false);
+      })
+      .catch(() => applyCity(cityId, false));
+  }
   if (isFirst || state.followUser) {
     lastListRender = now;
     if (map) map.setView([lat, lng], accuracy > 400 ? 14 : 16);
@@ -639,6 +686,9 @@ function requestLocation() {
 }
 
 function boot() {
+  if (typeof currentUser === "function") {
+    state.city = cityFromProfile(currentUser());
+  }
   const city = CITIES[state.city];
   map = L.map("map", { zoomControl: false, attributionControl: false }).setView(
     [city.lat, city.lng],
@@ -653,12 +703,34 @@ function boot() {
   }).addTo(map);
   requestAnimationFrame(() => map.invalidateSize());
 
-  document.getElementById("city").value = state.city;
-  document.getElementById("city").addEventListener("change", (event) => {
-    state.followUser = false;
-    syncFollowButton();
-    applyCity(event.target.value, true);
-  });
+  const user = typeof currentUser === "function" ? currentUser() : null;
+  fillHomeGeoSelects(user?.pais || "Argentina", user?.provincia || "Córdoba", user?.ciudad || "Córdoba");
+  const countrySelect = document.getElementById("country");
+  const provinceSelect = document.getElementById("province");
+  const citySelect = document.getElementById("city");
+  if (countrySelect) {
+    countrySelect.addEventListener("change", () => {
+      fillHomeGeoSelects(countrySelect.value, "", "");
+      state.followUser = false;
+      syncFollowButton();
+      applyCity(state.city, true);
+    });
+  }
+  if (provinceSelect) {
+    provinceSelect.addEventListener("change", () => {
+      fillHomeGeoSelects(countrySelect?.value || "Argentina", provinceSelect.value, "");
+      state.followUser = false;
+      syncFollowButton();
+      applyCity(state.city, true);
+    });
+  }
+  if (citySelect) {
+    citySelect.addEventListener("change", () => {
+      state.followUser = false;
+      syncFollowButton();
+      applyCity(mapCityKey(provinceSelect?.value || "", citySelect.value), true);
+    });
+  }
   const follow = document.getElementById("follow-me");
   if (follow) {
     follow.addEventListener("click", () => {
@@ -715,8 +787,32 @@ function boot() {
   });
 
   bindRail();
+  bindResultsScroll();
   render();
   requestLocation();
+}
+
+function bindResultsScroll() {
+  const scroller = document.querySelector(".map-home .rail-scroll");
+  if (!scroller || scroller.dataset.scrollBound) return;
+  scroller.dataset.scrollBound = "1";
+  scroller.addEventListener(
+    "wheel",
+    (event) => {
+      const max = scroller.scrollHeight - scroller.clientHeight;
+      if (max <= 0) {
+        event.preventDefault();
+        return;
+      }
+      const top = scroller.scrollTop;
+      const goingUp = event.deltaY < 0;
+      const goingDown = event.deltaY > 0;
+      if ((goingUp && top <= 0) || (goingDown && top >= max - 1)) {
+        event.preventDefault();
+      }
+    },
+    { passive: false },
+  );
 }
 
 function bindRail() {
@@ -888,15 +984,46 @@ function bindRail() {
     syncRail();
   });
 
+  function syncSearchKeyboard() {
+    if (!compact.matches || !query) {
+      host.classList.remove("is-rail-searching");
+      return;
+    }
+    const searching = document.activeElement === query || query.matches(":focus");
+    host.classList.toggle("is-rail-searching", searching);
+    if (searching) {
+      setRailSnap("full");
+      syncRail();
+      if (typeof applyVisualKeyboard === "function") applyVisualKeyboard();
+      if (body) {
+        const ticket = query.closest(".ticket") || query;
+        body.scrollTo({ top: Math.max(0, ticket.offsetTop - 4), behavior: "auto" });
+      }
+    }
+  }
+
   if (query) {
     const openSearch = () => {
       if (!compact.matches) return;
+      host.classList.add("is-rail-searching");
       setRailSnap("full");
       syncRail();
+      if (typeof applyVisualKeyboard === "function") applyVisualKeyboard();
     };
-    query.addEventListener("focus", openSearch);
+    query.addEventListener("focus", () => {
+      openSearch();
+      window.requestAnimationFrame(syncSearchKeyboard);
+    });
     query.addEventListener("pointerdown", openSearch);
     document.querySelector(".search-row")?.addEventListener("pointerdown", openSearch);
+    query.addEventListener("blur", () => {
+      window.setTimeout(syncSearchKeyboard, 80);
+    });
+  }
+
+  window.addEventListener("resize", syncSearchKeyboard);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", syncSearchKeyboard);
   }
 
   compact.addEventListener("change", () => {

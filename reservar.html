@@ -4,13 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Reservar · TurnoYa</title>
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack2" />
   </head>
   <body class="sell">
     <header class="topbar">
@@ -33,6 +36,11 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
+      const guest = typeof currentUser === "function" ? currentUser() : null;
+      if (!guest || (typeof bookingReady === "function" && !bookingReady(guest))) {
+        location.replace(`./perfil.html?next=${encodeURIComponent(location.pathname + location.search)}`);
+        throw new Error("redirect");
+      }
       const params = new URLSearchParams(location.search);
       const place = lookupPlace(params.get("id")) || lookupPlace("oasis");
       const root = document.getElementById("root");
@@ -119,20 +127,22 @@
           ${picked.description ? `<p class="meta">${picked.description}</p>` : ""}
           <p class="meta" ${expired ? "" : "hidden"}>Se liberó el horario: pasaron los 15 minutos sin pagar. Elegí de nuevo.</p>
           <nav class="week-nav">
-            ${
-              week > 0
-                ? `<a class="week-nav-btn" href="${weekQuery(week - 1)}">Anterior</a>`
-                : `<span class="week-nav-btn is-off">Anterior</span>`
-            }
-            <p class="week-nav-label">${days[0].toLocaleDateString("es-AR", {
-              day: "numeric",
-              month: "short",
-            })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</p>
-            ${
-              week < 8
-                ? `<a class="week-nav-btn" href="${weekQuery(week + 1)}">Siguiente</a>`
-                : `<span class="week-nav-btn is-off">Siguiente</span>`
-            }
+            <p class="week-nav-label">
+              ${
+                week > 0
+                  ? `<a class="week-arrow" href="${weekQuery(week - 1)}" aria-label="Semana anterior">‹</a>`
+                  : `<span class="week-arrow is-off" aria-hidden="true">‹</span>`
+              }
+              <span>${days[0].toLocaleDateString("es-AR", {
+                day: "numeric",
+                month: "short",
+              })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+              ${
+                week < 8
+                  ? `<a class="week-arrow" href="${weekQuery(week + 1)}" aria-label="Semana siguiente">›</a>`
+                  : `<span class="week-arrow is-off" aria-hidden="true">›</span>`
+              }
+            </p>
           </nav>
           <div class="cal-wrap">
             <div class="watermark cal-mark">TurnoYa</div>
@@ -145,10 +155,12 @@
             <span><i class="is-pick"></i> Tu turno (${picked.minutes} min)</span>
           </div>
           <p class="meta" id="cal-msg"></p>
-          <div id="pick-bar" ${selection ? "" : "hidden"}>
+          <div id="pick-bar" class="pick-card" ${selection ? "" : "hidden"}>
+            <p class="meta">Horario elegido</p>
+            <strong>${selection ? selection.replace("T", " ") : ""} · ${picked.minutes} min</strong>
             <button class="btn btn-ticket" id="confirm-slot" type="button">${
-              reprogramId ? "Confirmar nuevo horario" : "Reservar"
-            } ${selection ? selection.replace("T", " ") : ""} · ${picked.minutes} min</button>
+              reprogramId ? "Confirmar nuevo horario" : "Siguiente"
+            }</button>
           </div>
           ${
             openCount

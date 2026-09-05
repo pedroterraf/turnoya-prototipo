@@ -4,62 +4,78 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Alta · TurnoYa</title>
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack2" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
       <a class="brand" href="./negocios.html"><span class="brand-mark">TurnoYa</span></a>
-      <a href="./negocios.html">Volver</a>
+      <nav class="topbar-nav">
+        <a href="./negocios.html">Volver</a>
+      </nav>
     </header>
     <main class="auth-shell">
       <div class="auth-card wide">
       <p class="meta">Alta del negocio</p>
       <h1>Tu local en el mapa</h1>
-      <p class="band-lead" id="intro-lead">Administración revisa el alta. Mientras tanto podés armar el backoffice; el pin no se publica hasta que aprueben.</p>
+      <p class="band-lead" id="intro-lead">Tres pasos. Administración revisa el alta antes de publicar el pin.</p>
       <form id="form" class="review-form">
-        <label>Nombre del negocio <input name="nombre" required placeholder="Oasis MultiSpa" /></label>
-        <label>Ciudad
-          <select name="ciudad">
-            <option value="cordoba">Córdoba</option>
-            <option value="caba">CABA</option>
-            <option value="rosario">Rosario</option>
-            <option value="mendoza">Mendoza</option>
-            <option value="tucuman">Tucumán</option>
-          </select>
-        </label>
-        <label>Rubro
-          <select name="rubro">
-            <option value="belleza">Belleza</option>
-            <option value="salud">Salud</option>
-            <option value="fitness">Fitness</option>
-            <option value="mascotas">Mascotas</option>
-            <option value="oficios">Oficios</option>
-          </select>
-        </label>
-        <label>Servicio que se muestra <input name="servicio" placeholder="Masaje relajante" /></label>
-        <label>WhatsApp <input name="whatsapp" required placeholder="351..." /></label>
-        <label hidden data-mvp="deferred">CUIT (opcional) <input name="cuit" placeholder="30-12345678-9" /></label>
-        <label hidden data-mvp="deferred">Plan
-          <select name="plan">
-            <option value="calle" selected>Calle · gratis · 0% comisión</option>
-            <option value="barrio">Barrio · $12.900 · espera y huecos</option>
-            <option value="ciudad">Ciudad · $22.900 · Destacado incluido</option>
-            <option value="red">Red · $49.900 · cadenas</option>
-          </select>
-        </label>
-        <button class="btn btn-ticket" type="submit">Enviar alta</button>
+        <ol class="profile-steps" aria-label="Progreso">
+          <li class="is-on" data-step-dot="1"><span>1</span> Local</li>
+          <li data-step-dot="2"><span>2</span> Lugar</li>
+          <li data-step-dot="3"><span>3</span> Contacto</li>
+        </ol>
+        <fieldset class="profile-pane" data-pane="1">
+          <legend>Nombre, rubro y servicios</legend>
+          <label>Nombre del negocio <input name="nombre" required placeholder="Oasis MultiSpa" /></label>
+          <label>Rubro <input name="rubro" required placeholder="Belleza, salud, oficios…" /></label>
+          <label>Servicios
+            <input id="svc-tag" type="text" placeholder="Escribí y Enter para agregar" />
+          </label>
+          <div class="tag-list" id="svc-tags"></div>
+          <input type="hidden" name="servicio" />
+        </fieldset>
+        <fieldset class="profile-pane" data-pane="2" hidden>
+          <legend>Dónde está</legend>
+          <label>País <span data-search-select="pais"></span></label>
+          <label>Provincia <span data-search-select="provincia"></span></label>
+          <label>Ciudad <span data-search-select="ciudad"></span></label>
+        </fieldset>
+        <fieldset class="profile-pane" data-pane="3" hidden>
+          <legend>Cómo te escriben</legend>
+          <label>WhatsApp <input name="whatsapp" required placeholder="351..." /></label>
+          <label>Correo <input name="correo" type="email" required placeholder="hola@tulocal.com" /></label>
+          <label hidden data-mvp="deferred">CUIT (opcional) <input name="cuit" placeholder="30-12345678-9" /></label>
+          <label hidden data-mvp="deferred">Plan
+            <select name="plan">
+              <option value="calle" selected>Calle · gratis · 0% comisión</option>
+              <option value="barrio">Barrio · $12.900 · espera y huecos</option>
+              <option value="ciudad">Ciudad · $22.900 · Destacado incluido</option>
+              <option value="red">Red · $49.900 · cadenas</option>
+            </select>
+          </label>
+        </fieldset>
+        <p class="meta" id="msg"></p>
+        <div class="profile-nav">
+          <button class="btn btn-line" id="prev-step" type="button" hidden>Atrás</button>
+          <button class="btn btn-ticket" id="next-step" type="button">Continuar</button>
+          <button class="btn btn-ticket" id="save-step" type="submit" hidden>Enviar alta</button>
+        </div>
       </form>
       <div id="done" hidden></div>
       </div>
     </main>
     <footer class="demo-foot" data-demo-foot></footer>
     <script src="./assets/store.js"></script>
+    <script src="./assets/geo.js"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js"></script>
@@ -69,12 +85,88 @@
     <script src="./assets/auth.js"></script>
     <script src="./assets/site.js"></script>
     <script>
+      const form = document.getElementById("form");
+      const user = typeof currentUser === "function" ? currentUser() : null;
+      const tags = [];
+      let step = 1;
+      if (typeof bindGeoSelects === "function") {
+        bindGeoSelects(form, {
+          pais: user?.pais || "Argentina",
+          provincia: user?.provincia || "",
+          ciudad: user?.ciudad || "",
+        });
+      }
+      function paintTags() {
+        document.getElementById("svc-tags").innerHTML = tags
+          .map((tag, index) => `<span class="tag-chip">${tag}<button type="button" data-remove="${index}" aria-label="Quitar">×</button></span>`)
+          .join("");
+        form.querySelector("[name=servicio]").value = tags.join(", ");
+        document.querySelectorAll("[data-remove]").forEach((button) => {
+          button.addEventListener("click", () => {
+            tags.splice(Number(button.dataset.remove), 1);
+            paintTags();
+          });
+        });
+      }
+      document.getElementById("svc-tag").addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        const value = event.target.value.trim();
+        if (!value || tags.includes(value)) return;
+        tags.push(value);
+        event.target.value = "";
+        paintTags();
+      });
+      function showStep(nextStep) {
+        step = nextStep;
+        form.querySelectorAll("[data-pane]").forEach((pane) => {
+          pane.hidden = Number(pane.dataset.pane) !== step;
+        });
+        document.querySelectorAll("[data-step-dot]").forEach((dot) => {
+          const n = Number(dot.dataset.stepDot);
+          dot.classList.toggle("is-on", n === step);
+          dot.classList.toggle("is-done", n < step);
+        });
+        document.getElementById("prev-step").hidden = step === 1;
+        document.getElementById("next-step").hidden = step === 3;
+        document.getElementById("save-step").hidden = step !== 3;
+      }
+      function paneValid() {
+        const pane = form.querySelector(`[data-pane="${step}"]`);
+        const fields = [...pane.querySelectorAll("input, select")].filter((el) => el.required && !el.disabled);
+        for (const field of fields) {
+          if (!String(field.value || "").trim()) {
+            field.reportValidity();
+            return false;
+          }
+        }
+        if (step === 1 && !tags.length) {
+          document.getElementById("msg").textContent = "Agregá al menos un servicio con Enter.";
+          return false;
+        }
+        if (step === 2) {
+          const pais = form.querySelector("[name='pais']");
+          const provincia = form.querySelector("[name='provincia']");
+          const ciudad = form.querySelector("[name='ciudad']");
+          if (!pais?.value || !provincia?.value || !ciudad?.value) {
+            document.getElementById("msg").textContent = "Elegí país, provincia y ciudad.";
+            return false;
+          }
+        }
+        document.getElementById("msg").textContent = "";
+        return true;
+      }
+      document.getElementById("next-step").addEventListener("click", () => {
+        if (paneValid()) showStep(step + 1);
+      });
+      document.getElementById("prev-step").addEventListener("click", () => showStep(step - 1));
       const picked = new URLSearchParams(location.search).get("plan");
       if (picked && document.querySelector(`[name=plan] option[value="${picked}"]`)) {
         document.querySelector("[name=plan]").value = picked;
       }
-      document.getElementById("form").addEventListener("submit", (event) => {
+      form.addEventListener("submit", (event) => {
         event.preventDefault();
+        if (!paneValid()) return;
         const data = new FormData(event.target);
         const name = String(data.get("nombre")).trim();
         const slug = name
@@ -83,36 +175,41 @@
           .replace(/[\u0300-\u036f]/g, "")
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-|-$/g, "");
-        const city = data.get("ciudad");
+        const ciudad = String(data.get("ciudad") || "");
+        const city = typeof mapCityKey === "function"
+          ? mapCityKey(data.get("provincia"), ciudad)
+          : "cordoba";
+        const coords = CITIES[city] || CITIES.cordoba;
         const place = {
           id: slug || `local-${Date.now()}`,
           name,
           slug,
-          category: data.get("rubro"),
+          category: String(data.get("rubro") || "").trim() || "otros",
           service: String(data.get("servicio") || "").trim() || "Consulta",
           city,
-          lat: CITIES[city].lat + 0.004,
-          lng: CITIES[city].lng + 0.004,
+          ciudad,
+          pais: data.get("pais"),
+          provincia: data.get("provincia"),
+          lat: coords.lat + 0.004,
+          lng: coords.lng + 0.004,
           km: 0.5,
           featured: false,
           nextSlot: "Hoy 16:00",
           whatsapp: data.get("whatsapp"),
+          email: data.get("correo"),
           cuit: String(data.get("cuit") || "").trim(),
           status: "pending",
           plan: data.get("plan") || "calle",
-          featured: data.get("plan") === "ciudad" || data.get("plan") === "red",
         };
+        place.featured = place.plan === "ciudad" || place.plan === "red";
         saveExtraPlace(place);
         savePaymentRule(place.id, { ...paymentRule(place.id), mpConnected: false });
         rememberOwned(place.id);
-        event.target.reset();
         event.target.hidden = true;
-        event.target.style.display = "none";
         const introLead = document.getElementById("intro-lead");
         if (introLead) introLead.hidden = true;
         const done = document.getElementById("done");
         done.hidden = false;
-        done.style.display = "block";
         done.innerHTML = `
           <h2>Alta enviada</h2>
           <p class="band-lead">turnoya.com/${place.slug} queda en revisión. No aparece en el mapa hasta que Administración apruebe.</p>

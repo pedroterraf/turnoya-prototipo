@@ -4,13 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Perfil · TurnoYa</title>
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=ui-fix5" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack3" />
   </head>
   <body class="sell auth-page">
     <header class="topbar">
@@ -21,24 +24,50 @@
       </nav>
     </header>
     <main class="auth-shell">
-      <div class="auth-card wide">
+      <div class="auth-card wide profile-card">
         <p class="meta">Perfil</p>
         <h1>Tus datos</h1>
-        <p class="band-lead">Lo mínimo para reservar. El celular es opcional. Si lo cargás, lo verificamos por WhatsApp (no SMS).</p>
+        <p class="band-lead">Tres pasos. Lo obligatorio para reservar, y las redes si querés.</p>
+        <ol class="profile-steps" aria-label="Progreso">
+          <li class="is-on" data-step-dot="1"><span>1</span> Identidad</li>
+          <li data-step-dot="2"><span>2</span> Lugar</li>
+          <li data-step-dot="3"><span>3</span> Contacto</li>
+        </ol>
         <form id="form" class="review-form">
-          <label>Nombre <input name="nombre" required /></label>
-          <label>Apellido <input name="apellido" required /></label>
-          <label>DNI (opcional) <input name="dni" inputmode="numeric" /></label>
-          <label>País <div data-search-select="pais"></div></label>
-          <label>Provincia <div data-search-select="provincia"></div></label>
-          <label>Ciudad <div data-search-select="ciudad"></div></label>
-          <label>Celular (opcional) <input name="celular" inputmode="tel" /></label>
-          <div id="phone-box" class="otp-block" hidden>
-            <p class="meta">WhatsApp Cloud · código de prueba 0000. Si no lo verificás, el celular no se guarda.</p>
-            <div class="otp otp-4" role="group" aria-label="Código de WhatsApp"></div>
-            <input type="hidden" name="sms" />
+          <fieldset class="profile-pane" data-pane="1">
+            <legend>Quién sos</legend>
+            <label>Nombre <input name="nombre" required autocomplete="given-name" /></label>
+            <label>Apellido <input name="apellido" required autocomplete="family-name" /></label>
+            <label>DNI <input name="dni" required inputmode="numeric" autocomplete="off" /></label>
+          </fieldset>
+          <fieldset class="profile-pane" data-pane="2" hidden>
+            <legend>Dónde estás</legend>
+            <label>País <div data-search-select="pais"></div></label>
+            <label>Provincia <div data-search-select="provincia"></div></label>
+            <label>Ciudad <div data-search-select="ciudad"></div></label>
+          </fieldset>
+          <fieldset class="profile-pane" data-pane="3" hidden>
+            <legend>Cómo te contactamos</legend>
+            <label>Celular
+              <span class="phone-row">
+                <select name="dial" aria-label="Característica"></select>
+                <input name="celular" required inputmode="tel" autocomplete="tel" />
+              </span>
+            </label>
+            <label>Correo electrónico <input name="email" type="email" required autocomplete="email" /></label>
+            <label>Instagram (opcional) <input name="instagram" placeholder="@tuusuario" /></label>
+            <label>Otra red (opcional) <input name="redes" placeholder="TikTok, Facebook…" /></label>
+            <div id="phone-box" class="otp-block" hidden>
+              <p class="meta">WhatsApp Cloud · código de prueba 0000. Si no lo verificás, el celular no se guarda.</p>
+              <div class="otp otp-4" role="group" aria-label="Código de WhatsApp"></div>
+              <input type="hidden" name="sms" />
+            </div>
+          </fieldset>
+          <div class="profile-nav">
+            <button class="btn btn-line" id="prev-step" type="button" hidden>Atrás</button>
+            <button class="btn btn-enamel" id="next-step" type="button">Continuar</button>
+            <button class="btn btn-enamel" id="save-step" type="submit" hidden>Guardar</button>
           </div>
-          <button class="btn btn-enamel" type="submit">Guardar</button>
           <p id="msg" class="meta"></p>
         </form>
       </div>
@@ -55,21 +84,30 @@
     <script src="./assets/geo.js"></script>
     <script src="./assets/site.js"></script>
     <script>
-      const next = new URLSearchParams(location.search).get("next") || "./mi-turno.html";
+      const next = new URLSearchParams(location.search).get("next") || "./index.html";
       const user = currentUser();
       if (!user) location.replace(`./login.html?next=${encodeURIComponent(location.href)}`);
       const form = document.getElementById("form");
       const wa = mountOtp(form, null, 4);
       const phoneBox = document.getElementById("phone-box");
       const savedPhone = user.phoneVerified ? String(user.celular || "").trim() : "";
-      ["nombre", "apellido", "dni", "celular"].forEach((key) => {
-        if (user[key]) form.elements[key].value = user[key];
+      let step = 1;
+      ["nombre", "apellido", "dni", "celular", "email", "instagram", "redes"].forEach((key) => {
+        if (form.elements[key] && user[key]) form.elements[key].value = user[key];
       });
+      if (user.email && String(user.email).endsWith("@turnoya.local")) {
+        form.elements.email.value = "";
+      } else if (user.email) {
+        form.elements.email.readOnly = true;
+      }
       bindGeoSelects(form, {
         pais: user.pais || "Argentina",
         provincia: user.provincia || "Córdoba",
         ciudad: user.ciudad || "Córdoba",
       });
+      bindPhoneDial(form, user.pais || "Argentina");
+      if (user.dial) form.elements.dial.value = user.dial;
+
       function phoneValue() {
         return form.elements.celular.value.trim();
       }
@@ -81,22 +119,57 @@
         phoneBox.hidden = !show;
         if (!show) wa.clear();
       }
+      function showStep(nextStep) {
+        step = nextStep;
+        form.querySelectorAll("[data-pane]").forEach((pane) => {
+          pane.hidden = Number(pane.dataset.pane) !== step;
+        });
+        document.querySelectorAll("[data-step-dot]").forEach((dot) => {
+          const n = Number(dot.dataset.stepDot);
+          dot.classList.toggle("is-on", n === step);
+          dot.classList.toggle("is-done", n < step);
+        });
+        document.getElementById("prev-step").hidden = step === 1;
+        document.getElementById("next-step").hidden = step === 3;
+        document.getElementById("save-step").hidden = step !== 3;
+      }
+      function paneValid() {
+        const pane = form.querySelector(`[data-pane="${step}"]`);
+        const fields = [...pane.querySelectorAll("input, select")].filter((el) => el.required && !el.disabled);
+        for (const field of fields) {
+          if (!String(field.value || "").trim()) {
+            field.reportValidity();
+            return false;
+          }
+        }
+        if (step === 2) {
+          const pais = form.querySelector("[name='pais']");
+          const provincia = form.querySelector("[name='provincia']");
+          const ciudad = form.querySelector("[name='ciudad']");
+          if (!pais?.value || !provincia?.value || !ciudad?.value) {
+            document.getElementById("msg").textContent = "Elegí país, provincia y ciudad.";
+            return false;
+          }
+        }
+        document.getElementById("msg").textContent = "";
+        return true;
+      }
       form.elements.celular.addEventListener("input", syncPhoneBox);
       syncPhoneBox();
+      document.getElementById("next-step").addEventListener("click", () => {
+        if (paneValid()) showStep(step + 1);
+      });
+      document.getElementById("prev-step").addEventListener("click", () => showStep(step - 1));
       form.addEventListener("submit", (event) => {
         event.preventDefault();
+        if (!paneValid()) return;
         const data = Object.fromEntries(new FormData(form));
         const phone = phoneValue();
         const code = wa.read();
         if (needsPhoneCode(phone) && code !== "0000") {
-          document.getElementById("msg").textContent =
-            "Verificá el WhatsApp con 0000 o dejá el celular vacío.";
+          document.getElementById("msg").textContent = "Verificá el celular con 0000.";
           if (typeof showAppToast === "function") {
-            showAppToast({
-              title: "Falta el código",
-              body: "Verificá el WhatsApp con 0000 o dejá el celular vacío.",
-              tone: "error",
-            });
+            showAppToast({ title: "Falta el código", body: "Verificá el celular con 0000.", tone: "error" });
           }
           return;
         }
@@ -114,6 +187,7 @@
           location.href = next;
         }, 400);
       });
+      showStep(1);
     </script>
   </body>
 </html>

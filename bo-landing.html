@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Landing y Ficha · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css?v=landing-banner-v7" />
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack2" />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
@@ -35,8 +38,8 @@
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <h3 style="margin:0; font-size:1.15rem; font-weight:750;">Foto de portada (Banner)</h3>
                 <div class="banner-tools">
-                  <button class="chip" type="button" data-size="desktop" aria-pressed="true">Desktop 1440×480</button>
-                  <button class="chip" type="button" data-size="mobile">Mobile 1080×720</button>
+                  <button class="chip" type="button" data-size="desktop" aria-pressed="true">Desktop (1440×480)</button>
+                  <button class="chip" type="button" data-size="mobile">Mobile (1080×720)</button>
                 </div>
               </div>
 
@@ -44,7 +47,15 @@
                 <canvas id="canvas" class="banner-canvas"></canvas>
               </div>
 
-              <p class="meta" id="hint" style="margin:8px 0 14px;">Color de marca. Subí una foto para recortar y encuadrar.</p>
+              <p class="banner-help" id="hint">
+                <span>Desktop (1440×480) · Mobile (1080×720). Recortá y reacomodá acá con zoom.</span>
+                <span>Optimizá gratis en
+                  <a href="https://www.canva.com" target="_blank" rel="noreferrer">Canva</a>
+                  o
+                  <a href="https://www.photopea.com" target="_blank" rel="noreferrer">Photopea</a>
+                  y después subila.
+                </span>
+              </p>
 
               <div class="landing-controls-row">
                 <label class="custom-file-btn" for="file">

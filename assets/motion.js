@@ -32,7 +32,7 @@ function bootPage() {
   rise(nodesOf(".chip"), 0.028, 0.3);
   rise(
     nodesOf(
-      ".place-card, .reco-card, .service-card, .notice, .only-card, .ops-stat, .quote, .plan-card, .compare-wrap",
+      ".place-card, .reco-card, .service-card, .notice, .only-card, .ops-stat, .quote, .plan-card, .compare-wrap, .turno-card, .agenda-card, .pick-card, .bo-svc-card, .caja-panel",
     ),
     0.04,
     0.4,

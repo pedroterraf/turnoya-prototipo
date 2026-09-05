@@ -4,7 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Agenda · BO</title>
-    <link rel="stylesheet" href="./assets/styles.css?v=agenda-v3" />
+    <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
+    <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
+    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack2" />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;550;650;750&display=swap"
       rel="stylesheet"
@@ -161,19 +164,19 @@
             <!-- CONTENIDO TAB 1: CALENDARIO SEMANAL -->
             <div id="tab-calendar" style="display: ${activeTab === "calendar" ? "block" : "none"};">
               <nav class="week-nav">
-                ${
-                  week > 0
-                    ? `<button class="week-nav-btn" type="button" data-week="${week - 1}">← Anterior</button>`
-                    : `<span class="week-nav-btn is-off">← Anterior</span>`
-                }
                 <p class="week-nav-label" style="font-weight:700;">
-                  ${days[0].toLocaleDateString("es-AR", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                  ${
+                    week > 0
+                      ? `<button class="week-arrow" type="button" data-week="${week - 1}" aria-label="Semana anterior">‹</button>`
+                      : `<span class="week-arrow is-off" aria-hidden="true">‹</span>`
+                  }
+                  <span>${days[0].toLocaleDateString("es-AR", { day: "numeric", month: "short" })} – ${days[6].toLocaleDateString("es-AR", { day: "numeric", month: "short" })}</span>
+                  ${
+                    week < 8
+                      ? `<button class="week-arrow" type="button" data-week="${week + 1}" aria-label="Semana siguiente">›</button>`
+                      : `<span class="week-arrow is-off" aria-hidden="true">›</span>`
+                  }
                 </p>
-                ${
-                  week < 8
-                    ? `<button class="week-nav-btn" type="button" data-week="${week + 1}">Siguiente →</button>`
-                    : `<span class="week-nav-btn is-off">Siguiente →</span>`
-                }
               </nav>
 
               <div class="cal-wrap">
@@ -337,7 +340,7 @@
                           )
                           .join("")}
                       </div>`
-                    : `<p class="meta" style="text-align:center; padding:28px; background:#fafbfa; border:1px dashed var(--line); border-radius:8px;">
+                    : `<p class="meta empty-dash">
                         Todavía no importaste feriados. Hacé click en el botón de arriba para sincronizar el calendario oficial argentino.
                       </p>`
                 }

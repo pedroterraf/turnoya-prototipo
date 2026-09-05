@@ -363,6 +363,28 @@ function mountSearchSelect(host, config) {
   };
 }
 
+const DIAL_CODES = {
+  Argentina: "+54",
+  Bolivia: "+591",
+  Brasil: "+55",
+  Chile: "+56",
+  Paraguay: "+595",
+  Uruguay: "+598",
+};
+
+function dialCodeOf(pais) {
+  return DIAL_CODES[pais] || "+54";
+}
+
+function bindPhoneDial(form, pais) {
+  const select = form.querySelector("[name='dial']");
+  if (!select) return;
+  select.innerHTML = Object.entries(DIAL_CODES)
+    .map(([name, code]) => `<option value="${code}">${code} · ${name}</option>`)
+    .join("");
+  select.value = dialCodeOf(pais);
+}
+
 function bindGeoSelects(form, initial) {
   const paisHost = form.querySelector("[data-search-select=pais]");
   const provinciaHost = form.querySelector("[data-search-select=provincia]");
@@ -413,8 +435,76 @@ function bindGeoSelects(form, initial) {
       provincia.setValue("");
       ciudad.setOptions([]);
       ciudad.setValue("");
+      bindPhoneDial(form, next);
     },
   });
+}
+
+function mapCityKey(province, city) {
+  const p = foldText(province);
+  const c = foldText(city);
+  if (p.includes("caba") || c.includes("caba") || c.includes("palermo") || c.includes("belgrano")) {
+    return "caba";
+  }
+  if (c.includes("rosario") || p.includes("santa fe")) return "rosario";
+  if (p.includes("mendoza") || c.includes("mendoza")) return "mendoza";
+  if (p.includes("tucum") || c.includes("tucum")) return "tucuman";
+  return "cordoba";
+}
+
+function matchGeoFromAddress(address) {
+  const countryRaw = address.country || "";
+  const stateRaw = address.state || address.province || "";
+  const cityRaw =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.municipality ||
+    address.suburb ||
+    "";
+  const country =
+    geoCountries().find(
+      (name) =>
+        foldText(countryRaw).includes(foldText(name)) || foldText(name).includes(foldText(countryRaw)),
+    ) || "Argentina";
+  const provinces = geoProvinces(country);
+  let province = provinces.find(
+    (name) =>
+      foldText(stateRaw).includes(foldText(name)) || foldText(name).includes(foldText(stateRaw)),
+  );
+  if (!province && country === "Argentina" && foldText(stateRaw).includes("ciudad autonoma")) {
+    province = "CABA";
+  }
+  province = province || provinces[0] || "";
+  const cities = geoCities(country, province);
+  const city =
+    cities.find(
+      (name) =>
+        foldText(cityRaw).includes(foldText(name)) || foldText(name).includes(foldText(cityRaw)),
+    ) ||
+    cities[0] ||
+    "";
+  return { pais: country, provincia: province, ciudad: city };
+}
+
+function persistProfileGeo(geo) {
+  if (typeof currentUser !== "function" || typeof saveUser !== "function") return;
+  const user = currentUser();
+  if (!user) return;
+  saveUser({
+    ...user,
+    pais: geo.pais,
+    provincia: geo.provincia,
+    ciudad: geo.ciudad,
+    geoFromGps: true,
+  });
+}
+
+async function reverseGeocodeProfile(lat, lng) {
+  const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`;
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const data = await response.json();
+  return matchGeoFromAddress(data.address || {});
 }
 
 if (!window.__searchSelectDoc) {

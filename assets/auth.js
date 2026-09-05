@@ -1,4 +1,5 @@
 const OTP_DEMO = "123456";
+const OTP_PHONE_DEMO = "0000";
 
 const DEMO_CLIENT = {
   email: "pedroterraf@gmail.com",
@@ -78,6 +79,7 @@ function upsertListedUser(user) {
     placeId: user.placeId || (index >= 0 ? rows[index].placeId : ""),
     emailVerified: user.emailVerified === true || (index >= 0 && rows[index].emailVerified),
     phoneVerified: user.phoneVerified === true,
+    darkMode: typeof user.darkMode === "boolean" ? user.darkMode : index >= 0 && rows[index].darkMode === true,
     suspended: user.suspended === true,
     createdAt: index >= 0 ? rows[index].createdAt : user.createdAt || Date.now(),
   };
@@ -156,6 +158,22 @@ function profileComplete(user) {
   return Boolean(user.nombre && user.apellido && user.dni && user.pais && user.provincia && user.ciudad);
 }
 
+function bookingReady(user) {
+  if (!profileComplete(user)) return false;
+  const email = String(user.email || "");
+  const phone = String(user.celular || "").replace(/\D/g, "");
+  return Boolean(email.includes("@") && phone.length >= 8);
+}
+
+function looksLikeEmail(value) {
+  return /@/.test(String(value || ""));
+}
+
+function looksLikePhone(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  return digits.length >= 8 && !looksLikeEmail(value);
+}
+
 function currentOwner() {
   try {
     return JSON.parse(memoryGet("turnoya-owner") ?? "null");
@@ -226,31 +244,40 @@ function requireUser(nextUrl) {
   return user;
 }
 
-function sendOtp(email) {
-  memorySet("turnoya-otp-email", email);
-  memorySet("turnoya-otp-code", OTP_DEMO);
-  return OTP_DEMO;
+function sendOtp(identifier) {
+  const value = String(identifier || "").trim();
+  const phone = looksLikePhone(value);
+  memorySet("turnoya-otp-email", phone ? "" : value);
+  memorySet("turnoya-otp-phone", phone ? value.replace(/\D/g, "") : "");
+  memorySet("turnoya-otp-code", phone ? OTP_PHONE_DEMO : OTP_DEMO);
+  return phone ? OTP_PHONE_DEMO : OTP_DEMO;
 }
 
 function checkOtp(code) {
   const expected = memoryGet("turnoya-otp-code");
   const email = memoryGet("turnoya-otp-email");
-  return Boolean(email && code.trim() === expected);
+  const phone = memoryGet("turnoya-otp-phone");
+  return Boolean((email || phone) && code.trim() === expected);
 }
 
 function verifyOtp(code) {
   if (!checkOtp(code)) return false;
   const email = memoryGet("turnoya-otp-email");
+  const phone = memoryGet("turnoya-otp-phone");
   const existing = currentUser();
-  saveUser({
-    email,
-    phoneVerified: existing?.phoneVerified ?? false,
-    emailVerified: true,
+  const next = {
+    phoneVerified: existing?.phoneVerified ?? Boolean(phone),
+    emailVerified: existing?.emailVerified ?? Boolean(email),
     role: existing?.role || "cliente",
     ...(existing ?? {}),
-  });
+  };
+  if (email) next.email = email;
+  if (phone) next.celular = phone;
+  if (!next.email && phone) next.email = `${phone}@turnoya.local`;
+  saveUser(next);
+  if (!memoryGet("turnoya-tour-done")) memorySet("turnoya-need-tour", "1");
   if (typeof trackPixel === "function" && existing?.placeId) {
-    trackPixel(existing.placeId, "CompleteRegistration", { email });
+    trackPixel(existing.placeId, "CompleteRegistration", { email: next.email });
   }
   return true;
 }

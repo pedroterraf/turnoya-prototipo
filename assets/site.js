@@ -51,7 +51,7 @@ function bindNavBellDoc() {
 
 function navBellHtml(userKey, href) {
   const unread = typeof unreadCount === "function" ? unreadCount(userKey) : 0;
-  const rows = typeof findMyNotifications === "function" ? findMyNotifications(userKey).slice(0, 4) : [];
+  const rows = typeof findMyNotifications === "function" ? findMyNotifications(userKey).slice(0, 3) : [];
   const items = rows.length
     ? rows
         .map((row) => {
@@ -72,7 +72,7 @@ function navBellHtml(userKey, href) {
       </button>
       <div class="nav-bell-panel" hidden>
         ${items}
-        <a class="nav-bell-all" href="${href}">Notificaciones</a>
+        <a class="nav-bell-all" href="${href}">Ver todos los avisos</a>
       </div>
     </div>`;
 }
@@ -95,13 +95,112 @@ function bindNavBell(host, userKey) {
   });
 }
 
+function themeToggleHtml() {
+  const dark = document.documentElement.dataset.theme === "dark";
+  return `<button class="theme-toggle" type="button" aria-pressed="${dark}" aria-label="${
+    dark ? "Modo claro" : "Modo oscuro"
+  }"><span class="theme-toggle-knob" aria-hidden="true">${
+    dark
+      ? '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M16 13a6 6 0 1 1-7-7 5 5 0 0 0 7 7z"/></svg>'
+      : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 3v2M12 19v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M3 12h2M19 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>'
+  }</span></button>`;
+}
+
+function persistThemeOnUser(dark) {
+  if (typeof currentUser !== "function" || typeof saveUser !== "function") return;
+  const user = currentUser();
+  if (!user || user.darkMode === dark) return;
+  saveUser({ ...user, darkMode: dark });
+}
+
+function refreshThemeToggles() {
+  document.querySelectorAll(".theme-toggle").forEach((button) => {
+    const wrap = document.createElement("div");
+    wrap.innerHTML = themeToggleHtml();
+    const next = wrap.firstElementChild;
+    button.replaceWith(next);
+    next.addEventListener("click", toggleTheme);
+  });
+}
+
+function applyTheme(theme) {
+  const user = typeof currentUser === "function" ? currentUser() : null;
+  const fromUser =
+    user && typeof user.darkMode === "boolean" ? (user.darkMode ? "dark" : "light") : "";
+  const next = theme || fromUser || memoryGet("turnoya-theme") || "light";
+  document.documentElement.dataset.theme = next;
+  memorySet("turnoya-theme", next);
+  persistThemeOnUser(next === "dark");
+}
+
+function themeReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function paintTheme(next) {
+  applyTheme(next);
+  refreshThemeToggles();
+}
+
+function themeOrigin(event) {
+  const button =
+    event?.currentTarget?.closest?.(".theme-toggle") || document.querySelector(".theme-toggle");
+  const box = button?.getBoundingClientRect();
+  const x = box ? box.left + box.width / 2 : window.innerWidth - 40;
+  const y = box ? box.top + box.height / 2 : 28;
+  const radius =
+    Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) + 48;
+  const root = document.documentElement;
+  root.style.setProperty("--theme-x", `${x}px`);
+  root.style.setProperty("--theme-y", `${y}px`);
+  root.style.setProperty("--theme-r", `${radius}px`);
+  return { x, y, radius };
+}
+
+function wipeThemeFallback(next, origin) {
+  const root = document.documentElement;
+  const veil = document.createElement("div");
+  veil.className = "theme-wipe-veil";
+  veil.style.background = next === "dark" ? "#101412" : "#e6ebe4";
+  veil.style.clipPath = `circle(0px at ${origin.x}px ${origin.y}px)`;
+  root.appendChild(veil);
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      veil.style.clipPath = `circle(${origin.radius}px at ${origin.x}px ${origin.y}px)`;
+    });
+  });
+  window.setTimeout(() => {
+    paintTheme(next);
+    veil.remove();
+  }, 820);
+}
+
+function toggleTheme(event) {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  if (themeReducedMotion()) {
+    paintTheme(next);
+    return;
+  }
+  const origin = themeOrigin(event);
+  const root = document.documentElement;
+  if (typeof document.startViewTransition === "function") {
+    root.classList.add("theme-wipe-on");
+    const transition = document.startViewTransition(() => paintTheme(next));
+    const clear = () => root.classList.remove("theme-wipe-on");
+    if (transition.finished) transition.finished.finally(clear);
+    else window.setTimeout(clear, 820);
+    return;
+  }
+  wipeThemeFallback(next, origin);
+}
+
 function clientAccountHtml() {
   const user = typeof currentUser === "function" ? currentUser() : null;
   const next = encodeURIComponent(location.pathname.split("/").pop() + location.search);
   if (!user) {
-    return `<a href="./login.html?next=${next}">Entrar</a>`;
+    return `${themeToggleHtml()}<a href="./login.html?next=${next}">Entrar</a>`;
   }
-  return `${navBellHtml(user.email, notificationsPageHref())}
+  return `${themeToggleHtml()}${navBellHtml(user.email, notificationsPageHref())}
     <a href="./perfil.html">Perfil</a>
     <button class="nav-logout" type="button" data-logout>Salir ${navLogoutSvg()}</button>`;
 }
@@ -113,6 +212,7 @@ function paintClientAccount() {
   host.innerHTML = clientAccountHtml();
   if (user) bindNavBell(host, user.email);
   bindNavBellDoc();
+  host.querySelector("[class='theme-toggle'], .theme-toggle")?.addEventListener("click", toggleTheme);
   host.querySelectorAll("[data-logout]").forEach((button) => {
     button.addEventListener("click", () => {
       logoutUser();
@@ -252,31 +352,86 @@ function bindNotifyLive() {
 
 function fitViewport() {
   const meta = document.querySelector('meta[name="viewport"]');
-  if (meta) meta.content = "width=device-width, initial-scale=1, viewport-fit=cover";
+  if (meta) {
+    meta.content =
+      "width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content";
+  }
 }
 
+function visualKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv) {
+    return { inset: 0, height: window.innerHeight, top: 0, open: false };
+  }
+  const inset = Math.max(0, Math.round(window.innerHeight - vv.offsetTop - vv.height));
+  return {
+    inset,
+    height: Math.round(vv.height),
+    top: Math.round(vv.offsetTop),
+    open: inset > 90,
+  };
+}
+
+function applyVisualKeyboard() {
+  const kb = visualKeyboard();
+  const root = document.documentElement;
+  root.style.setProperty("--kb-inset", `${kb.inset}px`);
+  root.style.setProperty("--vv-height", `${kb.height}px`);
+  root.style.setProperty("--vv-top", `${kb.top}px`);
+  document.body.classList.toggle("is-keyboard-open", kb.open);
+  root.classList.toggle("is-keyboard-open", kb.open);
+  if (document.body.classList.contains("map-home") && (kb.open || kb.top > 0)) {
+    window.scrollTo(0, 0);
+  }
+  return kb;
+}
+
+window.visualKeyboard = visualKeyboard;
+window.applyVisualKeyboard = applyVisualKeyboard;
+
 function keepFocusAboveKeyboard() {
+  applyVisualKeyboard();
+
   function reveal(target) {
     if (!(target instanceof HTMLElement)) return;
-    if (!target.matches("input, textarea, select, [contenteditable]")) return;
-    const form = target.closest("form") || document;
+    if (!target.matches("input, textarea, select, [contenteditable='true']")) return;
+    if (document.body.classList.contains("map-home")) {
+      applyVisualKeyboard();
+      return;
+    }
+    const vv = window.visualViewport;
+    const visibleTop = vv ? vv.offsetTop + 12 : 12;
+    const visibleBottom = vv ? vv.offsetTop + vv.height - 16 : window.innerHeight - 16;
+    const form = target.closest("form, .auth-card, .band, .turno-card") || document;
     const action =
       form.querySelector("button[type='submit'], .btn-ticket, .btn-enamel, #go-pay, #confirm-slot") ||
       document.querySelector("#pick-bar .btn, #go-pay, #confirm-slot");
-    const cutoff = Math.min(window.visualViewport?.height || window.innerHeight, window.innerHeight - 300);
-    target.scrollIntoView({ block: "center", inline: "nearest" });
+    const box = target.getBoundingClientRect();
+    if (box.top < visibleTop || box.bottom > visibleBottom - 72) {
+      target.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+    }
     if (action) {
-      const box = action.getBoundingClientRect();
-      if (box.bottom > cutoff) {
-        window.scrollBy({ top: box.bottom - cutoff + 16, behavior: "smooth" });
+      const actionBox = action.getBoundingClientRect();
+      if (actionBox.bottom > visibleBottom) {
+        window.scrollBy({ top: actionBox.bottom - visibleBottom + 12, behavior: "smooth" });
       }
     }
   }
 
   document.addEventListener("focusin", (event) => reveal(event.target));
+  document.addEventListener("focusout", () => {
+    window.setTimeout(applyVisualKeyboard, 80);
+  });
   if (window.visualViewport) {
     window.visualViewport.addEventListener("resize", () => {
+      applyVisualKeyboard();
       reveal(document.activeElement);
+    });
+    window.visualViewport.addEventListener("scroll", () => {
+      if (document.body.classList.contains("map-home")) {
+        window.scrollTo(0, 0);
+        applyVisualKeyboard();
+      }
     });
   }
 }
@@ -452,7 +607,9 @@ function enhanceSelect(select) {
     menu.style.top = `${Math.round(box.bottom + 6)}px`;
     menu.style.left = `${Math.round(box.left)}px`;
     menu.style.right = "auto";
-    menu.style.width = `${Math.max(Math.round(box.width), 168)}px`;
+    menu.style.width = "max-content";
+    menu.style.minWidth = `${Math.round(box.width)}px`;
+    menu.style.maxWidth = "16rem";
   }
 
   function open() {
@@ -538,16 +695,90 @@ if (!window.__customSelectDocBound) {
 window.enhanceSelect = enhanceSelect;
 window.initCustomSelects = initCustomSelects;
 
+function bindBookingGate() {
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest("a[href*='reservar.html']");
+    if (!link) return;
+    const user = typeof currentUser === "function" ? currentUser() : null;
+    if (typeof bookingReady === "function" && bookingReady(user)) return;
+    event.preventDefault();
+    const href = link.getAttribute("href");
+    location.href = `./perfil.html?next=${encodeURIComponent(href)}`;
+  });
+}
+
+function paintTour() {
+  if (currentPageName() !== "index.html") return;
+  if (memoryGet("turnoya-tour-done") === "1" || memoryGet("turnoya-need-tour") !== "1") return;
+  if (document.querySelector(".app-tour")) return;
+  const steps = [
+    { title: "Mapa", body: "Buscá un servicio y tocá un pin o una card para ver el local." },
+    { title: "Turnos", body: "En Mis turnos cancelás, reprogramás y calificás." },
+    { title: "Avisos", body: "La campana guarda los últimos 3. El resto vive en Avisos." },
+    { title: "Perfil", body: "Completá los 3 pasos. Sin eso no se puede reservar." },
+  ];
+  let index = 0;
+  const overlay = document.createElement("div");
+  overlay.className = "app-tour";
+  overlay.innerHTML = `
+    <div class="app-tour-card" role="dialog" aria-modal="true" aria-labelledby="tour-title">
+      <p class="meta" id="tour-kicker"></p>
+      <h2 id="tour-title"></h2>
+      <p id="tour-body"></p>
+      <div class="app-tour-nav">
+        <button class="btn btn-line" type="button" data-tour="skip">Saltar</button>
+        <button class="btn btn-enamel" type="button" data-tour="next">Siguiente</button>
+      </div>
+    </div>`;
+  document.body.append(overlay);
+  function paintStep() {
+    overlay.querySelector("#tour-kicker").textContent = `${index + 1} / ${steps.length}`;
+    overlay.querySelector("#tour-title").textContent = steps[index].title;
+    overlay.querySelector("#tour-body").textContent = steps[index].body;
+    overlay.querySelector("[data-tour='next']").textContent =
+      index === steps.length - 1 ? "Listo" : "Siguiente";
+  }
+  function closeTour() {
+    memorySet("turnoya-tour-done", "1");
+    memoryRemove("turnoya-need-tour");
+    overlay.remove();
+  }
+  overlay.addEventListener("click", (event) => {
+    const action = event.target.dataset.tour;
+    if (action === "skip") closeTour();
+    if (action === "next") {
+      if (index >= steps.length - 1) closeTour();
+      else {
+        index += 1;
+        paintStep();
+      }
+    }
+  });
+  paintStep();
+}
+
+applyTheme();
 fitViewport();
 keepFocusAboveKeyboard();
 if (typeof seedListedUsers === "function") seedListedUsers();
 if (typeof runPlatformCron === "function") runPlatformCron();
 if (typeof autoCompletePastTurnos === "function") autoCompletePastTurnos();
+function paintThemeButton() {
+  const nav = document.querySelector(".topbar-nav");
+  if (!nav || nav.querySelector(".theme-toggle")) return;
+  if (nav.querySelector("[data-client-account]")) return;
+  nav.insertAdjacentHTML("afterbegin", themeToggleHtml());
+  nav.querySelector(".theme-toggle")?.addEventListener("click", toggleTheme);
+}
+
 paintClientAccount();
 paintOwnerBell();
+paintThemeButton();
 paintDemoFoot();
 paintAppDock();
 bindNotifyLive();
+bindBookingGate();
+paintTour();
 initCustomSelects();
 if (location.hash && document.querySelector(location.hash)) {
   document.querySelector(location.hash).scrollIntoView({ block: "start" });

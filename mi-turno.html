@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=ux-pack20" />
+    <link rel="stylesheet" href="./assets/styles.css?v=motion3" />
   </head>
   <body class="sell">
     <header class="topbar">
@@ -25,16 +25,16 @@
     </header>
     <main class="band turno-page" id="root"></main>
     <footer class="demo-foot" data-demo-foot></footer>
-    <script src="./assets/store.js"></script>
+    <script src="./assets/store.js?v=motion1"></script>
     <script src="./assets/notifications.js"></script>
     <script src="./assets/reviews.js"></script>
-    <script src="./assets/app.js"></script>
+    <script src="./assets/app.js?v=motion1"></script>
     <script src="./assets/booking.js"></script>
     <script src="./assets/plans.js"></script>
     <script src="./assets/platform.js"></script>
     <script src="./assets/auth.js"></script>
-    <script src="./assets/range-picker.js?v=cal2"></script>
-    <script src="./assets/site.js"></script>
+    <script src="./assets/range-picker.js?v=motion1"></script>
+    <script src="./assets/site.js?v=motion1"></script>
     <script>
       const user = requireUser("./mi-turno.html");
       if (!user) throw new Error("redirect");
@@ -86,12 +86,9 @@
         }
         root.innerHTML = `
           <div class="turno-head">
-            <div>
-              <h2>Tus turnos</h2>
-              ${moved ? "<p class=\"meta\">Horario actualizado. El local y vos reciben el aviso.</p>" : ""}
-              <p class="band-lead">Buscá por local, servicio, fecha o estado.</p>
-            </div>
-            <p class="meta" id="turno-count"></p>
+            <h2>Tus turnos <span class="turno-count" id="turno-count"></span></h2>
+            ${moved ? "<p class=\"meta\">Horario actualizado. El local y vos reciben el aviso.</p>" : ""}
+            <p class="band-lead">Buscá por local, servicio, fecha o estado.</p>
           </div>
           <div class="turno-toolbar">
             <label class="turno-search">

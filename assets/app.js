@@ -513,6 +513,7 @@ function selectPlace(id) {
   state.followUser = false;
   syncFollowButton();
   const drawer = document.getElementById("drawer");
+  window.turnoyaMotion?.bump?.(drawer);
   drawer.hidden = false;
   const rating = ratingOf(place.id);
   const href = `./ficha.html?id=${place.id}`;
@@ -791,14 +792,24 @@ function boot() {
         return;
       }
       const button = event.target.closest("[data-id]");
-      if (button) location.href = `./ficha.html?id=${button.dataset.id}`;
+      if (!button) return;
+      button.classList.add("is-opening");
+      location.href = `./ficha.html?id=${button.dataset.id}`;
     },
     true,
   );
   document.getElementById("drawer").addEventListener("click", (event) => {
-    if (event.target.id === "close-drawer") {
-      document.getElementById("drawer").hidden = true;
+    if (event.target.id !== "close-drawer") return;
+    const drawer = document.getElementById("drawer");
+    if (window.turnoyaMotion?.hide) {
+      window.turnoyaMotion.hide(
+        drawer,
+        { opacity: [1, 0], y: [0, 22] },
+        { duration: 0.32, ease: window.turnoyaMotion.easeDrawer },
+      );
+      return;
     }
+    drawer.hidden = true;
   });
 
   bindRail();

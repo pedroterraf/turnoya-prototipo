@@ -86,9 +86,23 @@ function mountRangePicker(host, config) {
   }
 
   function setOpen(next) {
-    open = next;
-    panel.hidden = !open;
-    if (open) paint();
+    if (next === open) return;
+    if (next) {
+      open = true;
+      panel.hidden = false;
+      paint();
+      return;
+    }
+    open = false;
+    if (window.turnoyaMotion?.hide) {
+      window.turnoyaMotion.hide(
+        panel,
+        { opacity: [1, 0], y: [0, -8] },
+        { duration: 0.18, ease: window.turnoyaMotion.easeOut },
+      );
+      return;
+    }
+    panel.hidden = true;
   }
 
   panel.addEventListener("pointerdown", (event) => event.stopPropagation());

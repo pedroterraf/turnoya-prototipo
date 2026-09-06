@@ -141,6 +141,31 @@ function placeMetrics(placeId, bounds = monthBounds()) {
   };
 }
 
+function placeHealthMetrics(placeId, bounds = monthBounds()) {
+  const base = placeMetrics(placeId, bounds);
+  const rows = placeTurnos(placeId);
+  const month = rows.filter((row) => inMonth(row, bounds));
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const today = rows.filter((row) => String(row.slot || "").startsWith(todayKey) && row.estado !== "cancelado");
+  const keys = new Map();
+  month.forEach((row) => {
+    const key = String(row.celular || row.email || "").trim().toLowerCase();
+    if (!key) return;
+    keys.set(key, (keys.get(key) || 0) + 1);
+  });
+  const repeat = [...keys.values()].filter((count) => count > 1).length;
+  const done = base.concretados + base.noShow;
+  return {
+    ...base,
+    hoy: today.length,
+    noShowPct: month.length ? Math.round((base.noShow / month.length) * 100) : 0,
+    ocupacionPct: month.length ? Math.round((base.concretados / month.length) * 100) : 0,
+    seniaPct: base.cobrado + base.saldo ? Math.round((base.cobrado / (base.cobrado + base.saldo)) * 100) : 0,
+    recompra: repeat,
+    atencionPct: done ? Math.round((base.concretados / done) * 100) : 0,
+  };
+}
+
 function accountRows(placeId, bounds = monthBounds()) {
   return placeTurnos(placeId)
     .filter((row) => inMonth(row, bounds))

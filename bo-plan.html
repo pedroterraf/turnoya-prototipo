@@ -33,7 +33,8 @@
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       const need = new URLSearchParams(location.search).get("need");
       requireOwner(id, `./bo-plan.html?id=${id}`);
-      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const back = document.getElementById("back");
+      if (back) back.href = `./bo.html?id=${id}`;
       const place = findPlace(id);
 
       function paint() {

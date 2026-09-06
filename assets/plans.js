@@ -118,6 +118,62 @@ const PLAN_ADDONS = {
   },
 };
 
+const FEATURE_IDS = {
+  agenda: "feat_agenda",
+  services: "feat_services",
+  payments: "feat_payments",
+  landing: "feat_landing",
+  wa_menu: "feat_wa_menu",
+  wa_ai: "feat_wa_ai",
+  notifications: "feat_notifications",
+  coupons: "feat_coupons",
+  inbox: "feat_inbox",
+  reviews: "feat_reviews",
+  crm: "feat_crm",
+  caja: "feat_caja",
+};
+
+const PLAN_FEATURE_IDS = {
+  calle: [
+    FEATURE_IDS.agenda,
+    FEATURE_IDS.services,
+    FEATURE_IDS.payments,
+    FEATURE_IDS.landing,
+    FEATURE_IDS.wa_menu,
+    FEATURE_IDS.notifications,
+  ],
+  barrio: [
+    FEATURE_IDS.agenda,
+    FEATURE_IDS.services,
+    FEATURE_IDS.payments,
+    FEATURE_IDS.landing,
+    FEATURE_IDS.wa_menu,
+    FEATURE_IDS.notifications,
+    FEATURE_IDS.coupons,
+    FEATURE_IDS.inbox,
+    FEATURE_IDS.reviews,
+  ],
+  ciudad: [
+    FEATURE_IDS.agenda,
+    FEATURE_IDS.services,
+    FEATURE_IDS.payments,
+    FEATURE_IDS.landing,
+    FEATURE_IDS.wa_menu,
+    FEATURE_IDS.wa_ai,
+    FEATURE_IDS.notifications,
+    FEATURE_IDS.coupons,
+    FEATURE_IDS.inbox,
+    FEATURE_IDS.reviews,
+    FEATURE_IDS.crm,
+  ],
+  red: Object.values(FEATURE_IDS),
+};
+
+function planHasFeatureId(placeId, featureId) {
+  const planId = placePlanId(placeId);
+  return (PLAN_FEATURE_IDS[planId] || PLAN_FEATURE_IDS.calle).includes(featureId);
+}
+
 function normalizePlanId(value) {
   const map = {
     base: "calle",

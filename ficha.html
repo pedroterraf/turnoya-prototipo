@@ -17,7 +17,7 @@
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=motion5" />
+    <link rel="stylesheet" href="./assets/styles.css?v=motion7" />
   </head>
   <body class="sell">
     <header class="topbar">
@@ -192,6 +192,42 @@
             typeof publishedQuotes === "function"
               ? publishedQuotes(place.id)
               : reviewsFor(place.id).filter((row) => row.text && row.shownByBusiness);
+          const support = placeSupport(place);
+          const categoryName =
+            typeof CATEGORIES !== "undefined"
+              ? CATEGORIES.find((row) => row.id === place.category)?.label || place.category
+              : place.category;
+          const hoursText = services[0] && typeof hoursLabel === "function" ? hoursLabel(services[0]) : "";
+          const addressText = typeof placeAddress === "function" ? placeAddress(place) : cityLabel(place.city);
+          const waHref = support.whatsappEnabled
+            ? whatsappHref(support.whatsapp, `Hola, te consulto por ${place.name}`)
+            : "";
+          const mailHref =
+            support.emailEnabled && support.email
+              ? `mailto:${support.email}?subject=${encodeURIComponent(`Consulta · ${place.name}`)}`
+              : "";
+          const waButton = waHref
+            ? `<a class="ficha-wa" data-pixel-contact href="${waHref}" target="_blank" rel="noreferrer">
+                <span class="ficha-wa-mark">${typeof whatsappMarkSvg === "function" ? whatsappMarkSvg() : ""}</span>
+                <span class="ficha-wa-copy">
+                  <strong>Hablar con el local</strong>
+                  <span>WhatsApp · te responde ${place.name}</span>
+                </span>
+                <span class="ficha-wa-go" aria-hidden="true">Abrir</span>
+              </a>`
+            : "";
+          const mailButton = mailHref
+            ? `<a class="ficha-mail" data-pixel-contact href="${mailHref}">
+                <span class="ficha-mail-mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M4 6h16v12H4z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="m4 7 8 6 8-6"/></svg>
+                </span>
+                <span class="ficha-wa-copy">
+                  <strong>Escribir por correo</strong>
+                  <span>${support.email}</span>
+                </span>
+              </a>`
+            : "";
+
           const reviewsBlock = reviewQuotes.length
             ? `
               <section class="ficha-reviews" id="resenas" aria-label="Opiniones de clientes">
@@ -267,6 +303,25 @@
             </section>
 
             <div class="ficha-public-shell">
+              <aside class="ficha-aside" aria-label="Datos del local">
+                <div class="ficha-aside-card">
+                  <p class="ficha-contact-kicker">El local</p>
+                  <h2 class="ficha-aside-title">${place.name}</h2>
+                  <p class="ficha-aside-slug">turnoya.com/${place.slug}</p>
+                  <ul class="ficha-aside-facts">
+                    <li>${place.service}</li>
+                    <li>${cityLabel(place.city)}</li>
+                    ${categoryName ? `<li>${categoryName}</li>` : ""}
+                    <li>${addressText}</li>
+                    ${hoursText ? `<li>Horario ${hoursText}</li>` : ""}
+                  </ul>
+                  <div class="ficha-aside-actions">
+                    ${waButton || `<p class="meta">Este local todavía no cargó un WhatsApp de contacto.</p>`}
+                    ${mailButton}
+                  </div>
+                </div>
+              </aside>
+              <div class="ficha-public-main">
               ${reviewsBlock}
               ${
                 user
@@ -328,31 +383,17 @@
               <section class="band" id="cupones" hidden data-mvp="deferred"></section>
 
               <!-- Canales de contacto / Soporte -->
-              ${(() => {
-                const support = placeSupport(place);
-                if (!support.whatsappEnabled && !support.emailEnabled) return "";
-                return `
-                  <section class="ficha-contact" id="soporte">
-                    <p class="ficha-contact-kicker">Contacto directo</p>
-                    ${
-                      support.whatsappEnabled
-                        ? `<a class="ficha-wa" data-pixel-contact href="${whatsappHref(
-                            support.whatsapp,
-                            `Hola, te consulto por ${place.name}`,
-                          )}" target="_blank" rel="noreferrer">
-                            <span class="ficha-wa-mark">${typeof whatsappMarkSvg === "function" ? whatsappMarkSvg() : ""}</span>
-                            <span class="ficha-wa-copy">
-                              <strong>Hablar con el local</strong>
-                              <span>WhatsApp · te responde ${place.name}</span>
-                            </span>
-                            <span class="ficha-wa-go" aria-hidden="true">Abrir</span>
-                          </a>`
-                        : `<p class="band-lead">Este local todavía no cargó un WhatsApp de contacto.</p>`
-                    }
-                  </section>
-                `;
-              })()}
+              ${
+                waHref || mailHref
+                  ? `<section class="ficha-contact ficha-contact-mobile" id="soporte">
+                      <p class="ficha-contact-kicker">Contacto directo</p>
+                      ${waButton || `<p class="band-lead">Este local todavía no cargó un WhatsApp de contacto.</p>`}
+                      ${mailButton}
+                    </section>`
+                  : ""
+              }
 
+              </div>
             </div>
           `;
 

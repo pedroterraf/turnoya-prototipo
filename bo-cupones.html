@@ -32,7 +32,8 @@
       const params = new URLSearchParams(location.search);
       const id = params.get("id") || "oasis";
       requireOwner(id, `./bo-cupones.html?id=${id}`);
-      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const back = document.getElementById("back");
+      if (back) back.href = `./bo.html?id=${id}`;
 
       const place = findPlace(id);
       const services = placeServices(place);

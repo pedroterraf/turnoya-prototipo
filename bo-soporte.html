@@ -31,7 +31,8 @@
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       if (!requireOwner(id, `./bo-soporte.html?id=${id}`)) throw new Error("redirect");
-      document.getElementById("back").href = `./bo.html?id=${id}`;
+      const back = document.getElementById("back");
+      if (back) back.href = `./bo.html?id=${id}`;
       const place = findPlace(id);
       seedPlaceInbox(id);
 

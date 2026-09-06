@@ -900,6 +900,7 @@ function bindRail() {
       } else {
         label.textContent = open ? "Ocultar lista" : "Ver lista";
       }
+      toggle.setAttribute("aria-label", label.textContent);
     }
     if (body) {
       body.setAttribute("aria-hidden", String(!(open || !compact.matches)));
@@ -939,12 +940,26 @@ function bindRail() {
   function onRailDragMove(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
     const delta = drag.startY - event.clientY;
+    if (!drag.moved && drag.allowDownOnly && delta > 8) {
+      window.removeEventListener("pointermove", onRailDragMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+      drag = null;
+      return;
+    }
+    if (!drag.moved && drag.allowUpOnly && delta < -8) {
+      window.removeEventListener("pointermove", onRailDragMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointercancel", endDrag);
+      drag = null;
+      return;
+    }
     if (Math.abs(delta) < dragThresholdPx && !drag.moved) return;
     if (!drag.moved) {
       drag.moved = true;
       host.classList.remove("is-rail-searching");
       try {
-        toggle.setPointerCapture(event.pointerId);
+        drag.surface.setPointerCapture(event.pointerId);
       } catch {
         /* ignore */
       }
@@ -960,6 +975,7 @@ function bindRail() {
 
   function endDrag(event) {
     if (!drag || event.pointerId !== drag.pointerId) return;
+    const surface = drag.surface;
     window.removeEventListener("pointermove", onRailDragMove);
     window.removeEventListener("pointerup", endDrag);
     window.removeEventListener("pointercancel", endDrag);
@@ -971,36 +987,75 @@ function bindRail() {
         : rail.getBoundingClientRect().height;
     if (moved) {
       const travel = Math.abs(height - drag.startHeight);
-      if (travel < 48) cycleSnap();
-      else setRailSnap(nearestSnap(height));
+      if (drag.fromDock && drag.startHeight === 0) {
+        setRailSnap(nearestSnap(height));
+      } else if (travel < 48) {
+        cycleSnap();
+      } else {
+        setRailSnap(nearestSnap(height));
+      }
       syncRail();
     }
     try {
-      toggle.releasePointerCapture(event.pointerId);
+      surface.releasePointerCapture(event.pointerId);
     } catch {
       /* already released */
     }
     drag = moved ? { moved: true } : null;
   }
 
-  toggle.addEventListener("pointerdown", (event) => {
+  function beginRailDrag(event) {
     if (!compact.matches || event.button) return;
+    const dock = event.target.closest(".app-dock");
+    if (dock && railSnap() !== "closed") return;
+    const blocked = dock
+      ? event.target.closest("input, textarea, select")
+      : event.target.closest("input, textarea, select, a, #search-btn, .custom-dropdown");
+    if (blocked) return;
+    const scroller = document.querySelector(".map-home .rail-scroll");
+    const fromList = Boolean(event.target.closest(".rail-scroll"));
+    const expanded = railSnap() === "full";
+    if (fromList && expanded && scroller && scroller.scrollTop > 1) return;
     const startHeight = railSnap() === "closed" ? 0 : rail.getBoundingClientRect().height;
+    const surface = dock || event.currentTarget;
     drag = {
       pointerId: event.pointerId,
       startY: event.clientY,
       startHeight,
       moved: false,
+      surface,
+      fromDock: Boolean(dock),
+      allowUpOnly: Boolean(dock),
+      allowDownOnly: fromList && expanded && scroller && scroller.scrollTop <= 1,
     };
-    try {
-      toggle.setPointerCapture(event.pointerId);
-    } catch {
-      /* ignore */
+    if (surface === toggle) {
+      try {
+        toggle.setPointerCapture(event.pointerId);
+      } catch {
+        /* ignore */
+      }
     }
     window.addEventListener("pointermove", onRailDragMove, { passive: false });
     window.addEventListener("pointerup", endDrag);
     window.addEventListener("pointercancel", endDrag);
+  }
+
+  toggle.addEventListener("pointerdown", beginRailDrag);
+  body?.addEventListener("pointerdown", beginRailDrag);
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".app-dock")) return;
+    beginRailDrag(event);
   });
+  document.addEventListener(
+    "click",
+    (event) => {
+      if (!event.target.closest(".app-dock") || !drag?.moved) return;
+      event.preventDefault();
+      event.stopPropagation();
+      drag = null;
+    },
+    true,
+  );
 
   rail.addEventListener("transitionend", (event) => {
     if ((event.propertyName === "width" || event.propertyName === "height") && map) {

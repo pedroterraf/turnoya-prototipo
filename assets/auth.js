@@ -359,14 +359,20 @@ function mountOtp(form, onComplete, length = 6) {
   };
 }
 
+function ownerPlaceId() {
+  return currentOwner()?.placeId || ownedPlaceIds()[0] || new URLSearchParams(location.search).get("id") || "oasis";
+}
+
 function paintBoNav() {
   const page = (location.pathname.split("/").pop() || "").toLowerCase();
   const isBo =
     (page.startsWith("bo") && page !== "bo-login.html") || page === "negocio-resenas.html";
-  if (!isBo) return;
+  const isOwnerFicha = page === "ficha.html" && Boolean(currentOwner());
+  if (!isBo && !isOwnerFicha) return;
   document.body.classList.add("bo-page");
+  ensureBoTopbar();
   if (document.querySelector("[data-bo-nav]")) return;
-  const id = new URLSearchParams(location.search).get("id") || "oasis";
+  const id = new URLSearchParams(location.search).get("id") || ownerPlaceId();
   const bar = document.createElement("nav");
   bar.className = "bo-subnav";
   bar.setAttribute("data-bo-nav", "");
@@ -388,6 +394,37 @@ function paintBoNav() {
   const after = document.querySelector(".topbar");
   if (after) after.after(bar);
   else document.body.prepend(bar);
+}
+
+function ensureBoTopbar() {
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  topbar.querySelectorAll("a#back").forEach((node) => node.remove());
+  let nav = topbar.querySelector(".topbar-nav");
+  if (!nav) {
+    nav = document.createElement("nav");
+    nav.className = "topbar-nav";
+    topbar.append(nav);
+  }
+  if (!nav.querySelector("[data-theme-slot]")) {
+    const slot = document.createElement("span");
+    slot.className = "theme-slot";
+    slot.setAttribute("data-theme-slot", "");
+    nav.prepend(slot);
+  }
+  if (currentOwner() && !nav.querySelector("#out")) {
+    const out = document.createElement("button");
+    out.id = "out";
+    out.className = "btn btn-ghost";
+    out.type = "button";
+    out.textContent = "Salir";
+    out.addEventListener("click", () => {
+      const id = ownerPlaceId();
+      logoutOwner();
+      location.href = `./bo-login.html?id=${id}`;
+    });
+    nav.append(out);
+  }
 }
 
 function paintOpsNav() {

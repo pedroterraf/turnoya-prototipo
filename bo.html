@@ -13,7 +13,7 @@
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,720;12..96,800&family=Public+Sans:wght@400;650;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./assets/styles.css?v=motion1" />
+    <link rel="stylesheet" href="./assets/styles.css?v=motion10" />
   </head>
   <body class="sell bo-page">
     <header class="topbar">
@@ -45,20 +45,22 @@
       </div>
       <h3 class="bo-section-label">Para el piloto [MVP-CORE]</h3>
       <div class="bo-tiles">
-        <a class="bo-tile" data-mvp="core" id="l-agenda" href="./bo-agenda.html"><strong>Agenda</strong><span class="meta">Cargar, concretó, no vino, cancelar</span></a>
-        <a class="bo-tile" data-mvp="core" id="l-serv" href="./bo-servicios.html"><strong>Servicios</strong><span class="meta">Nombre, precio, duración, ¿cuántos a la vez?</span></a>
-        <a class="bo-tile" data-mvp="core" id="l-pay" href="./bo-pagos.html"><strong>Pagos y días</strong><span class="meta">Seña, MP del local, alias / CVU, horarios</span></a>
-        <a class="bo-tile" data-mvp="core" id="l-wpp" href="./bo-whatsapp.html"><strong>WhatsApp</strong><span class="meta">Bot de menú · número TurnoYa · tu línea para humanos</span></a>
-        <a class="bo-tile" data-mvp="core" id="l-land" href="./bo-landing.html"><strong>Ficha pública</strong><span class="meta">Foto y texto. El canvas queda para después</span></a>
+        <a class="bo-tile" data-mvp="core" data-feature-id="feat_agenda" id="l-agenda" href="./bo-agenda.html"><strong>Agenda</strong><span class="meta">Cargar, concretó, no vino, cancelar</span><span class="feature-id">feat_agenda</span></a>
+        <a class="bo-tile" data-mvp="core" data-feature-id="feat_services" id="l-serv" href="./bo-servicios.html"><strong>Servicios</strong><span class="meta">Nombre, precio, duración, ¿cuántos a la vez?</span><span class="feature-id">feat_services</span></a>
+        <a class="bo-tile" data-mvp="core" data-feature-id="feat_payments" id="l-pay" href="./bo-pagos.html"><strong>Pagos y días</strong><span class="meta">Seña, MP del local, alias / CVU, horarios</span><span class="feature-id">feat_payments</span></a>
+        <a class="bo-tile" data-mvp="core" data-feature-id="feat_wa_menu" id="l-wpp" href="./bo-whatsapp.html"><strong>WhatsApp</strong><span class="meta">Bot de menú o IA · tu línea para humanos</span><span class="feature-id">feat_wa_menu</span></a>
+        <a class="bo-tile" data-mvp="core" data-feature-id="feat_landing" id="l-land" href="./bo-landing.html"><strong>Ficha pública</strong><span class="meta">Foto y texto. El canvas queda para después</span><span class="feature-id">feat_landing</span></a>
       </div>
-      <h3 class="bo-section-label bo-section-later">⏳ Funcionalidades diferidas (Post-MVP · no desarrollar para piloto)</h3>
+      <h3 class="bo-section-label bo-section-later">Según el plan · cada módulo tiene un ID</h3>
+      <p class="meta">Calle trae lo del piloto. Barrio suma cupones, bandeja y reseñas. Ciudad suma CRM y bot con IA. Red desbloquea todo. La bandeja de consultas es lo que el bot no resolvió y pasó a una persona.</p>
       <div class="bo-tiles">
-        <a class="bo-tile is-later" data-mvp="deferred" id="l-caja" href="./bo-caja.html"><span class="later-tag">⏳ Post-MVP</span><strong>Caja y ARCA</strong><span class="meta">Facturas A/B/C</span></a>
-        <a class="bo-tile is-later" data-mvp="deferred" id="l-cup" href="./bo-cupones.html"><span class="later-tag">⏳ Post-MVP</span><strong>Cupones</strong><span class="meta">Descuento por código</span></a>
-        <a class="bo-tile is-later" data-mvp="deferred" id="l-sup" href="./bo-soporte.html"><span class="later-tag">⏳ Post-MVP</span><strong>Bandeja de consultas</strong><span class="meta">El bot ya cubre el WhatsApp del piloto</span></a>
-        <a class="bo-tile is-later" data-mvp="deferred" id="l-rev" href="./negocio-resenas.html"><span class="later-tag">⏳ Post-MVP</span><strong>Recomendaciones</strong><span class="meta">Curaduría de textos</span></a>
+        <a class="bo-tile" data-mvp="deferred" data-feature-id="feat_coupons" id="l-cup" href="./bo-cupones.html"><strong>Cupones</strong><span class="meta">Descuento por código</span><span class="feature-id">feat_coupons</span></a>
+        <a class="bo-tile" data-mvp="deferred" data-feature-id="feat_notifications" id="l-notify" href="./notificaciones.html?rol=dueno"><strong>Notificaciones</strong><span class="meta">Avisos de reserva, pago y cancelación</span><span class="feature-id">feat_notifications</span></a>
+        <a class="bo-tile" data-mvp="deferred" data-feature-id="feat_inbox" id="l-sup" href="./bo-soporte.html"><strong>Bandeja de consultas</strong><span class="meta">Chats que el bot pasó a un humano</span><span class="feature-id">feat_inbox</span></a>
+        <a class="bo-tile" data-mvp="deferred" data-feature-id="feat_reviews" id="l-rev" href="./negocio-resenas.html"><strong>Recomendaciones</strong><span class="meta">Qué reseñas se leen en la ficha</span><span class="feature-id">feat_reviews</span></a>
+        <a class="bo-tile" data-mvp="deferred" data-feature-id="feat_crm" id="l-crm" href="./bo-crm.html"><strong>CRM</strong><span class="meta">Mover clientes por pago, turno y celular o mail</span><span class="feature-id">feat_crm</span></a>
+        <a class="bo-tile is-later" data-mvp="deferred" data-feature-id="feat_caja" id="l-caja" href="./bo-caja.html"><span class="later-tag">⏳ Post-MVP</span><strong>Caja y ARCA</strong><span class="meta">Facturas A/B/C</span><span class="feature-id">feat_caja</span></a>
         <a class="bo-tile is-later" data-mvp="deferred" id="l-plan" href="./bo-plan.html"><span class="later-tag">⏳ Post-MVP</span><strong>Plan</strong><span class="meta">Calle, Barrio, Ciudad, Red</span></a>
-        <a class="bo-tile is-later" data-mvp="deferred" id="l-crm" href="./bo-crm.html"><span class="later-tag">⏳ Post-MVP</span><strong>CRM</strong><span class="meta">Pixel y embudo</span></a>
       </div>
     </main>
     <script src="./assets/store.js?v=motion1"></script>
@@ -93,15 +95,15 @@
         document.getElementById("title").textContent = `Backoffice · ${place.name}`;
         document.getElementById("ver").href = `./ficha.html?id=${id}`;
         seedPlaceAgenda(id);
-        const metrics = placeMetrics(id);
+        const metrics = typeof placeHealthMetrics === "function" ? placeHealthMetrics(id) : placeMetrics(id);
         document.getElementById("dash").innerHTML = `
           <div class="ops-stats">
-            <div class="ops-stat"><b>${money(metrics.cobrado)}</b><span class="meta">Recaudado del mes</span></div>
-            <div class="ops-stat"><b>${money(metrics.saldo)}</b><span class="meta">Saldo (pagaron el mínimo)</span></div>
-            <div class="ops-stat"><b>${money(metrics.reembolso)}</b><span class="meta">Cancelado</span></div>
-            <div class="ops-stat"><b>${metrics.concretados}/${metrics.turnos}</b><span class="meta">Concretados / turnos</span></div>
-            <div class="ops-stat"><b>${metrics.olvidado}</b><span class="meta">Olvidaron cobrar</span></div>
-            <div class="ops-stat"><b>${Math.max(0, metrics.concretados)}</b><span class="meta">Ausencias evitadas (piloto)</span></div>
+            <div class="ops-stat"><b>${money(metrics.cobrado)}</b><span class="meta">Cobrado del mes</span></div>
+            <div class="ops-stat"><b>${money(metrics.saldo)}</b><span class="meta">Saldo por cobrar</span></div>
+            <div class="ops-stat"><b>${metrics.hoy ?? 0}</b><span class="meta">Turnos de hoy</span></div>
+            <div class="ops-stat"><b>${metrics.ocupacionPct ?? 0}%</b><span class="meta">Ocupación (concretados)</span></div>
+            <div class="ops-stat"><b>${metrics.noShowPct ?? 0}%</b><span class="meta">No-show del mes</span></div>
+            <div class="ops-stat"><b>${metrics.recompra ?? 0}</b><span class="meta">Clientes que volvieron</span></div>
           </div>
           ${placeChartBlocks(id)}
           <div class="bo-actions">

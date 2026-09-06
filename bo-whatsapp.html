@@ -7,44 +7,53 @@
     <link rel="icon" href="./assets/favicon.svg?v=ty5" type="image/svg+xml" />
     <link rel="alternate icon" href="./assets/favicon.png?v=ty5" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="./assets/favicon.png?v=ty5" />
-    <link rel="stylesheet" href="./assets/styles.css?v=motion1" />
+    <link rel="stylesheet" href="./assets/styles.css?v=motion10" />
     <link
       href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,720&family=Public+Sans:wght@400;650&display=swap"
       rel="stylesheet"
     />
   </head>
-  <body class="sell">
+  <body class="sell bo-page">
     <header class="topbar">
       <a class="brand" href="./bo.html"><span class="brand-mark">TurnoYa</span></a>
-      <a id="back" href="./bo.html">Volver</a>
+      <nav class="topbar-nav">
+        <span class="theme-slot" data-theme-slot></span>
+      </nav>
     </header>
     <main class="band narrow">
       <p class="later-tag">MVP</p>
-      <h2>WhatsApp del local</h2>
+      <h2>Atención automática</h2>
       <p class="band-lead">
-        En el piloto el bot corre en el <strong>número compartido de TurnoYa</strong> (Cloud API oficial).
-        El cliente reserva por menú. Si pide una persona, lo mandamos a <em>tu</em> WhatsApp con un link.
-        No es el QR de WhatsApp Web.
+        El cliente escribe por WhatsApp u otro canal. El bot usa celular y mail como identificadores únicos,
+        mira servicios, agenda e historial de pagos, y deja el turno registrado aunque la persona no haya
+        entrado a la web.
       </p>
-      <article class="bo-panel mvp-banner">
-        <strong>Cómo habla el bot</strong>
-        <p>Tres botones: Servicios · Reservar · Hablar con el local. El horario se elige en el calendario web.</p>
-      </article>
+      <div class="wa-bot-grid">
+        <button class="wa-bot-card" type="button" data-mode="menu" id="mode-menu">
+          <span class="feature-id">feat_wa_menu</span>
+          <h3>Bot por opciones</h3>
+          <p class="meta">Menú fijo: Servicios, Reservar, Hablar con el local. Más barato. Ideal para el piloto.</p>
+        </button>
+        <button class="wa-bot-card" type="button" data-mode="ai" id="mode-ai">
+          <span class="feature-id">feat_wa_ai</span>
+          <h3>Bot con IA</h3>
+          <p class="meta">Lee el contexto del local (servicios y horarios). Pedí Ciudad o Red. Se configura con una API key.</p>
+        </button>
+      </div>
       <form id="form" class="review-form">
-        <p class="meta">Canal de la plataforma (no lo cambia el dueño)</p>
-        <label>Estado
-          <input value="Conectado · número TurnoYa compartido" disabled />
-        </label>
         <label>Tu WhatsApp para “hablar con el local”
           <input name="humano" placeholder="5493512345678" />
         </label>
-        <p class="meta">Ahí te llegan las conversaciones humanas. El bot se calla.</p>
-        <label><input type="checkbox" name="menu" checked /> Menú de botones (recomendado)</label>
-        <label><input type="checkbox" name="pdf" /> Mandar PDF de servicios además del link</label>
-        <p class="meta">El PDF se arma cuando guardás el menú, no en cada chat.</p>
-        <p class="meta">Después del piloto: tu propio número (Coexistence). No entra ahora.</p>
+        <p class="meta">Si pide una persona, el bot se calla y te manda el chat a este número.</p>
+        <div id="ai-box" hidden>
+          <label>API key (OpenAI u otro proveedor)
+            <input name="apikey" type="password" autocomplete="off" placeholder="sk-…" />
+          </label>
+          <p class="meta">Queda en este navegador, solo para el prototipo. No se manda a un servidor.</p>
+        </div>
+        <label><input type="checkbox" name="menu" checked /> Confirmar celular: “¿Tu número es este?”</label>
+        <label><input type="checkbox" name="mail" checked /> Pedir mail si no hay cuenta</label>
         <button class="btn btn-ticket" type="submit">Guardar</button>
-        <p id="msg" class="meta"></p>
       </form>
     </main>
     <script src="./assets/store.js?v=motion1"></script>
@@ -52,14 +61,42 @@
     <script src="./assets/reviews.js"></script>
     <script src="./assets/app.js?v=motion1"></script>
     <script src="./assets/booking.js"></script>
+    <script src="./assets/plans.js"></script>
     <script src="./assets/auth.js"></script>
+    <script src="./assets/site.js?v=motion10"></script>
     <script>
       const id = new URLSearchParams(location.search).get("id") || "oasis";
       if (!requireOwner(id, `./bo-whatsapp.html?id=${id}`)) throw new Error("redirect");
-      document.getElementById("back").href = `./bo.html?id=${id}`;
       const support = placeSupport(findPlace(id));
+      const storeKey = `turnoya-wa-bot-${id}`;
+      let saved = {};
+      try {
+        saved = JSON.parse(memoryGet(storeKey) || "{}");
+      } catch {
+        saved = {};
+      }
       const form = document.getElementById("form");
+      const aiBox = document.getElementById("ai-box");
       form.humano.value = (support.whatsapp || "").replace(/\D/g, "");
+      form.apikey.value = saved.apikey || "";
+      form.menu.checked = saved.confirmPhone !== false;
+      form.mail.checked = saved.askEmail !== false;
+      let mode = saved.mode === "ai" ? "ai" : "menu";
+
+      function syncMode() {
+        document.querySelectorAll(".wa-bot-card").forEach((card) => {
+          card.classList.toggle("is-on", card.dataset.mode === mode);
+        });
+        aiBox.hidden = mode !== "ai";
+      }
+      document.querySelectorAll(".wa-bot-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          mode = card.dataset.mode;
+          syncMode();
+        });
+      });
+      syncMode();
+
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         savePlaceSupport(id, {
@@ -67,9 +104,18 @@
           whatsappEnabled: true,
           whatsapp: form.humano.value,
         });
-        document.getElementById("msg").textContent = "Guardado. El bot sigue en el número de TurnoYa.";
+        memorySet(storeKey, JSON.stringify({
+          mode,
+          apikey: form.apikey.value,
+          confirmPhone: form.menu.checked,
+          askEmail: form.mail.checked,
+        }));
         if (typeof showAppToast === "function") {
-          showAppToast({ title: "WhatsApp guardado", tone: "success" });
+          showAppToast({
+            title: "Canal guardado",
+            body: mode === "ai" ? "Bot con IA listo para cuando el plan lo habilite." : "Bot por opciones activo en el piloto.",
+            tone: "success",
+          });
         }
       });
     </script>

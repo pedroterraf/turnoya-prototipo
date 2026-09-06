@@ -516,9 +516,15 @@ function paintAppDock() {
       icon: dockIcon("M6 9a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6Zm4 9a2 2 0 0 0 4 0"),
     },
     {
-      href: user ? "./perfil.html" : `./login.html?next=${next}`,
-      label: user ? "Perfil" : "Entrar",
-      on: page === "perfil.html",
+      href: typeof currentOwner === "function" && currentOwner()
+        ? `./bo.html?id=${currentOwner().placeId || (typeof ownedPlaceIds === "function" ? ownedPlaceIds()[0] : "") || "oasis"}`
+        : user
+          ? "./perfil.html"
+          : `./login.html?next=${next}`,
+      label: typeof currentOwner === "function" && currentOwner() ? "Empresa" : user ? "Perfil" : "Entrar",
+      on:
+        (typeof currentOwner === "function" && currentOwner() && page.startsWith("bo") && page !== "bo-login.html") ||
+        page === "perfil.html",
       icon: dockIcon("M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Zm-7 8a7 7 0 0 1 14 0"),
     },
   ];
@@ -655,7 +661,7 @@ function enhanceSelect(select) {
   }
 
   function pinTopbarMenu() {
-    if (!select.closest(".topbar")) {
+    if (!select.closest(".topbar, .agenda-modal")) {
       if (menu.parentElement !== wrap) wrap.appendChild(menu);
       menu.classList.remove("is-portaled");
       menu.style.removeProperty("top");

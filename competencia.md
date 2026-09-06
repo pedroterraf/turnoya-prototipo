@@ -220,12 +220,99 @@ Ahí “ampliamente mejor” significa: **misma facilidad, menos plata que se ll
 
 **Listo cuando:** en **una** ciudad hay suficientes pines del mismo rubro como para que “masaje cerca” no muestre dos locales.
 
+Producto de descubrimiento (recién con esa mancha):
+
 1. Mapa / lista por servicio + GPS (lo del prototipo).
 2. Destacado / Patrocinado **etiquetado** (no esconder quién pagó).
 3. Reseñas: solo califica quien concretó. El local elige textos, no el promedio.
 4. “Hoy hay hueco” cuando se cancela (rellena el día, no es un descuento escondido).
 
 Sin densidad, esto es un cementerio de pines. No adelantar.
+
+Hasta no tener **8–12 locales del mismo oficio en ~15 cuadras**, la demanda no se compra en Meta Ads ni se promete “te traemos clientes”. Booksy cobra 30% por eso; Fresha, 20% del primer turno del marketplace. Nosotros no tenemos esa red. La demanda barata se **pide prestada** a la agenda que el local ya tiene.
+
+Hay dos ventas. Primero el negocio. Después, que *sus* clientes reserven solos.
+
+#### Qué no conviene (todavía)
+
+- Ads de Meta/Google para “encontrar un turno cerca”: sin densidad tirás plata.
+- Influencers grandes, stands en ferias, app en stores.
+- Prometer clientes nuevos. Eso es el negocio de ellos, no el del piloto.
+- WhatsApp frío a 200 dueños: spam y número quemado.
+
+#### Cómo ganarte al dueño
+
+Frase que cierra: *“La seña va a tu Mercado Pago. En 20 minutos te dejo el link en el Instagram. Si en 30 días volvés al cuaderno, no pasa nada.”*
+
+Hacelo vos, no le pidas que “pruebe la plataforma”:
+
+1. Cargá sus 4–6 servicios y horarios.
+2. Pasá a la agenda los turnos de *esta* semana (los que ya tiene en WhatsApp).
+3. Poné el link en el bio, en el mensaje automático de WhatsApp y en una nota de estado.
+4. El primer no-show que evite con seña, mostráselo en pesos.
+
+Si no le ahorrás una hora el día 1, no vuelve.
+
+**A quién ir primero:** un rubro + un barrio (barberías en Güemes, no “servicios de Córdoba”). 8 del mismo oficio se copian. 8 rubros distintos no. Visitar en el hueco de la siesta, con el celular en la mano.
+
+#### Canal del local (gratis: es el 80% de la demanda)
+
+| Dónde | Qué hacer |
+| --- | --- |
+| Bio de Instagram | `turnoya.com/su-local` en vez de “escribinos” |
+| Respuesta automática de WhatsApp | “Para reservar: [link]. Si es urgente, escribí acá.” |
+| Estado de WhatsApp | Foto del QR + “sacá turno acá” |
+| Google Business | Botón Reservar = el mismo link |
+| Mostrador | QR en el vidrio, la caja o la tarjeta |
+| Historia de IG | El dueño, 15 s: “ya no me escriban ‘tenés lugar?’” |
+
+Cada reserva por el link es demanda que **vos no pagaste**. Medí % de turnos autogestionados vs los que él carga a mano.
+
+#### Que el dueño haga el marketing
+
+- Un Reel de 20 s en el local: “me anotaban en un cuaderno, ahora pagan seña y no faltan”.
+- Cuando se libere un hueco: “se canceló las 18, el link está en el bio”. Eso es “hoy hay hueco” *antes* del mapa.
+
+#### Círculo de dueños (barato)
+
+- “Traé otro local del barrio y los dos tienen 30 días más.”
+- Community managers que manejan 8 cuentas de belleza: alta hecha, ellos ponen el link.
+- Proveedores del rubro (color, camillas, navajas): hojita en el mayorista.
+- Grupos de dueños (barberías Córdoba, kinesios): un post útil (“Turnito se come 5% de la seña”), no un anuncio.
+
+#### Comparación en una servilleta
+
+80 señas de $10.000 × 5% de Turnito = **$40.000/mes**. TurnoYa: $0 de comisión. Esa es la pauta. Si ya usa Turnito: “te dejo 0% y te migro la semana”. Si usa solo WhatsApp: “te dejo de perder los que no confirman”.
+
+#### Microplata (si sobran $10–20 mil, no $200 mil)
+
+- 5 dueños con 2–8 mil seguidores en *ese* barrio: seña o un mes, no cache.
+- Boost de Instagram **del local**, no de TurnoYa: $3–5 mil a “reservá acá” con *su* cara. El click va a su ficha.
+- 50 QR en una gráfica de barrio.
+
+#### Demanda de red (solo con la mancha)
+
+Cuando haya 8–12 del mismo rubro en 15 cuadras:
+
+- Una historia compartida: “turno de corte en Güemes — 6 locales”. Eso sí se puede impulsar barato.
+- Google: “corte de pelo Nueva Córdoba” → fichas, no la home de TurnoYa.
+- Boca a boca: “reservá en el link, no le escribas a las 23”.
+
+#### Script de 90 segundos (puerta)
+
+“¿Cuántos te fallan por semana? ¿Cuánto es una seña? Si cobrás seña por Turnito, ellos se quedan un 5%. Acá va a tu Mercado Pago. En 20 minutos te dejo el link en el Instagram. El cliente no instala nada. Si quiere hablar, sigue siendo tu WhatsApp. Esta semana te cargo los turnos yo. ¿Lo hacemos ahora?”
+
+Si dice que no tiene tiempo: **ese** es el producto. No le dejes tarea.
+
+#### Orden práctico (2 personas, 0 pauta)
+
+1. Elegí un barrio + un oficio.
+2. Cerrá 5 locales a pie, alta hecha el mismo día.
+3. Dos semanas: link en bio + WhatsApp + QR. Contá reservas solas y no-shows.
+4. Con 3 historias reales (“me ahorré 2 faltas”), pedí que te presenten al de al lado.
+5. Recién ahí pensá $ en ads, y que sean **del local**, no tuyos.
+
+TurnoYa, al principio, es el caño. La canilla es el Instagram y el WhatsApp del dueño.
 
 ### Fase D — Red y automatización (después de que paguen)
 
